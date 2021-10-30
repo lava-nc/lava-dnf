@@ -28,17 +28,19 @@ class TestPopulationSubProcessModel(unittest.TestCase):
         population = Population()
         pm = PopulationSubProcessModel(population)
 
-        # check whether the InPort 'a_in' is connected
-        self.assertTrue(pm.neurons.in_ports.a_in in
-                        population.in_ports.a_in.get_dst_ports())
-        self.assertTrue(population.in_ports.a_in in
-                        pm.neurons.in_ports.a_in.get_src_ports())
+        # check whether the InPort of Population is connected to the
+        # Inport of LIF
+        pop_ip = population.in_ports.a_in
+        lif_ip = pm.neurons.in_ports.a_in
+        self.assertEqual(pop_ip.out_connections, [lif_ip])
+        self.assertEqual(lif_ip.in_connections, [pop_ip])
 
-        # check whether the OutPort 's_out' is connected
-        self.assertTrue(pm.neurons.out_ports.s_out in
-                        population.out_ports.s_out.get_src_ports())
-        self.assertTrue(population.out_ports.s_out in
-                        pm.neurons.out_ports.s_out.get_dst_ports())
+        # check whether the OutPort of LIF is connected
+        # to the OutPort of Population
+        lif_op = pm.neurons.out_ports.s_out
+        pop_op = population.out_ports.s_out
+        self.assertEqual(lif_op.out_connections, [pop_op])
+        self.assertEqual(pop_op.in_connections, [lif_op])
 
 
 class TestTauToDecay(unittest.TestCase):

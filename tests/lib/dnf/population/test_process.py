@@ -5,10 +5,13 @@
 import unittest
 
 from lava.magma.core.process.ports.ports import InPort, OutPort
+from lava.magma.core.run_conditions import RunSteps
+from lava.magma.core.run_configs import Loihi1SimCfg
+
 from lib.dnf.population.process import Population
 
 
-class TestPopulations(unittest.TestCase):
+class TestPopulation(unittest.TestCase):
     def test_init(self):
         """Tests whether a population process can be initiated."""
         population = Population()
@@ -39,6 +42,16 @@ class TestPopulations(unittest.TestCase):
         self.assertIsInstance(population.out_ports.s_out, OutPort)
         self.assertEqual(population.in_ports.a_in.shape, shape)
         self.assertEqual(population.out_ports.s_out.shape, shape)
+
+    def test_running(self):
+        """Tests whether a Population process can be executed."""
+        num_steps = 10
+        population = Population(shape=(5, 3))
+        population.run(condition=RunSteps(num_steps=num_steps),
+                       run_cfg=Loihi1SimCfg(select_sub_proc_model=True))
+        population.stop()
+
+        self.assertEqual(population.runtime.current_ts, num_steps)
 
 
 if __name__ == '__main__':

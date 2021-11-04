@@ -4,13 +4,15 @@
 
 import unittest
 import numpy as np
+import itertools
 
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.magma.core.process.process import AbstractProcess
 
-from lib.dnf.connect.connect import connect, validate_ops
+from lib.dnf.connect.connect import connect, validate_ops, configure_ops
 from lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
 from lib.dnf.operations.operations import AbstractOperation
+from lib.dnf.utils.convenience import num_neurons, num_dims
 
 
 class MockProcess(AbstractProcess):
@@ -23,12 +25,21 @@ class MockProcess(AbstractProcess):
 
 class MockOperation(AbstractOperation):
     """Mock Operation that generates an identity matrix as weights"""
-    def __init__(self, shape=(1, 1)):
+    def __init__(self, input_shape=(1,), output_shape=(1,)):
         super().__init__()
-        self.shape = shape
+        self.input_shape = input_shape
+        self.output_shape = output_shape
 
-    def compute_weights(self):
-        return np.eye(self.shape[0], self.shape[1], dtype=np.int32)
+    def _compute_weights(self):
+        return np.eye(num_neurons(self.input_shape),
+                      num_neurons(self.output_shape),
+                      dtype=np.int32)
+
+    def _validate_configuration(self) -> bool:
+        if self.input_shape == self.output_shape:
+            return True
+        else:
+            return False
 
 
 class TestConnect(unittest.TestCase):
@@ -37,15 +48,16 @@ class TestConnect(unittest.TestCase):
         import lib
         self.assertTrue(callable(getattr(lib.dnf.connect.connect, 'connect')))
 
-    def test_connecting_source_and_target(self):
-        """Tests connecting a source Process to a target Process."""
+    def test_connecting_source_and_destination(self):
+        """Tests connecting a source Process to a destination Process."""
         # create mock processes and an operation to connect
         source = MockProcess(shape=(1, 2, 3))
-        target = MockProcess(shape=(1, 2, 3))
-        op = MockOperation(shape=(6, 6))
+        destination = MockProcess(shape=(1, 2, 3))
+        op = MockOperation(input_shape=source.s_out.shape,
+                           output_shape=destination.a_in.shape)
 
         # connect source to target
-        connections = connect(source.s_out, target.a_in, ops=[op])
+        connections = connect(source.s_out, destination.a_in, ops=[op])
 
         # check whether the connect function returns a process
         self.assertIsInstance(connections, AbstractProcess)
@@ -58,9 +70,9 @@ class TestConnect(unittest.TestCase):
 
         # check whether 'connections' is connected to 'target'
         con_op = connections.out_ports.a_out
-        trg_op = target.in_ports.a_in
-        self.assertEqual(con_op.get_dst_ports(), [trg_op])
-        self.assertEqual(trg_op.get_src_ports(), [con_op])
+        dst_op = destination.in_ports.a_in
+        self.assertEqual(con_op.get_dst_ports(), [dst_op])
+        self.assertEqual(dst_op.get_src_ports(), [con_op])
 
 
 class TestValidateOps(unittest.TestCase):
@@ -81,7 +93,7 @@ class TestValidateOps(unittest.TestCase):
 
     def test_single_operation_can_be_passed_in_as_ops(self):
         """Tests whether a single operation is wrapped into a list."""
-        ops = validate_ops(ops=MockOperation(shape=(1,)),
+        ops = validate_ops(ops=MockOperation(),
                            src_shape=(1,),
                            dst_shape=(1,))
         self.assertIsInstance(ops, list)
@@ -209,6 +221,102 @@ class TestValidateOps(unittest.TestCase):
                          dst_shape=(3, 5),
                          ops=[MockOperation()])
         self.assertEqual(context.exception.missing_op, "reorders_shape=True")
+
+
+class TestConfigureOps(unittest.TestCase):
+    def test_configuring_multiple_ops_that_do_not_change_shape(self):
+        """Tests whether the function configures all operations in a list
+        if these operations do not change the incoming shape."""
+        ops = [MockOperation(), MockOperation(), MockOperation()]
+        configure_ops(ops, src_shape=(1, 2, 3), dst_shape=(1, 2, 3))
+        for op in ops:
+            self.assertTrue(op._is_configured)
+
+    def test_configuring_multiple_ops_including_one_that_changes_dim(self):
+        """Tests whether the function configures all operations in a list
+        if one of them changes the dimensionality of the incoming shape."""
+
+        class MockProjection(MockOperation):
+            """Mock Projection operation"""
+            def __init__(self):
+                super().__init__()
+                self.changes_dim = True
+
+            def _validate_configuration(self) -> bool:
+                if num_dims(self.input_shape) != num_dims(self.output_shape):
+                    return True
+                else:
+                    return False
+
+        src_shape = (1, 2, 3)
+        dst_shape = (1, 2)
+
+        ops = [MockOperation(),
+               MockProjection(),
+               MockOperation()]
+        configure_ops(ops, src_shape=src_shape, dst_shape=dst_shape)
+        for op in ops:
+            self.assertTrue(op._is_configured)
+
+    def test_configuring_multiple_ops_including_one_that_changes_size(self):
+        """Tests whether the function configures all operations in a list
+        if one of them changes the size of the incoming shape."""
+
+        class MockResize(MockOperation):
+            """Mock Projection operation"""
+            def __init__(self):
+                super().__init__()
+                self.changes_size = True
+
+            def _validate_configuration(self) -> bool:
+                valid = False
+
+                if num_dims(self.input_shape) == num_dims(self.output_shape):
+                    for si, so in zip(self.input_shape, self.output_shape):
+                        if si != so:
+                            valid = True
+
+                return valid
+
+        src_shape = (2, 3)
+        dst_shape = (2, 4)
+
+        ops = [MockOperation(),
+               MockResize(),
+               MockOperation()]
+        configure_ops(ops, src_shape=src_shape, dst_shape=dst_shape)
+        for op in ops:
+            self.assertTrue(op._is_configured)
+
+    def test_configuring_multiple_ops_including_one_that_reorders_shape(self):
+        """Tests whether the function configures all operations in a list
+        if one of them reorders the incoming shape."""
+
+        class MockReorder(MockOperation):
+            """Mock Reorder operation"""
+            def __init__(self):
+                super().__init__()
+                self.reorders_shape = True
+
+            def _validate_configuration(self) -> bool:
+                valid = False
+
+                if num_dims(self.input_shape) == num_dims(self.output_shape):
+                    if self.output_shape in \
+                            list(itertools.permutations(self.input_shape)):
+                        valid = True
+
+                return valid
+
+        src_shape = (3, 5)
+        dst_shape = (5, 3)
+
+        ops = [MockOperation(),
+               MockReorder(),
+               MockOperation()]
+        configure_ops(ops, src_shape=src_shape, dst_shape=dst_shape)
+        for op in ops:
+            self.assertTrue(op._is_configured)
 
 
 if __name__ == '__main__':

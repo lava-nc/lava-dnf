@@ -12,6 +12,7 @@ from lava.magma.core.process.ports.ports import InPort, OutPort
 
 from lib.dnf.operations.operations import AbstractOperation
 from lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
+from lib.dnf.utils.convenience import num_dims
 
 
 def connect(src_op: OutPort,
@@ -52,12 +53,12 @@ def connect(src_op: OutPort,
         process containing the connections between <src_op> and <dst_ip>
 
     """
-
     # validate the list of operations, including validation against the shapes
     # of the source and destination ports
-    ops = validate_ops(ops,
-                       src_op.shape,
-                       dst_ip.shape)
+    ops = validate_ops(ops, src_op.shape, dst_ip.shape)
+
+    # configure all operations in the <ops> list with input and output shape
+    configure_ops(ops, src_op.shape, dst_ip.shape)
 
     weights = ops[0].compute_weights()
     connections = Dense(shape=weights.shape,
@@ -71,6 +72,32 @@ def connect(src_op: OutPort,
     con_op.connect(dst_ip)
 
     return connections
+
+
+def configure_ops(
+        ops: ty.List[AbstractOperation],
+        src_shape: ty.Tuple[int, ...],
+        dst_shape: ty.Tuple[int, ...]
+):
+    # we go from the source through all operations and memorize the output
+    # shape of the last operation (here, the source)
+    prev_output_shape = src_shape
+
+    # for every operation in the list of operations
+    for op in ops:
+        # set the input of the current operation to the incoming shape
+        # (also, initialize output shape to the same value)
+        input_shape = output_shape = prev_output_shape
+
+        # if the current operation changes the shape ...
+        if op.changes_dim or op.changes_size or op.reorders_shape:
+            # ... its output shape to the shape of the destination ...
+            output_shape = dst_shape
+            # ... then update <prev_output_shape>
+            prev_output_shape = output_shape
+
+        # configure the current operation with input and output shape
+        op.configure(input_shape, output_shape)
 
 
 def validate_ops(
@@ -106,8 +133,8 @@ def validate_ops(
 
     # if the shape of the source OutPort differs from the destination InPort ...
     if src_shape != dst_shape:
-        # ... and the shapes differ in length ...
-        if len(src_shape) != len(dst_shape):
+        # ... and the shapes differ in dimensionality ...
+        if num_dims(src_shape) != num_dims(dst_shape):
             # ... check whether a projection has been specified.
             if not np.any([op.changes_dim for op in ops]):
                 raise MissingOpError("changes_dim=True")

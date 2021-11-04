@@ -4,7 +4,7 @@
 
 import unittest
 
-from lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
+from lava.lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
 
 
 class TestMissingOpError(unittest.TestCase):

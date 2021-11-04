@@ -9,7 +9,7 @@ from lava.magma.core.model.sub.model import AbstractSubProcessModel
 from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
 from lava.magma.core.decorator import implements
 
-from lib.dnf.population.process import Population
+from lava.lib.dnf.population.process import Population
 
 
 @implements(proc=Population, protocol=LoihiProtocol)

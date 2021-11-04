@@ -10,9 +10,9 @@ from lava.magma.core.process.process import AbstractProcess
 from lava.proc.dense.models import Dense
 from lava.magma.core.process.ports.ports import InPort, OutPort
 
-from lib.dnf.operations.operations import AbstractOperation
-from lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
-from lib.dnf.utils.convenience import num_dims
+from lava.lib.dnf.operations.operations import AbstractOperation
+from lava.lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
+from lava.lib.dnf.utils.convenience import num_dims
 
 
 def connect(src_op: OutPort,

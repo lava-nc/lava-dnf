@@ -8,7 +8,7 @@ from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.magma.core.run_conditions import RunSteps
 from lava.magma.core.run_configs import Loihi1SimCfg
 
-from lib.dnf.population.process import Population
+from lava.lib.dnf.population.process import Population
 
 
 class TestPopulation(unittest.TestCase):

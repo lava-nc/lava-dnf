@@ -4,7 +4,7 @@
 
 import unittest
 
-from lib.dnf.utils.convenience import num_neurons, num_dims
+from lava.lib.dnf.utils.convenience import num_neurons, num_dims
 
 
 class TestNumNeurons(unittest.TestCase):

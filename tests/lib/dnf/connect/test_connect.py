@@ -9,10 +9,10 @@ import itertools
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.magma.core.process.process import AbstractProcess
 
-from lib.dnf.connect.connect import connect, validate_ops, configure_ops
-from lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
-from lib.dnf.operations.operations import AbstractOperation
-from lib.dnf.utils.convenience import num_neurons, num_dims
+from lava.lib.dnf.connect.connect import connect, validate_ops, configure_ops
+from lava.lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
+from lava.lib.dnf.operations.operations import AbstractOperation
+from lava.lib.dnf.utils.convenience import num_neurons, num_dims
 
 
 class MockProcess(AbstractProcess):
@@ -45,8 +45,9 @@ class MockOperation(AbstractOperation):
 class TestConnect(unittest.TestCase):
     def test_connect_function_exists_and_is_callable(self):
         """Tests whether the connect function exists and is callable."""
-        import lib
-        self.assertTrue(callable(getattr(lib.dnf.connect.connect, 'connect')))
+        import lava
+        self.assertTrue(callable(getattr(lava.lib.dnf.connect.connect,
+                                         'connect')))
 
     def test_connecting_source_and_destination(self):
         """Tests connecting a source Process to a destination Process."""

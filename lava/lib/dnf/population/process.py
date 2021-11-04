@@ -5,7 +5,7 @@
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import InPort, OutPort
 
-from lib.dnf.utils.validation import validate_shape
+from lava.lib.dnf.utils.validation import validate_shape
 
 
 class Population(AbstractProcess):

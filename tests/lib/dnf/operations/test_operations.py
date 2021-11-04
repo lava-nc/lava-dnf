@@ -6,7 +6,7 @@ import unittest
 import typing as ty
 import numpy as np
 
-from lib.dnf.operations.operations import AbstractOperation
+from lava.lib.dnf.operations.operations import AbstractOperation
 
 
 class MockOperation(AbstractOperation):

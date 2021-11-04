@@ -4,7 +4,7 @@
 
 import unittest
 
-from lib.dnf.utils.validation import validate_shape
+from lava.lib.dnf.utils.validation import validate_shape
 
 
 class TestValidateShape(unittest.TestCase):

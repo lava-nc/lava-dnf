@@ -5,8 +5,8 @@
 import unittest
 
 from lava.proc.lif.process import LIF
-from lib.dnf.population.process import Population
-from lib.dnf.population.models import PopulationSubProcessModel
+from lava.lib.dnf.population.process import Population
+from lava.lib.dnf.population.models import PopulationSubProcessModel
 
 
 class TestPopulationSubProcessModel(unittest.TestCase):

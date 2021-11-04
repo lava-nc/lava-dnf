@@ -9,7 +9,8 @@ import itertools
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.magma.core.process.process import AbstractProcess
 
-from lava.lib.dnf.connect.connect import connect, validate_ops, configure_ops
+from lava.lib.dnf.connect.connect import connect, validate_ops, configure_ops,\
+    compute_weights
 from lava.lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
 from lava.lib.dnf.operations.operations import AbstractOperation
 from lava.lib.dnf.utils.convenience import num_neurons, num_dims
@@ -283,6 +284,45 @@ class TestConfigureOps(unittest.TestCase):
         configure_ops(ops, src_shape=src_shape, dst_shape=dst_shape)
         for op in ops:
             self.assertTrue(op._is_configured)
+
+
+class TestComputeWeights(unittest.TestCase):
+    def test_weights_from_multiple_ops_get_multiplied(self):
+        """Tests whether compute_weights() multiplies the weights that are
+        produced by all specified operations."""
+
+        class MockOpWeights(MockOperation):
+            """Mock Operation that generates an identity matrix with a given
+            weight."""
+
+            def __init__(self,
+                         input_shape,
+                         output_shape,
+                         weight):
+                super().__init__(input_shape=input_shape,
+                                 output_shape=output_shape)
+                self.weight = weight
+
+            def _compute_weights(self):
+                return np.eye(num_neurons(self.input_shape),
+                              num_neurons(self.output_shape),
+                              dtype=np.int32) * self.weight
+
+        shape = (5, 3)
+        w1 = 2
+        w2 = 4
+        op1 = MockOpWeights(shape, shape, weight=w1)
+        op1._is_configured = True
+        op2 = MockOpWeights(shape, shape, weight=w2)
+        op2._is_configured = True
+        ops = [op1, op2]
+
+        computed_weights = compute_weights(ops)
+        expected_weights = np.eye(num_neurons(shape),
+                                  num_neurons(shape),
+                                  dtype=np.int32) * w1 * w2
+
+        self.assertTrue(np.array_equal(computed_weights, expected_weights))
 
 
 if __name__ == '__main__':

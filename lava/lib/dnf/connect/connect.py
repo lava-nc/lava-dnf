@@ -60,16 +60,13 @@ def connect(src_op: OutPort,
     # configure all operations in the <ops> list with input and output shape
     configure_ops(ops, src_op.shape, dst_ip.shape)
 
-    weights = ops[0].compute_weights()
-    connections = Dense(shape=weights.shape,
-                        weights=weights)
+    # compute the connectivity matrix of each operation and multiply them
+    # into a single matrix <weights> that will be used for the Process
+    weights = compute_weights(ops)
 
-    # make connections from the source port to the connections process
-    src_op_flat = src_op.reshape(connections.in_ports.s_in.shape)
-    src_op_flat.connect(connections.in_ports.s_in)
-    # make connections from the connections process to the destination port
-    con_op = connections.out_ports.a_out.reshape(dst_ip.shape)
-    con_op.connect(dst_ip)
+    # create connections process and connect it:
+    # source -> connections -> destination
+    connections = make_connections(src_op, dst_ip, weights)
 
     return connections
 
@@ -216,3 +213,74 @@ def validate_ops(
                                   "supported")
 
     return ops
+
+
+def compute_weights(ops: ty.List[AbstractOperation]) -> np.ndarray:
+    """
+    Compute the overall connectivity matrix to be used for the Connections
+    Process from the individual connectivity matrices that each operation
+    produces.
+
+    Parameters
+    ----------
+    ops : list(AbstractOperation)
+        list of operations
+
+    Returns
+    -------
+    weights : np.ndarray
+
+    """
+    # initialize overall weights
+    weights = None
+
+    # for every operation
+    for op in ops:
+        # compute the weights of the current operation ...
+        op_weights = op.compute_weights()
+
+        if weights is None:
+            weights = op_weights
+        # ... and multiply it with the connectivity matrix from the last
+        # operations in the list to create the overall weights matrix
+        else:
+            weights = np.matmul(op_weights, weights)
+
+    return weights
+
+
+def make_connections(src_op: OutPort,
+                     dst_ip: InPort,
+                     weights: np.ndarray) -> AbstractProcess:
+    """
+    Creates a Connections Process with the given weights and connects its
+    ports such that
+    source-OutPort -> connections-InPort and
+    connections-InPort -> destination-OutPort
+
+    Parameters
+    ----------
+    src_op : OutPort
+        OutPort of the source Process
+    dst_ip : InPort
+        InPort of the destination Process
+    weights : numpy.ndarray
+        connectivity weight matrix used for the Connections Process
+
+    Returns
+    -------
+    Connections Process : AbstractProcess
+
+    """
+    # create the connections process
+    connections = Dense(shape=weights.shape,
+                        weights=weights)
+
+    # make connections from the source port to the connections process
+    src_op_flat = src_op.reshape(connections.in_ports.s_in.shape)
+    src_op_flat.connect(connections.in_ports.s_in)
+    # make connections from the connections process to the destination port
+    con_op = connections.out_ports.a_out.reshape(dst_ip.shape)
+    con_op.connect(dst_ip)
+
+    return connections

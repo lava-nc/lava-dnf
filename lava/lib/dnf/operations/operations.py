@@ -114,3 +114,29 @@ class AbstractOperation(ABC):
 
         """
         pass
+
+
+class Weights(AbstractOperation):
+    """
+    Operation that generates one-to-one connectivity with given weights for
+    every synapse.
+
+    Parameters
+    ----------
+    weight : float
+        weight used for every connection
+
+    """
+    def __init__(self, weight: float):
+        super().__init__()
+        self.weight = weight
+
+    def _compute_weights(self) -> np.ndarray:
+        return np.eye(num_neurons(self.output_shape),
+                      num_neurons(self.input_shape),
+                      dtype=np.int32) * self.weight
+
+    def _validate_configuration(self):
+        # check that input and output shape matches
+        if self.input_shape != self.output_shape:
+            raise MisconfiguredOpError("Input and output shape must match")

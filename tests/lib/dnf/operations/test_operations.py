@@ -38,5 +38,33 @@ class TestAbstractOperation(unittest.TestCase):
         self.assertEqual(computed_weights, expected_weights)
 
 
+class TestWeights(unittest.TestCase):
+    def test_init(self):
+        """Tests whether a Weights operation can be instantiated."""
+        weights_op = Weights(weight=5.0)
+        self.assertIsInstance(weights_op, Weights)
+
+    def test_compute_weights(self):
+        """Tests whether computing weights produces the expected result."""
+        w = 5.0
+        weights_op = Weights(weight=w)
+        shape = (5, 3)
+        weights_op.configure(shape, shape)
+
+        computed_weights = weights_op.compute_weights()
+        expected_weights = np.eye(num_neurons(shape),
+                                  num_neurons(shape),
+                                  dtype=np.int32) * w
+
+        self.assertTrue(np.array_equal(computed_weights, expected_weights))
+
+    def test_unequal_input_and_output_shape_raises_error(self):
+        """Tests whether an error is raise by the validation of the operation
+        when the input shape is not the same as the output shape."""
+        weights_op = Weights(weight=5.0)
+        with self.assertRaises(MisconfiguredOpError):
+            weights_op.configure(input_shape=(5, 3), output_shape=(5, 4))
+
+
 if __name__ == '__main__':
     unittest.main()

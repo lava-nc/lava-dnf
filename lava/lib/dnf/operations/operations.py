@@ -22,7 +22,13 @@ class AbstractOperation(ABC):
                   input_shape: ty.Tuple[int, ...],
                   output_shape: ty.Tuple[int, ...]):
         self._configure(input_shape, output_shape)
-        self._is_configured = self._validate_configuration()
+        valid_configuration = self._validate_configuration()
+
+        if valid_configuration:
+            self._is_configured = True
+        else:
+            raise ValueError("configuration of operation is invalid; check "
+                             "input_shape and output_shape")
 
     def compute_weights(self) -> np.ndarray:
         if not self._is_configured:

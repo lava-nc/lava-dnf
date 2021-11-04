@@ -9,8 +9,7 @@ import itertools
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.magma.core.process.process import AbstractProcess
 
-from lava.lib.dnf.connect.connect import connect, validate_ops, configure_ops,\
-    compute_weights
+from lava.lib.dnf.connect.connect import connect
 from lava.lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
 from lava.lib.dnf.operations.operations import AbstractOperation
 from lava.lib.dnf.utils.convenience import num_neurons, num_dims
@@ -18,7 +17,7 @@ from lava.lib.dnf.utils.convenience import num_neurons, num_dims
 
 class MockProcess(AbstractProcess):
     """Mock Process with an InPort and OutPort"""
-    def __init__(self, shape):
+    def __init__(self, shape=(1,)):
         super().__init__()
         self.a_in = InPort(shape)
         self.s_out = OutPort(shape)
@@ -32,8 +31,8 @@ class MockOperation(AbstractOperation):
         self.output_shape = output_shape
 
     def _compute_weights(self):
-        return np.eye(num_neurons(self.input_shape),
-                      num_neurons(self.output_shape),
+        return np.eye(num_neurons(self.output_shape),
+                      num_neurons(self.input_shape),
                       dtype=np.int32)
 
     def _validate_configuration(self) -> bool:
@@ -122,12 +121,10 @@ class TestConnect(unittest.TestCase):
         self.assertEqual(con_op.get_dst_ports(), [dst_op])
         self.assertEqual(dst_op.get_src_ports(), [con_op])
 
-
-class TestValidateOps(unittest.TestCase):
     def test_empty_operations_list_raises_value_error(self):
         """Tests whether an empty <ops> argument raises a value error."""
         with self.assertRaises(ValueError):
-            validate_ops(ops=[], src_shape=(1,), dst_shape=(1,))
+            connect(MockProcess().s_out, MockProcess().a_in, ops=[])
 
     def test_ops_list_containing_invalid_type_raises_type_error(self):
         """Tests whether the type of all elements in <ops> is validated."""
@@ -135,158 +132,149 @@ class TestValidateOps(unittest.TestCase):
             pass
 
         with self.assertRaises(TypeError):
-            validate_ops(ops=[MockOperation(), NotAnOperation()],
-                         src_shape=(1,),
-                         dst_shape=(1,))
+            connect(MockProcess().s_out,
+                    MockProcess().a_in,
+                    ops=[MockOperation(), NotAnOperation()])
 
     def test_single_operation_can_be_passed_in_as_ops(self):
         """Tests whether a single operation is wrapped into a list."""
-        ops = validate_ops(ops=MockOperation(),
-                           src_shape=(1,),
-                           dst_shape=(1,))
-        self.assertIsInstance(ops, list)
-        self.assertIsInstance(ops[0], MockOperation)
+        connect(MockProcess().s_out,
+                MockProcess().a_in,
+                ops=MockOperation())
 
     def test_duplicate_operations_changing_dim_raises_error(self):
         """Tests whether an exception is raised when the user specifies
         multiple operations that change the dimensionality."""
         with self.assertRaises(DuplicateOpError) as context:
-            validate_ops(src_shape=(2, 4),
-                         dst_shape=(2,),
-                         ops=[MockProjection(), MockProjection()])
+            connect(MockProcess((2, 4)).s_out,
+                    MockProcess((2,)).a_in,
+                    ops=[MockProjection(), MockProjection()])
         self.assertEqual(context.exception.duplicate_op, "changes_dim")
 
     def test_duplicate_operations_changing_size_raises_error(self):
         """Tests whether an exception is raised when the user specifies
         multiple operations that change the size."""
         with self.assertRaises(DuplicateOpError) as context:
-            validate_ops(src_shape=(5,),
-                         dst_shape=(6,),
-                         ops=[MockResize(), MockResize()])
+            connect(MockProcess((5,)).s_out,
+                    MockProcess((6,)).a_in,
+                    ops=[MockResize(), MockResize()])
         self.assertEqual(context.exception.duplicate_op, "changes_size")
 
     def test_duplicate_operations_reordering_shape_raises_error(self):
         """Tests whether an exception is raised when the user specifies
         multiple operations that reorder the shape."""
         with self.assertRaises(DuplicateOpError) as context:
-            validate_ops(src_shape=(5, 3),
-                         dst_shape=(3, 5),
-                         ops=[MockReorder(), MockReorder()])
+            connect(MockProcess((5, 3)).s_out,
+                    MockProcess((3, 5)).a_in,
+                    ops=[MockReorder(), MockReorder()])
         self.assertEqual(context.exception.duplicate_op, "reorders_shape")
 
     def test_shape_mismatch_with_correct_operation(self):
         """Tests whether validation passes when the shape of the source
         OutPort does not match the destination InPort and a Projection
         operation is specified."""
-        validate_ops(src_shape=(2, 4),
-                     dst_shape=(2,),
-                     ops=[MockProjection()])
+        connect(MockProcess((2, 4)).s_out,
+                MockProcess((2,)).a_in,
+                ops=[MockProjection()])
 
     def test_shape_mismatch_without_correct_operation_raises_error(self):
         """Tests whether an error is raised when the shape of the source
         OutPort does not match the destination InPort and a Projection is
         required but missing."""
         with self.assertRaises(MissingOpError) as context:
-            validate_ops(src_shape=(2, 4),
-                         dst_shape=(2,),
-                         ops=[MockOperation()])
+            connect(MockProcess((2, 4)).s_out,
+                    MockProcess((2,)).a_in,
+                    ops=[MockOperation()])
         self.assertEqual(context.exception.missing_op, "changes_dim")
 
     def test_size_mismatch_with_correct_operation(self):
         """Tests whether validation passes when the sizes of the source
         OutPort do not match the destination InPort and a Resize
         operation is specified."""
-        validate_ops(src_shape=(5,),
-                     dst_shape=(6,),
-                     ops=[MockResize()])
+        connect(MockProcess((5,)).s_out,
+                MockProcess((6,)).a_in,
+                ops=[MockResize()])
 
     def test_size_mismatch_without_correct_operation_raises_error(self):
         """Tests whether an error is raised when the shape of the source
         OutPort does not match the destination InPort and a Resize is
         required but missing."""
         with self.assertRaises(MissingOpError) as context:
-            validate_ops(src_shape=(5,),
-                         dst_shape=(6,),
-                         ops=[MockOperation()])
+            connect(MockProcess((5,)).s_out,
+                    MockProcess((6,)).a_in,
+                    ops=[MockOperation()])
         self.assertEqual(context.exception.missing_op, "changes_size")
 
     def test_shape_order_mismatch_with_correct_operation(self):
         """Tests whether validation passes when the shape-order of the source
         OutPort does not match the destination InPort and a Reorder
         operation is specified."""
-        validate_ops(src_shape=(5, 3),
-                     dst_shape=(3, 5),
-                     ops=[MockReorder()])
+        connect(MockProcess((5, 3)).s_out,
+                MockProcess((3, 5)).a_in,
+                ops=[MockReorder()])
 
     def test_shape_order_mismatch_without_correct_operation_raises_error(self):
         """Tests whether an error is raised when the shape of the source
         OutPort does not match the destination InPort and a Reorder is
         required but missing."""
         with self.assertRaises(MissingOpError) as context:
-            validate_ops(src_shape=(5, 3),
-                         dst_shape=(3, 5),
-                         ops=[MockOperation()])
+            connect(MockProcess((5, 3)).s_out,
+                    MockProcess((3, 5)).a_in,
+                    ops=[MockOperation()])
         self.assertEqual(context.exception.missing_op, "reorders_shape")
+
+    def test_invalid_op_configuration_raises_value_error(self):
+        """Tests whether an error is raised when an operation has an invalid
+        configuration."""
+        class InvalidOperation(MockOperation):
+            """Operation whose configuration is always invalid"""
+            def _validate_configuration(self) -> bool:
+                return False
+
+        with self.assertRaises(ValueError) as context:
+            connect(MockProcess().s_out,
+                    MockProcess().a_in,
+                    ops=[InvalidOperation()])
+
+    def test_combining_multiple_ops_that_do_not_change_shape(self):
+        """Tests whether multiple operations can be specified that do not
+        change the shape."""
+        connect(MockProcess((5, 3)).s_out,
+                MockProcess((5, 3)).a_in,
+                ops=[MockOperation(), MockOperation(), MockOperation()])
+
+    def test_multiple_non_changing_ops_and_one_that_changes_dim(self):
+        """Tests whether an operation that changes the dimensionality
+        can be combined with multiple operations that do not change the
+        shape."""
+        connect(MockProcess((5, 3)).s_out,
+                MockProcess((5,)).a_in,
+                ops=[MockOperation(), MockProjection(), MockOperation()])
+
+    def test_multiple_non_changing_ops_and_one_that_changes_size(self):
+        """Tests whether an operation that changes the size
+        can be combined with multiple operations that do not change the
+        shape."""
+        connect(MockProcess((5, 3)).s_out,
+                MockProcess((5, 6)).a_in,
+                ops=[MockOperation(), MockResize(), MockOperation()])
+
+    def test_multiple_non_changing_ops_and_one_that_reorders_shape(self):
+        """Tests whether an operation that reorders shape
+        can be combined with multiple operations that do not change the
+        shape."""
+        connect(MockProcess((5, 3)).s_out,
+                MockProcess((3, 5)).a_in,
+                ops=[MockOperation(), MockReorder(), MockOperation()])
 
     def test_multiple_ops_that_make_changes_raises_not_impl_error(self):
         """Tests whether a NotImplementedError is raised when multiple
          operations are specified that each make a change to the shape."""
-        with self.assertRaises(NotImplementedError) as context:
-            validate_ops(src_shape=(5, 3),
-                         dst_shape=(2, 5),
-                         ops=[MockProjection(), MockResize()])
+        with self.assertRaises(NotImplementedError):
+            connect(MockProcess((5, 3)).s_out,
+                    MockProcess((2, 5)).a_in,
+                    ops=[MockProjection(), MockResize()])
 
-
-class TestConfigureOps(unittest.TestCase):
-    def test_configuring_multiple_ops_that_do_not_change_shape(self):
-        """Tests whether the function configures all operations in a list
-        if these operations do not change the incoming shape."""
-        ops = [MockOperation(), MockOperation(), MockOperation()]
-        configure_ops(ops, src_shape=(1, 2, 3), dst_shape=(1, 2, 3))
-        for op in ops:
-            self.assertTrue(op._is_configured)
-
-    def test_configuring_multiple_ops_including_one_that_changes_dim(self):
-        """Tests whether the function configures all operations in a list
-        if one of them changes the dimensionality of the incoming shape."""
-        src_shape = (1, 2, 3)
-        dst_shape = (1, 2)
-
-        ops = [MockOperation(),
-               MockProjection(),  # changes dimensionality
-               MockOperation()]
-        configure_ops(ops, src_shape=src_shape, dst_shape=dst_shape)
-        for op in ops:
-            self.assertTrue(op._is_configured)
-
-    def test_configuring_multiple_ops_including_one_that_changes_size(self):
-        """Tests whether the function configures all operations in a list
-        if one of them changes the size of the incoming shape."""
-        src_shape = (2, 3)
-        dst_shape = (2, 4)
-
-        ops = [MockOperation(),
-               MockResize(),  # changes size
-               MockOperation()]
-        configure_ops(ops, src_shape=src_shape, dst_shape=dst_shape)
-        for op in ops:
-            self.assertTrue(op._is_configured)
-
-    def test_configuring_multiple_ops_including_one_that_reorders_shape(self):
-        """Tests whether the function configures all operations in a list
-        if one of them reorders the incoming shape."""
-        src_shape = (3, 5)
-        dst_shape = (5, 3)
-
-        ops = [MockOperation(),
-               MockReorder(),  # reorders shape
-               MockOperation()]
-        configure_ops(ops, src_shape=src_shape, dst_shape=dst_shape)
-        for op in ops:
-            self.assertTrue(op._is_configured)
-
-
-class TestComputeWeights(unittest.TestCase):
     def test_weights_from_multiple_ops_get_multiplied(self):
         """Tests whether compute_weights() multiplies the weights that are
         produced by all specified operations."""
@@ -294,13 +282,8 @@ class TestComputeWeights(unittest.TestCase):
         class MockOpWeights(MockOperation):
             """Mock Operation that generates an identity matrix with a given
             weight."""
-
-            def __init__(self,
-                         input_shape,
-                         output_shape,
-                         weight):
-                super().__init__(input_shape=input_shape,
-                                 output_shape=output_shape)
+            def __init__(self, weight):
+                super().__init__()
                 self.weight = weight
 
             def _compute_weights(self):
@@ -311,13 +294,13 @@ class TestComputeWeights(unittest.TestCase):
         shape = (5, 3)
         w1 = 2
         w2 = 4
-        op1 = MockOpWeights(shape, shape, weight=w1)
-        op1._is_configured = True
-        op2 = MockOpWeights(shape, shape, weight=w2)
-        op2._is_configured = True
-        ops = [op1, op2]
 
-        computed_weights = compute_weights(ops)
+        conn = connect(MockProcess(shape).s_out,
+                       MockProcess(shape).a_in,
+                       ops=[MockOpWeights(weight=w1),
+                            MockOpWeights(weight=w2)])
+
+        computed_weights = conn.weights.get()
         expected_weights = np.eye(num_neurons(shape),
                                   num_neurons(shape),
                                   dtype=np.int32) * w1 * w2

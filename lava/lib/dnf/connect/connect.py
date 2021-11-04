@@ -15,9 +15,11 @@ from lava.lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
 from lava.lib.dnf.utils.convenience import num_dims
 
 
-def connect(src_op: OutPort,
-            dst_ip: InPort,
-            ops: ty.List[AbstractOperation]) -> AbstractProcess:
+def connect(
+    src_op: OutPort,
+    dst_ip: InPort,
+    ops: ty.Union[ty.List[AbstractOperation], AbstractOperation]
+) -> AbstractProcess:
     """
     Creates a Connections Process <conn> and connects the source OutPort
     <src_op> to the InPort of <conn> and the OutPort of <conn> to the InPort
@@ -55,26 +57,26 @@ def connect(src_op: OutPort,
     """
     # validate the list of operations, including validation against the shapes
     # of the source and destination ports
-    ops = validate_ops(ops, src_op.shape, dst_ip.shape)
+    ops = _validate_ops(ops, src_op.shape, dst_ip.shape)
 
     # configure all operations in the <ops> list with input and output shape
-    configure_ops(ops, src_op.shape, dst_ip.shape)
+    _configure_ops(ops, src_op.shape, dst_ip.shape)
 
     # compute the connectivity matrix of each operation and multiply them
     # into a single matrix <weights> that will be used for the Process
-    weights = compute_weights(ops)
+    weights = _compute_weights(ops)
 
     # create connections process and connect it:
     # source -> connections -> destination
-    connections = make_connections(src_op, dst_ip, weights)
+    connections = _make_connections(src_op, dst_ip, weights)
 
     return connections
 
 
-def configure_ops(
-        ops: ty.List[AbstractOperation],
-        src_shape: ty.Tuple[int, ...],
-        dst_shape: ty.Tuple[int, ...]
+def _configure_ops(
+    ops: ty.List[AbstractOperation],
+    src_shape: ty.Tuple[int, ...],
+    dst_shape: ty.Tuple[int, ...]
 ):
     # we go from the source through all operations and memorize the output
     # shape of the last operation (here, the source)
@@ -97,10 +99,10 @@ def configure_ops(
         op.configure(input_shape, output_shape)
 
 
-def validate_ops(
-        ops: ty.Union[AbstractOperation, ty.List[AbstractOperation]],
-        src_shape: ty.Tuple[int, ...],
-        dst_shape: ty.Tuple[int, ...]
+def _validate_ops(
+    ops: ty.Union[AbstractOperation, ty.List[AbstractOperation]],
+    src_shape: ty.Tuple[int, ...],
+    dst_shape: ty.Tuple[int, ...]
 ) -> ty.List[AbstractOperation]:
     """
     Validates the <ops> argument of the 'connect' function
@@ -215,7 +217,7 @@ def validate_ops(
     return ops
 
 
-def compute_weights(ops: ty.List[AbstractOperation]) -> np.ndarray:
+def _compute_weights(ops: ty.List[AbstractOperation]) -> np.ndarray:
     """
     Compute the overall connectivity matrix to be used for the Connections
     Process from the individual connectivity matrices that each operation
@@ -249,9 +251,9 @@ def compute_weights(ops: ty.List[AbstractOperation]) -> np.ndarray:
     return weights
 
 
-def make_connections(src_op: OutPort,
-                     dst_ip: InPort,
-                     weights: np.ndarray) -> AbstractProcess:
+def _make_connections(src_op: OutPort,
+                      dst_ip: InPort,
+                      weights: np.ndarray) -> AbstractProcess:
     """
     Creates a Connections Process with the given weights and connects its
     ports such that

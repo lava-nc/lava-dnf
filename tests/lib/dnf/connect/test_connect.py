@@ -42,6 +42,53 @@ class MockOperation(AbstractOperation):
             return False
 
 
+class MockProjection(MockOperation):
+    """Mock Projection operation"""
+    def __init__(self):
+        super().__init__()
+        self.changes_dim = True
+
+    def _validate_configuration(self) -> bool:
+        if num_dims(self.input_shape) != num_dims(self.output_shape):
+            return True
+        else:
+            return False
+
+
+class MockResize(MockOperation):
+    """Mock Projection operation"""
+    def __init__(self):
+        super().__init__()
+        self.changes_size = True
+
+    def _validate_configuration(self) -> bool:
+        valid = False
+
+        if num_dims(self.input_shape) == num_dims(self.output_shape):
+            for si, so in zip(self.input_shape, self.output_shape):
+                if si != so:
+                    valid = True
+
+        return valid
+
+
+class MockReorder(MockOperation):
+    """Mock Reorder operation"""
+    def __init__(self):
+        super().__init__()
+        self.reorders_shape = True
+
+    def _validate_configuration(self) -> bool:
+        valid = False
+
+        if num_dims(self.input_shape) == num_dims(self.output_shape):
+            if self.output_shape in \
+                    list(itertools.permutations(self.input_shape)):
+                valid = True
+
+        return valid
+
+
 class TestConnect(unittest.TestCase):
     def test_connect_function_exists_and_is_callable(self):
         """Tests whether the connect function exists and is callable."""
@@ -54,8 +101,7 @@ class TestConnect(unittest.TestCase):
         # create mock processes and an operation to connect
         source = MockProcess(shape=(1, 2, 3))
         destination = MockProcess(shape=(1, 2, 3))
-        op = MockOperation(input_shape=source.s_out.shape,
-                           output_shape=destination.a_in.shape)
+        op = MockOperation()
 
         # connect source to target
         connections = connect(source.s_out, destination.a_in, ops=[op])
@@ -103,13 +149,6 @@ class TestValidateOps(unittest.TestCase):
     def test_duplicate_operations_changing_dim_raises_error(self):
         """Tests whether an exception is raised when the user specifies
         multiple operations that change the dimensionality."""
-
-        class MockProjection(MockOperation):
-            """Mock Projection operation"""
-            def __init__(self, shape=(1, 1)):
-                super().__init__(shape)
-                self.changes_dim = True
-
         with self.assertRaises(DuplicateOpError) as context:
             validate_ops(src_shape=(2, 4),
                          dst_shape=(2,),
@@ -119,13 +158,6 @@ class TestValidateOps(unittest.TestCase):
     def test_duplicate_operations_changing_size_raises_error(self):
         """Tests whether an exception is raised when the user specifies
         multiple operations that change the size."""
-
-        class MockResize(MockOperation):
-            """Mock Resize operation"""
-            def __init__(self, shape=(1, 1)):
-                super().__init__(shape)
-                self.changes_size = True
-
         with self.assertRaises(DuplicateOpError) as context:
             validate_ops(src_shape=(5,),
                          dst_shape=(6,),
@@ -135,13 +167,6 @@ class TestValidateOps(unittest.TestCase):
     def test_duplicate_operations_reordering_shape_raises_error(self):
         """Tests whether an exception is raised when the user specifies
         multiple operations that reorder the shape."""
-
-        class MockReorder(MockOperation):
-            """Mock Reorder operation"""
-            def __init__(self, shape=(1, 1)):
-                super().__init__(shape)
-                self.reorders_shape = True
-
         with self.assertRaises(DuplicateOpError) as context:
             validate_ops(src_shape=(5, 3),
                          dst_shape=(3, 5),
@@ -152,13 +177,6 @@ class TestValidateOps(unittest.TestCase):
         """Tests whether validation passes when the shape of the source
         OutPort does not match the destination InPort and a Projection
         operation is specified."""
-
-        class MockProjection(MockOperation):
-            """Mock Projection operation"""
-            def __init__(self, shape=(1, 1)):
-                super().__init__(shape)
-                self.changes_dim = True
-
         validate_ops(src_shape=(2, 4),
                      dst_shape=(2,),
                      ops=[MockProjection()])
@@ -177,13 +195,6 @@ class TestValidateOps(unittest.TestCase):
         """Tests whether validation passes when the sizes of the source
         OutPort do not match the destination InPort and a Resize
         operation is specified."""
-
-        class MockResize(MockOperation):
-            """Mock Resize operation"""
-            def __init__(self, shape=(1, 1)):
-                super().__init__(shape)
-                self.changes_size = True
-
         validate_ops(src_shape=(5,),
                      dst_shape=(6,),
                      ops=[MockResize()])
@@ -202,13 +213,6 @@ class TestValidateOps(unittest.TestCase):
         """Tests whether validation passes when the shape-order of the source
         OutPort does not match the destination InPort and a Reorder
         operation is specified."""
-
-        class MockReorder(MockOperation):
-            """Mock Reorder operation"""
-            def __init__(self, shape=(1, 1)):
-                super().__init__(shape)
-                self.reorders_shape = True
-
         validate_ops(src_shape=(5, 3),
                      dst_shape=(3, 5),
                      ops=[MockReorder()])
@@ -236,24 +240,11 @@ class TestConfigureOps(unittest.TestCase):
     def test_configuring_multiple_ops_including_one_that_changes_dim(self):
         """Tests whether the function configures all operations in a list
         if one of them changes the dimensionality of the incoming shape."""
-
-        class MockProjection(MockOperation):
-            """Mock Projection operation"""
-            def __init__(self):
-                super().__init__()
-                self.changes_dim = True
-
-            def _validate_configuration(self) -> bool:
-                if num_dims(self.input_shape) != num_dims(self.output_shape):
-                    return True
-                else:
-                    return False
-
         src_shape = (1, 2, 3)
         dst_shape = (1, 2)
 
         ops = [MockOperation(),
-               MockProjection(),
+               MockProjection(),  # changes dimensionality
                MockOperation()]
         configure_ops(ops, src_shape=src_shape, dst_shape=dst_shape)
         for op in ops:
@@ -262,28 +253,11 @@ class TestConfigureOps(unittest.TestCase):
     def test_configuring_multiple_ops_including_one_that_changes_size(self):
         """Tests whether the function configures all operations in a list
         if one of them changes the size of the incoming shape."""
-
-        class MockResize(MockOperation):
-            """Mock Projection operation"""
-            def __init__(self):
-                super().__init__()
-                self.changes_size = True
-
-            def _validate_configuration(self) -> bool:
-                valid = False
-
-                if num_dims(self.input_shape) == num_dims(self.output_shape):
-                    for si, so in zip(self.input_shape, self.output_shape):
-                        if si != so:
-                            valid = True
-
-                return valid
-
         src_shape = (2, 3)
         dst_shape = (2, 4)
 
         ops = [MockOperation(),
-               MockResize(),
+               MockResize(),  # changes size
                MockOperation()]
         configure_ops(ops, src_shape=src_shape, dst_shape=dst_shape)
         for op in ops:
@@ -292,28 +266,11 @@ class TestConfigureOps(unittest.TestCase):
     def test_configuring_multiple_ops_including_one_that_reorders_shape(self):
         """Tests whether the function configures all operations in a list
         if one of them reorders the incoming shape."""
-
-        class MockReorder(MockOperation):
-            """Mock Reorder operation"""
-            def __init__(self):
-                super().__init__()
-                self.reorders_shape = True
-
-            def _validate_configuration(self) -> bool:
-                valid = False
-
-                if num_dims(self.input_shape) == num_dims(self.output_shape):
-                    if self.output_shape in \
-                            list(itertools.permutations(self.input_shape)):
-                        valid = True
-
-                return valid
-
         src_shape = (3, 5)
         dst_shape = (5, 3)
 
         ops = [MockOperation(),
-               MockReorder(),
+               MockReorder(),  # reorders shape
                MockOperation()]
         configure_ops(ops, src_shape=src_shape, dst_shape=dst_shape)
         for op in ops:

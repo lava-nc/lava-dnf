@@ -40,5 +40,6 @@ class TestNumDims(unittest.TestCase):
         dims = num_dims(shape=(10, 10))
         self.assertEqual(dims, 2)
 
+
 if __name__ == '__main__':
     unittest.main()

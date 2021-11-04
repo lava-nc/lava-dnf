@@ -5,6 +5,7 @@
 import unittest
 
 from lava.lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
+from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 
 
 class TestMissingOpError(unittest.TestCase):
@@ -37,6 +38,17 @@ class TestDuplicateOpError(unittest.TestCase):
 
         # check whether the default message is set
         self.assertTrue(context.exception.args[0] is not None)
+
+
+class TestMisconfiguredOpError(unittest.TestCase):
+    def test_raising_misconfigured_op_error(self):
+        """Tests whether the MisconfiguredOpError can be raised."""
+        msg = "test message"
+        with self.assertRaises(MisconfiguredOpError) as context:
+            raise MisconfiguredOpError(msg)
+
+        # check whether the message is set
+        self.assertEqual(context.exception.args[0], msg)
 
 
 if __name__ == '__main__':

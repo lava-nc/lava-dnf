@@ -131,37 +131,49 @@ def validate_ops(
     if len(ops) == 0:
         raise ValueError("list of operations is empty")
 
+    # strings that represent the three types of operations
+    changes_dim = "changes_dim"
+    changes_size = "changes_size"
+    reorders_shape = "reorders_shape"
+
     # if the shape of the source OutPort differs from the destination InPort ...
     if src_shape != dst_shape:
         # ... and the shapes differ in dimensionality ...
         if num_dims(src_shape) != num_dims(dst_shape):
-            # ... check whether a projection has been specified.
+            # ... check whether an operation has been specified that
+            # changes the dimensionality.
             if not np.any([op.changes_dim for op in ops]):
-                raise MissingOpError("changes_dim=True")
+                raise MissingOpError(changes_dim)
         # ... and the shapes have the same length ...
         else:
             # ... if the shapes can just be reordered ...
             if dst_shape in list(itertools.permutations(src_shape)):
-                # ... check whether a Reorder operation has been specified.
+                # ... check whether an operation has been specified that
+                # reorders the shape.
                 if not np.any([op.reorders_shape for op in ops]):
-                    raise MissingOpError("reorders_shape=True")
+                    raise MissingOpError(reorders_shape)
             # ... if there is an actual difference in size ...
             else:
-                # ... check whether a Resize operation has been specified
+                # ... check whether an operation has been specified that
+                # resizes the shape.
                 if not np.any([op.changes_size for op in ops]):
-                    raise MissingOpError("changes_size=True")
+                    raise MissingOpError(changes_size)
 
     # we count the number of instances of every type of operation in this
     # dict to raise errors when multiple instances of the same type are
     # specified that would not work
-    changes_dim = "changes_dim"
-    changes_size = "changes_size"
-    reorders_shape = "reorders_shape"
     op_type_counter = {changes_dim: 0,
                        changes_size: 0,
                        reorders_shape: 0}
 
+    # we also keep track of whether multiple operations are set up to change
+    # the shape, which is currently not implemented
+    multiple_ops_change_shape = False
+    prev_op_changes_shape = False
+
     for op in ops:
+        op_changes_shape = False
+
         # check whether each element in <operations> is of type Operation
         if not isinstance(op, AbstractOperation):
             raise TypeError("elements in list of operations must be of type"
@@ -171,21 +183,36 @@ def validate_ops(
             # count the number of instances of every type of operation
             if op.changes_dim:
                 op_type_counter[changes_dim] += 1
+                op_changes_shape = True
             if op.changes_size:
                 op_type_counter[changes_size] += 1
+                op_changes_shape = True
             if op.reorders_shape:
                 op_type_counter[reorders_shape] += 1
+                op_changes_shape = True
+
+        if op_changes_shape:
+            if prev_op_changes_shape:
+                multiple_ops_change_shape = True
+            else:
+                prev_op_changes_shape = op_changes_shape
 
     # raise an exception if multiple operations change dimensionality
     if op_type_counter[changes_dim] > 1:
-        raise DuplicateOpError("changes_dim=True")
+        raise DuplicateOpError(changes_dim)
 
     # raise an exception if multiple operations change size
     if op_type_counter[changes_size] > 1:
-        raise DuplicateOpError("changes_size=True")
+        raise DuplicateOpError(changes_size)
 
     # raise an exception if multiple operations reorder the shape
     if op_type_counter[reorders_shape] > 1:
-        raise DuplicateOpError("reorders_shape=True")
+        raise DuplicateOpError(reorders_shape)
+
+    # raise an exception if multiple operations change the shape
+    if multiple_ops_change_shape:
+        raise NotImplementedError("specifying multiple operations that "
+                                  "change the shape is currently not "
+                                  "supported")
 
     return ops

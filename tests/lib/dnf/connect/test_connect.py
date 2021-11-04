@@ -153,7 +153,7 @@ class TestValidateOps(unittest.TestCase):
             validate_ops(src_shape=(2, 4),
                          dst_shape=(2,),
                          ops=[MockProjection(), MockProjection()])
-        self.assertEqual(context.exception.duplicate_op, "changes_dim=True")
+        self.assertEqual(context.exception.duplicate_op, "changes_dim")
 
     def test_duplicate_operations_changing_size_raises_error(self):
         """Tests whether an exception is raised when the user specifies
@@ -162,7 +162,7 @@ class TestValidateOps(unittest.TestCase):
             validate_ops(src_shape=(5,),
                          dst_shape=(6,),
                          ops=[MockResize(), MockResize()])
-        self.assertEqual(context.exception.duplicate_op, "changes_size=True")
+        self.assertEqual(context.exception.duplicate_op, "changes_size")
 
     def test_duplicate_operations_reordering_shape_raises_error(self):
         """Tests whether an exception is raised when the user specifies
@@ -171,7 +171,7 @@ class TestValidateOps(unittest.TestCase):
             validate_ops(src_shape=(5, 3),
                          dst_shape=(3, 5),
                          ops=[MockReorder(), MockReorder()])
-        self.assertEqual(context.exception.duplicate_op, "reorders_shape=True")
+        self.assertEqual(context.exception.duplicate_op, "reorders_shape")
 
     def test_shape_mismatch_with_correct_operation(self):
         """Tests whether validation passes when the shape of the source
@@ -189,7 +189,7 @@ class TestValidateOps(unittest.TestCase):
             validate_ops(src_shape=(2, 4),
                          dst_shape=(2,),
                          ops=[MockOperation()])
-        self.assertEqual(context.exception.missing_op, "changes_dim=True")
+        self.assertEqual(context.exception.missing_op, "changes_dim")
 
     def test_size_mismatch_with_correct_operation(self):
         """Tests whether validation passes when the sizes of the source
@@ -207,7 +207,7 @@ class TestValidateOps(unittest.TestCase):
             validate_ops(src_shape=(5,),
                          dst_shape=(6,),
                          ops=[MockOperation()])
-        self.assertEqual(context.exception.missing_op, "changes_size=True")
+        self.assertEqual(context.exception.missing_op, "changes_size")
 
     def test_shape_order_mismatch_with_correct_operation(self):
         """Tests whether validation passes when the shape-order of the source
@@ -225,7 +225,15 @@ class TestValidateOps(unittest.TestCase):
             validate_ops(src_shape=(5, 3),
                          dst_shape=(3, 5),
                          ops=[MockOperation()])
-        self.assertEqual(context.exception.missing_op, "reorders_shape=True")
+        self.assertEqual(context.exception.missing_op, "reorders_shape")
+
+    def test_multiple_ops_that_make_changes_raises_not_impl_error(self):
+        """Tests whether a NotImplementedError is raised when multiple
+         operations are specified that each make a change to the shape."""
+        with self.assertRaises(NotImplementedError) as context:
+            validate_ops(src_shape=(5, 3),
+                         dst_shape=(2, 5),
+                         ops=[MockProjection(), MockResize()])
 
 
 class TestConfigureOps(unittest.TestCase):

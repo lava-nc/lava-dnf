@@ -6,6 +6,9 @@ from abc import ABC, abstractmethod
 import typing as ty
 import numpy as np
 
+from lava.lib.dnf.utils.convenience import num_neurons
+from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
+
 
 class AbstractOperation(ABC):
     """
@@ -47,13 +50,14 @@ class AbstractOperation(ABC):
 
         """
         self._configure(input_shape, output_shape)
-        valid_configuration = self._validate_configuration()
 
-        if valid_configuration:
-            self._is_configured = True
-        else:
-            raise ValueError("configuration of operation is invalid; check "
-                             "input_shape and output_shape")
+        # check that a basic configuration has been set
+        if self.input_shape is None or self.output_shape is None:
+            raise AssertionError("<input_shape> and <output_shape> "
+                                 "may not be None")
+
+        self._validate_configuration()
+        self._is_configured = True
 
     def compute_weights(self) -> np.ndarray:
         """
@@ -89,14 +93,11 @@ class AbstractOperation(ABC):
         self.output_shape = output_shape
 
     @abstractmethod
-    def _validate_configuration(self) -> bool:
+    def _validate_configuration(self):
         """
         Validates the configuration (input_shape, output_shape) of the
-        operation and returns True if the configuration is valid.
-
-        Returns
-        -------
-        configuration valid : bool
+        operation. Should raise a MisconfiguredOpError if the configuration
+        is invalid.
 
         """
         pass

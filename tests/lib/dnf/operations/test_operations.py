@@ -6,20 +6,17 @@ import unittest
 import typing as ty
 import numpy as np
 
-from lava.lib.dnf.operations.operations import AbstractOperation
+from lava.lib.dnf.operations.operations import AbstractOperation, Weights
+from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
+from lava.lib.dnf.utils.convenience import num_neurons
 
 
 class MockOperation(AbstractOperation):
-    def _configure(self,
-                   input_shape: ty.Tuple[int, ...],
-                   output_shape: ty.Tuple[int, ...]):
-        pass
-
     def _compute_weights(self) -> np.ndarray:
         return np.ones((1, 1), dtype=np.int32)
 
-    def _validate_configuration(self) -> bool:
-        return True
+    def _validate_configuration(self):
+        pass
 
 
 class TestAbstractOperation(unittest.TestCase):

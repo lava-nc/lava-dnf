@@ -12,6 +12,7 @@ from lava.magma.core.process.process import AbstractProcess
 from lava.lib.dnf.connect.connect import connect
 from lava.lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
 from lava.lib.dnf.operations.operations import AbstractOperation
+from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 from lava.lib.dnf.utils.convenience import num_neurons, num_dims
 
 
@@ -35,11 +36,10 @@ class MockOperation(AbstractOperation):
                       num_neurons(self.input_shape),
                       dtype=np.int32)
 
-    def _validate_configuration(self) -> bool:
-        if self.input_shape == self.output_shape:
-            return True
-        else:
-            return False
+    def _validate_configuration(self):
+        if self.input_shape != self.output_shape:
+            raise MisconfiguredOpError("input_shape must be equal to "
+                                       "output_shape")
 
 
 class MockProjection(MockOperation):
@@ -49,10 +49,9 @@ class MockProjection(MockOperation):
         self.changes_dim = True
 
     def _validate_configuration(self) -> bool:
-        if num_dims(self.input_shape) != num_dims(self.output_shape):
-            return True
-        else:
-            return False
+        if num_dims(self.input_shape) == num_dims(self.output_shape):
+            raise MisconfiguredOpError("input dimensionality must not be "
+                                       "equal to output dimensionality")
 
 
 class MockResize(MockOperation):
@@ -228,10 +227,10 @@ class TestConnect(unittest.TestCase):
         configuration."""
         class InvalidOperation(MockOperation):
             """Operation whose configuration is always invalid"""
-            def _validate_configuration(self) -> bool:
-                return False
+            def _validate_configuration(self):
+                raise MisconfiguredOpError("misconfigured")
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(MisconfiguredOpError):
             connect(MockProcess().s_out,
                     MockProcess().a_in,
                     ops=[InvalidOperation()])

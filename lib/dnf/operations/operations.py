@@ -3,6 +3,8 @@
 # See: https://spdx.org/licenses/
 
 from abc import ABC, abstractmethod
+import typing as ty
+import numpy as np
 
 
 class AbstractOperation(ABC):
@@ -11,6 +13,34 @@ class AbstractOperation(ABC):
         self.changes_size = False
         self.reorders_shape = False
 
+        self.input_shape = None
+        self.output_shape = None
+
+        self._is_configured = False
+
+    def configure(self,
+                  input_shape: ty.Tuple[int, ...],
+                  output_shape: ty.Tuple[int, ...]):
+        self._configure(input_shape, output_shape)
+        self._is_configured = self._validate_configuration()
+
+    def compute_weights(self) -> np.ndarray:
+        if not self._is_configured:
+            raise AssertionError("operation must be configured before "
+                                 "computing_weights() is called")
+        else:
+            return self._compute_weights()
+
+    def _configure(self,
+                   input_shape: ty.Tuple[int, ...],
+                   output_shape: ty.Tuple[int, ...]):
+        self.input_shape = input_shape
+        self.output_shape = output_shape
+
     @abstractmethod
-    def compute_weights(self):
+    def _validate_configuration(self) -> bool:
+        pass
+
+    @abstractmethod
+    def _compute_weights(self) -> np.ndarray:
         pass

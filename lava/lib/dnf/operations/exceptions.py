@@ -11,7 +11,7 @@ class MisconfiguredOpError(Exception):
 
     Parameters:
     -----------
-    msg : str
+    msg : str (optional)
         custom exception message that overwrites the default
     """
     def __init__(self, msg: ty.Optional[str] = None):

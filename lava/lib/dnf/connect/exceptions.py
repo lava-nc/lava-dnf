@@ -5,39 +5,18 @@
 import typing as ty
 
 
-class MissingOpError(Exception):
+class MisconfiguredConnectError(Exception):
     """
-    Exception that is raised when a connection requires a particular
-    operation but the user has not specified it.
+    Exception that is raised when the connection function is misconfigured
+    with a wrong combination of operations.
 
     Parameters:
     -----------
-    missing_op : str
-        string representation of the missing operation
-    msg : str
+    msg : str (optional)
         custom exception message that overwrites the default
     """
-    def __init__(self, missing_op: str, msg: ty.Optional[str] = None):
+    def __init__(self, msg: ty.Optional[str] = None):
         if msg is None:
-            msg = f"operation '{missing_op}' is required but missing"
+            msg = f"call to connection() misconfigured; check the choice and " \
+                  f"parameterization of all operations"
         super().__init__(msg)
-        self.missing_op = missing_op
-
-
-class DuplicateOpError(Exception):
-    """
-    Exception that is raised when a user specifies a particular
-    operation more than once in a list of <ops>.
-
-    Parameters:
-    -----------
-    duplicate_op : str
-        string representation of the duplicate operation
-    msg : str
-        custom exception message that overwrites the default
-    """
-    def __init__(self, duplicate_op: str, msg: ty.Optional[str] = None):
-        if msg is None:
-            msg = f"operation '{duplicate_op}' cannot be used more than once"
-        super().__init__(msg)
-        self.duplicate_op = duplicate_op

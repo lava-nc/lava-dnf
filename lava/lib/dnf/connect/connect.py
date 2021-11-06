@@ -4,15 +4,13 @@
 
 import typing as ty
 import numpy as np
-import itertools
 
 from lava.magma.core.process.process import AbstractProcess
 from lava.proc.dense.models import Dense
 from lava.magma.core.process.ports.ports import InPort, OutPort
 
 from lava.lib.dnf.operations.operations import AbstractOperation
-from lava.lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
-from lava.lib.dnf.utils.convenience import num_dims
+from lava.lib.dnf.connect.exceptions import MisconfiguredConnectError
 
 
 def connect(
@@ -21,23 +19,15 @@ def connect(
     ops: ty.Union[ty.List[AbstractOperation], AbstractOperation]
 ) -> AbstractProcess:
     """
-    Creates a Connections Process <conn> and connects the source OutPort
-    <src_op> to the InPort of <conn> and the OutPort of <conn> to the InPort
-    of <dst_ip>.
-
-    The list of operations <ops> is a description of what the Connections
-    Process <conn> will look like.
+    Creates and returns a Connections Process <conn> and connects the source
+    OutPort <src_op> to the InPort of <conn> and the OutPort of <conn> to the
+    InPort of <dst_ip>.
 
     The connectivity is generated from a list of operation objects <ops>.
     Each operation generates a dense connectivity matrix based
     on its parameters. These matrices are multiplied into a single
     connectivity matrix, which is then used to generate a Connections Process
     between source and destination.
-
-    If less than a third of the entries of the connectivity
-    matrix are non-zero, the connect() function instantiates a
-    'lava.proc.Sparse' Process; otherwise it instantiates a 'lava.proc.Dense'
-    process.
 
     Parameters
     ----------
@@ -55,18 +45,17 @@ def connect(
         process containing the connections between <src_op> and <dst_ip>
 
     """
-    # validate the list of operations, including validation against the shapes
-    # of the source and destination ports
-    ops = _validate_ops(ops, src_op.shape, dst_ip.shape)
+    # validate the list of operations
+    ops = _validate_ops(ops)
 
     # configure all operations in the <ops> list with input and output shape
     _configure_ops(ops, src_op.shape, dst_ip.shape)
 
-    # compute the connectivity matrix of each operation and multiply them
+    # compute the connectivity matrix of all operations and multiply them
     # into a single matrix <weights> that will be used for the Process
     weights = _compute_weights(ops)
 
-    # create connections process and connect it:
+    # create Connections process and connect it:
     # source -> connections -> destination
     connections = _make_connections(src_op, dst_ip, weights)
 
@@ -78,31 +67,47 @@ def _configure_ops(
     src_shape: ty.Tuple[int, ...],
     dst_shape: ty.Tuple[int, ...]
 ):
+    """
+    Configure all operations by setting their input and output shape and
+    checking that the final output shape matches the shape of the destination
+    InPort.
+
+    Parameters
+    ----------
+    ops : list(AbstractOperation)
+        list of operations to configure
+    src_shape : tuple(int)
+        shape of the OutPort of the source Process
+    dst_shape : tuple(int)
+        shape of the InPort of the destination Process
+
+    Returns
+    -------
+
+    """
     # we go from the source through all operations and memorize the output
     # shape of the last operation (here, the source)
     prev_output_shape = src_shape
 
     # for every operation in the list of operations
     for op in ops:
-        # set the input of the current operation to the incoming shape
-        # (also, initialize output shape to the same value)
-        input_shape = output_shape = prev_output_shape
+        # let the operation configure the output shape given the incoming
+        # input shape
+        input_shape = prev_output_shape
+        op.configure(input_shape)
+        # memorize the computed output shape for the next iteration of the loop
+        prev_output_shape = op.output_shape
 
-        # if the current operation changes the shape ...
-        if op.changes_dim or op.changes_size or op.reorders_shape:
-            # ... its output shape to the shape of the destination ...
-            output_shape = dst_shape
-            # ... then update <prev_output_shape>
-            prev_output_shape = output_shape
-
-        # configure the current operation with input and output shape
-        op.configure(input_shape, output_shape)
+    # check that the output shape of the last operation matches the shape of
+    # the InPort of the destination Process
+    if prev_output_shape != dst_shape:
+        raise MisconfiguredConnectError(
+            "the output shape of the last operation does not match the shape "
+            "of the destination InPort; some operations may be misconfigured")
 
 
 def _validate_ops(
-    ops: ty.Union[AbstractOperation, ty.List[AbstractOperation]],
-    src_shape: ty.Tuple[int, ...],
-    dst_shape: ty.Tuple[int, ...]
+    ops: ty.Union[AbstractOperation, ty.List[AbstractOperation]]
 ) -> ty.List[AbstractOperation]:
     """
     Validates the <ops> argument of the 'connect' function
@@ -111,17 +116,13 @@ def _validate_ops(
     -----------
     ops : list or AbstractOperation
         the list of operations to be validated
-    src_shape : tuple(int)
-        shape of the OutPort of the source Process
-    dst_shape : tuple(int)
-        shape of the InPort of the destination Process
 
     Returns:
     --------
     ops : list
         validated list of operations
-    """
 
+    """
     # make <ops> a list if it is not one already
     if not isinstance(ops, list):
         ops = [ops]
@@ -130,89 +131,11 @@ def _validate_ops(
     if len(ops) == 0:
         raise ValueError("list of operations is empty")
 
-    # strings that represent the three types of operations
-    changes_dim = "changes_dim"
-    changes_size = "changes_size"
-    reorders_shape = "reorders_shape"
-
-    # if the shape of the source OutPort differs from the destination InPort ...
-    if src_shape != dst_shape:
-        # ... and the shapes differ in dimensionality ...
-        if num_dims(src_shape) != num_dims(dst_shape):
-            # ... check whether an operation has been specified that
-            # changes the dimensionality.
-            if not np.any([op.changes_dim for op in ops]):
-                raise MissingOpError(changes_dim)
-        # ... and the shapes have the same length ...
-        else:
-            # ... if the shapes can just be reordered ...
-            if dst_shape in list(itertools.permutations(src_shape)):
-                # ... check whether an operation has been specified that
-                # reorders the shape.
-                if not np.any([op.reorders_shape for op in ops]):
-                    raise MissingOpError(reorders_shape)
-            # ... if there is an actual difference in size ...
-            else:
-                # ... check whether an operation has been specified that
-                # resizes the shape.
-                if not np.any([op.changes_size for op in ops]):
-                    raise MissingOpError(changes_size)
-
-    # we count the number of instances of every type of operation in this
-    # dict to raise errors when multiple instances of the same type are
-    # specified that would not work
-    op_type_counter = {changes_dim: 0,
-                       changes_size: 0,
-                       reorders_shape: 0}
-
-    # we also keep track of whether multiple operations are set up to change
-    # the shape, which is currently not implemented
-    multiple_ops_change_shape = False
-    prev_op_changes_shape = False
-
+    # check whether each element in <operations> is of type AbstractOperation
     for op in ops:
-        op_changes_shape = False
-
-        # check whether each element in <operations> is of type Operation
         if not isinstance(op, AbstractOperation):
-            raise TypeError("elements in list of operations must be of type"
+            raise TypeError("elements in list of operations must be of type "
                             f"Operation, found type {type(op)}")
-
-        else:
-            # count the number of instances of every type of operation
-            if op.changes_dim:
-                op_type_counter[changes_dim] += 1
-                op_changes_shape = True
-            if op.changes_size:
-                op_type_counter[changes_size] += 1
-                op_changes_shape = True
-            if op.reorders_shape:
-                op_type_counter[reorders_shape] += 1
-                op_changes_shape = True
-
-        if op_changes_shape:
-            if prev_op_changes_shape:
-                multiple_ops_change_shape = True
-            else:
-                prev_op_changes_shape = op_changes_shape
-
-    # raise an exception if multiple operations change dimensionality
-    if op_type_counter[changes_dim] > 1:
-        raise DuplicateOpError(changes_dim)
-
-    # raise an exception if multiple operations change size
-    if op_type_counter[changes_size] > 1:
-        raise DuplicateOpError(changes_size)
-
-    # raise an exception if multiple operations reorder the shape
-    if op_type_counter[reorders_shape] > 1:
-        raise DuplicateOpError(reorders_shape)
-
-    # raise an exception if multiple operations change the shape
-    if multiple_ops_change_shape:
-        raise NotImplementedError("specifying multiple operations that "
-                                  "change the shape is currently not "
-                                  "supported")
 
     return ops
 
@@ -233,17 +156,18 @@ def _compute_weights(ops: ty.List[AbstractOperation]) -> np.ndarray:
     weights : np.ndarray
 
     """
-    # initialize overall weights
     weights = None
 
     # for every operation
     for op in ops:
-        # compute the weights of the current operation ...
+        # compute the weights of the current operation
         op_weights = op.compute_weights()
 
+        # if it's the first operation in the list, initialize overall
+        # weights
         if weights is None:
             weights = op_weights
-        # ... and multiply it with the connectivity matrix from the last
+        # otherwise multiply weights with the connectivity matrix from the last
         # operations in the list to create the overall weights matrix
         else:
             weights = np.matmul(op_weights, weights)
@@ -256,7 +180,7 @@ def _make_connections(src_op: OutPort,
                       weights: np.ndarray) -> AbstractProcess:
     """
     Creates a Connections Process with the given weights and connects its
-    ports such that
+    ports such that:
     source-OutPort -> connections-InPort and
     connections-InPort -> destination-OutPort
 
@@ -274,6 +198,7 @@ def _make_connections(src_op: OutPort,
     Connections Process : AbstractProcess
 
     """
+
     # create the connections process
     connections = Dense(shape=weights.shape,
                         weights=weights)
@@ -281,6 +206,7 @@ def _make_connections(src_op: OutPort,
     # make connections from the source port to the connections process
     src_op_flat = src_op.reshape(connections.in_ports.s_in.shape)
     src_op_flat.connect(connections.in_ports.s_in)
+
     # make connections from the connections process to the destination port
     con_op = connections.out_ports.a_out.reshape(dst_ip.shape)
     con_op.connect(dst_ip)

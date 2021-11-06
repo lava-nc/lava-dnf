@@ -4,16 +4,17 @@
 
 import unittest
 import numpy as np
-import itertools
+import typing as ty
 
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.magma.core.process.process import AbstractProcess
 
 from lava.lib.dnf.connect.connect import connect
-from lava.lib.dnf.connect.exceptions import MissingOpError, DuplicateOpError
-from lava.lib.dnf.operations.operations import AbstractOperation
+from lava.lib.dnf.connect.exceptions import MisconfiguredConnectError
+from lava.lib.dnf.operations.operations import AbstractComputedShapeOperation, \
+    AbstractSpecifiedShapeOperation
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
-from lava.lib.dnf.utils.convenience import num_neurons, num_dims
+from lava.lib.dnf.utils.convenience import num_neurons
 
 
 class MockProcess(AbstractProcess):
@@ -24,68 +25,30 @@ class MockProcess(AbstractProcess):
         self.s_out = OutPort(shape)
 
 
-class MockOperation(AbstractOperation):
-    """Mock Operation that generates an identity matrix as weights"""
-    def __init__(self, input_shape=(1,), output_shape=(1,)):
-        super().__init__()
-        self.input_shape = input_shape
-        self.output_shape = output_shape
-
+class MockNoChangeOperation(AbstractComputedShapeOperation):
+    """Mock Operation that does not change shape"""
     def _compute_weights(self):
-        return np.eye(num_neurons(self.output_shape),
-                      num_neurons(self.input_shape),
+        return np.eye(num_neurons(self._output_shape),
+                      num_neurons(self._input_shape),
                       dtype=np.int32)
 
-    def _validate_configuration(self):
-        if self.input_shape != self.output_shape:
-            raise MisconfiguredOpError("input_shape must be equal to "
-                                       "output_shape")
+    def _compute_output_shape(self, input_shape: ty.Tuple[int, ...]):
+        self._output_shape = input_shape
 
 
-class MockProjection(MockOperation):
-    """Mock Projection operation"""
-    def __init__(self):
-        super().__init__()
-        self.changes_dim = True
+class MockChangeOperation(AbstractSpecifiedShapeOperation):
+    """Mock Operation that changes shape"""
+    def __init__(self, output_shape):
+        super().__init__(output_shape)
 
-    def _validate_configuration(self) -> bool:
-        if num_dims(self.input_shape) == num_dims(self.output_shape):
-            raise MisconfiguredOpError("input dimensionality must not be "
-                                       "equal to output dimensionality")
+    def _compute_weights(self):
+        return np.eye(num_neurons(self._output_shape),
+                      num_neurons(self._input_shape),
+                      dtype=np.int32)
 
-
-class MockResize(MockOperation):
-    """Mock Projection operation"""
-    def __init__(self):
-        super().__init__()
-        self.changes_size = True
-
-    def _validate_configuration(self) -> bool:
-        valid = False
-
-        if num_dims(self.input_shape) == num_dims(self.output_shape):
-            for si, so in zip(self.input_shape, self.output_shape):
-                if si != so:
-                    valid = True
-
-        return valid
-
-
-class MockReorder(MockOperation):
-    """Mock Reorder operation"""
-    def __init__(self):
-        super().__init__()
-        self.reorders_shape = True
-
-    def _validate_configuration(self) -> bool:
-        valid = False
-
-        if num_dims(self.input_shape) == num_dims(self.output_shape):
-            if self.output_shape in \
-                    list(itertools.permutations(self.input_shape)):
-                valid = True
-
-        return valid
+    def _validate_output_shape(self):
+        if self._input_shape == self._output_shape:
+            raise MisconfiguredOpError("operation is intended to change shape")
 
 
 class TestConnect(unittest.TestCase):
@@ -100,7 +63,7 @@ class TestConnect(unittest.TestCase):
         # create mock processes and an operation to connect
         source = MockProcess(shape=(1, 2, 3))
         destination = MockProcess(shape=(1, 2, 3))
-        op = MockOperation()
+        op = MockNoChangeOperation()
 
         # connect source to target
         connections = connect(source.s_out, destination.a_in, ops=[op])
@@ -133,152 +96,73 @@ class TestConnect(unittest.TestCase):
         with self.assertRaises(TypeError):
             connect(MockProcess().s_out,
                     MockProcess().a_in,
-                    ops=[MockOperation(), NotAnOperation()])
+                    ops=[MockNoChangeOperation(), NotAnOperation()])
 
-    def test_single_operation_can_be_passed_in_as_ops(self):
+    def test_single_operation_is_automatically_wrapped_into_list(self):
         """Tests whether a single operation is wrapped into a list."""
         connect(MockProcess().s_out,
                 MockProcess().a_in,
-                ops=MockOperation())
+                ops=MockNoChangeOperation())
 
-    def test_duplicate_operations_changing_dim_raises_error(self):
-        """Tests whether an exception is raised when the user specifies
-        multiple operations that change the dimensionality."""
-        with self.assertRaises(DuplicateOpError) as context:
-            connect(MockProcess((2, 4)).s_out,
-                    MockProcess((2,)).a_in,
-                    ops=[MockProjection(), MockProjection()])
-        self.assertEqual(context.exception.duplicate_op, "changes_dim")
-
-    def test_duplicate_operations_changing_size_raises_error(self):
-        """Tests whether an exception is raised when the user specifies
-        multiple operations that change the size."""
-        with self.assertRaises(DuplicateOpError) as context:
-            connect(MockProcess((5,)).s_out,
-                    MockProcess((6,)).a_in,
-                    ops=[MockResize(), MockResize()])
-        self.assertEqual(context.exception.duplicate_op, "changes_size")
-
-    def test_duplicate_operations_reordering_shape_raises_error(self):
-        """Tests whether an exception is raised when the user specifies
-        multiple operations that reorder the shape."""
-        with self.assertRaises(DuplicateOpError) as context:
-            connect(MockProcess((5, 3)).s_out,
-                    MockProcess((3, 5)).a_in,
-                    ops=[MockReorder(), MockReorder()])
-        self.assertEqual(context.exception.duplicate_op, "reorders_shape")
-
-    def test_shape_mismatch_with_correct_operation(self):
-        """Tests whether validation passes when the shape of the source
-        OutPort does not match the destination InPort and a Projection
-        operation is specified."""
-        connect(MockProcess((2, 4)).s_out,
-                MockProcess((2,)).a_in,
-                ops=[MockProjection()])
-
-    def test_shape_mismatch_without_correct_operation_raises_error(self):
-        """Tests whether an error is raised when the shape of the source
-        OutPort does not match the destination InPort and a Projection is
-        required but missing."""
-        with self.assertRaises(MissingOpError) as context:
-            connect(MockProcess((2, 4)).s_out,
-                    MockProcess((2,)).a_in,
-                    ops=[MockOperation()])
-        self.assertEqual(context.exception.missing_op, "changes_dim")
-
-    def test_size_mismatch_with_correct_operation(self):
-        """Tests whether validation passes when the sizes of the source
-        OutPort do not match the destination InPort and a Resize
-        operation is specified."""
-        connect(MockProcess((5,)).s_out,
-                MockProcess((6,)).a_in,
-                ops=[MockResize()])
-
-    def test_size_mismatch_without_correct_operation_raises_error(self):
-        """Tests whether an error is raised when the shape of the source
-        OutPort does not match the destination InPort and a Resize is
-        required but missing."""
-        with self.assertRaises(MissingOpError) as context:
-            connect(MockProcess((5,)).s_out,
-                    MockProcess((6,)).a_in,
-                    ops=[MockOperation()])
-        self.assertEqual(context.exception.missing_op, "changes_size")
-
-    def test_shape_order_mismatch_with_correct_operation(self):
-        """Tests whether validation passes when the shape-order of the source
-        OutPort does not match the destination InPort and a Reorder
-        operation is specified."""
+    def test_operation_that_changes_the_shape(self):
+        """Tests whether an operation that changes shape can be used to
+        connect two Processes."""
+        output_shape = (3,)
         connect(MockProcess((5, 3)).s_out,
-                MockProcess((3, 5)).a_in,
-                ops=[MockReorder()])
+                MockProcess(output_shape).a_in,
+                ops=MockChangeOperation(output_shape=output_shape))
 
-    def test_shape_order_mismatch_without_correct_operation_raises_error(self):
-        """Tests whether an error is raised when the shape of the source
-        OutPort does not match the destination InPort and a Reorder is
-        required but missing."""
-        with self.assertRaises(MissingOpError) as context:
-            connect(MockProcess((5, 3)).s_out,
-                    MockProcess((3, 5)).a_in,
-                    ops=[MockOperation()])
-        self.assertEqual(context.exception.missing_op, "reorders_shape")
-
-    def test_invalid_op_configuration_raises_value_error(self):
-        """Tests whether an error is raised when an operation has an invalid
-        configuration."""
-        class InvalidOperation(MockOperation):
-            """Operation whose configuration is always invalid"""
-            def _validate_configuration(self):
-                raise MisconfiguredOpError("misconfigured")
-
+    def test_misconfigured_operation_raises_error(self):
+        """Tests whether an operation that is misconfigured raises an error."""
+        shape = (5, 3)
         with self.assertRaises(MisconfiguredOpError):
-            connect(MockProcess().s_out,
-                    MockProcess().a_in,
-                    ops=[InvalidOperation()])
+            connect(MockProcess(shape).s_out,
+                    MockProcess(shape).a_in,
+                    # this op is misconfigured if it does not change shape
+                    ops=MockChangeOperation(output_shape=shape))
+
+    def test_mismatching_op_output_shape_and_dest_shape_raises_error(self):
+        """Tests whether an error is raised when the output shape of the
+        last operation does not match the destination shape."""
+        with self.assertRaises(MisconfiguredConnectError):
+            connect(MockProcess((5, 3)).s_out,
+                    MockProcess((5,)).a_in,
+                    ops=[MockNoChangeOperation()])
 
     def test_combining_multiple_ops_that_do_not_change_shape(self):
         """Tests whether multiple operations can be specified that do not
         change the shape."""
         connect(MockProcess((5, 3)).s_out,
                 MockProcess((5, 3)).a_in,
-                ops=[MockOperation(), MockOperation(), MockOperation()])
+                ops=[MockNoChangeOperation(),
+                     MockNoChangeOperation()])
 
-    def test_multiple_non_changing_ops_and_one_that_changes_dim(self):
-        """Tests whether an operation that changes the dimensionality
+    def test_multiple_non_changing_ops_and_one_that_changes_shape(self):
+        """Tests whether an operation that changes the shape
         can be combined with multiple operations that do not change the
         shape."""
+        output_shape = (5,)
         connect(MockProcess((5, 3)).s_out,
-                MockProcess((5,)).a_in,
-                ops=[MockOperation(), MockProjection(), MockOperation()])
+                MockProcess(output_shape).a_in,
+                ops=[MockNoChangeOperation(),
+                     MockChangeOperation(output_shape),
+                     MockNoChangeOperation()])
 
-    def test_multiple_non_changing_ops_and_one_that_changes_size(self):
-        """Tests whether an operation that changes the size
-        can be combined with multiple operations that do not change the
-        shape."""
+    def test_multiple_ops_that_change_shape(self):
+        """Tests whether multiple operations that change shape can be
+        combined with one that does not change shape."""
         connect(MockProcess((5, 3)).s_out,
-                MockProcess((5, 6)).a_in,
-                ops=[MockOperation(), MockResize(), MockOperation()])
-
-    def test_multiple_non_changing_ops_and_one_that_reorders_shape(self):
-        """Tests whether an operation that reorders shape
-        can be combined with multiple operations that do not change the
-        shape."""
-        connect(MockProcess((5, 3)).s_out,
-                MockProcess((3, 5)).a_in,
-                ops=[MockOperation(), MockReorder(), MockOperation()])
-
-    def test_multiple_ops_that_make_changes_raises_not_impl_error(self):
-        """Tests whether a NotImplementedError is raised when multiple
-         operations are specified that each make a change to the shape."""
-        with self.assertRaises(NotImplementedError):
-            connect(MockProcess((5, 3)).s_out,
-                    MockProcess((2, 5)).a_in,
-                    ops=[MockProjection(), MockResize()])
+                MockProcess((2,)).a_in,
+                ops=[MockNoChangeOperation(),
+                     MockChangeOperation(output_shape=(5, 2)),
+                     MockChangeOperation(output_shape=(2,)),
+                     MockNoChangeOperation()])
 
     def test_weights_from_multiple_ops_get_multiplied(self):
         """Tests whether compute_weights() multiplies the weights that are
         produced by all specified operations."""
 
-        class MockOpWeights(MockOperation):
+        class MockNoChangeOpWeights(MockNoChangeOperation):
             """Mock Operation that generates an identity matrix with a given
             weight."""
             def __init__(self, weight):
@@ -286,8 +170,8 @@ class TestConnect(unittest.TestCase):
                 self.weight = weight
 
             def _compute_weights(self):
-                return np.eye(num_neurons(self.input_shape),
-                              num_neurons(self.output_shape),
+                return np.eye(num_neurons(self._output_shape),
+                              num_neurons(self._input_shape),
                               dtype=np.int32) * self.weight
 
         shape = (5, 3)
@@ -296,8 +180,8 @@ class TestConnect(unittest.TestCase):
 
         conn = connect(MockProcess(shape).s_out,
                        MockProcess(shape).a_in,
-                       ops=[MockOpWeights(weight=w1),
-                            MockOpWeights(weight=w2)])
+                       ops=[MockNoChangeOpWeights(weight=w1),
+                            MockNoChangeOpWeights(weight=w2)])
 
         computed_weights = conn.weights.get()
         expected_weights = np.eye(num_neurons(shape),

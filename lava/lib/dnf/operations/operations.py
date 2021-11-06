@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # See: https://spdx.org/licenses/
 
-from abc import ABC, abstractmethod
+from abc import ABC, ABCMeta, abstractmethod
 import typing as ty
 import numpy as np
 
@@ -12,100 +12,44 @@ from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 
 class AbstractOperation(ABC):
     """
-    Abstract class for operations that can be used to parameterize the
-    connect() function. An operation has an input shape and an output shape
-    and, depending on the type of operation, will make changes to the
-    dimensionality of the shape (e.g., from input shape (40, 20) to output
-    shape (40,)), to the order of elements in the shape (e.g., from input
-    shape (40, 20) to output shape (20, 40)), to the size of the shape (e.g.,
-    from input shape (40, 20) to output shape (35, 15), or a combination of
-    these changes. Every operation must mark the type of changes it makes by
-    setting the attributes 'changes_dim', 'reorders_shape',
-    and 'changes_size', respectively.
+    Abstract Operation, subclasses of which can be used to parameterize the
+    connect() function.
 
     """
     def __init__(self):
-        self.changes_dim = False
-        self.changes_size = False
-        self.reorders_shape = False
+        self._input_shape = None
+        self._output_shape = None
 
-        self.input_shape = None
-        self.output_shape = None
-
-        self._is_configured = False
-
-    def configure(self,
-                  input_shape: ty.Tuple[int, ...],
-                  output_shape: ty.Tuple[int, ...]):
-        """
-        Configures an operation by setting its input and output shape and
-        validating that configuration.
-
-        Parameters
-        ----------
-        input_shape : tuple(int)
-            input shape of the operation
-        output_shape : tuple(int)
-            output shape of the operation
-
-        """
-        self._configure(input_shape, output_shape)
-
-        # check that a basic configuration has been set
-        if self.input_shape is None or self.output_shape is None:
-            raise AssertionError("<input_shape> and <output_shape> "
-                                 "may not be None")
-
-        self._validate_configuration()
-        self._is_configured = True
+    @property
+    def output_shape(self) -> ty.Tuple[int, ...]:
+        """Return the output shape of the operation"""
+        return self._output_shape
 
     def compute_weights(self) -> np.ndarray:
         """
         Computes the connectivity weight matrix of the operation.
+        This public method only validates the configuration of the
+        operation. The actual weights are computed in _compute_weights(),
+        which must be implemented by any concrete subclass.
 
         Returns
         -------
         connectivity weight matrix : numpy.ndarray
 
         """
-        if not self._is_configured:
-            raise AssertionError("operation must be configured before "
-                                 "computing_weights() is called")
-        else:
-            return self._compute_weights()
+        # check that a basic configuration has been set
+        if self._input_shape is None or self._output_shape is None:
+            raise AssertionError("_input_shape and _output_shape "
+                                 "should not be None; make sure to set "
+                                 "_output_shape in _configure()")
 
-    def _configure(self,
-                   input_shape: ty.Tuple[int, ...],
-                   output_shape: ty.Tuple[int, ...]):
-        """
-        Does the actual work of configuration; this method should be overwritten
-        in subclasses if so desired.
-
-        Parameters
-        ----------
-        input_shape : tuple(int)
-            input shape of the operation
-        output_shape : tuple(int)
-            output shape of the operation
-
-        """
-        self.input_shape = input_shape
-        self.output_shape = output_shape
-
-    @abstractmethod
-    def _validate_configuration(self):
-        """
-        Validates the configuration (input_shape, output_shape) of the
-        operation. Should raise a MisconfiguredOpError if the configuration
-        is invalid.
-
-        """
-        pass
+        # compute and return connectivity weight matrix
+        return self._compute_weights()
 
     @abstractmethod
     def _compute_weights(self) -> np.ndarray:
         """
-        Does the actual work of computing the weights and returns it as a
+        Does the actual work of computing the weights and returns them as a
         numpy array.
 
         Returns
@@ -115,8 +59,135 @@ class AbstractOperation(ABC):
         """
         pass
 
+    @abstractmethod
+    def configure(self,
+                  input_shape: ty.Tuple[int, ...]):
+        """
+        Configures an operation by setting its input and output shape.
 
-class Weights(AbstractOperation):
+        Parameters
+        ----------
+        input_shape : tuple(int)
+            input shape of the operation
+
+        """
+        pass
+
+
+class AbstractComputedShapeOperation(AbstractOperation):
+    """
+    Abstract Operation class for operations whose output shape can be derived
+    from its input shape (potentially with the help of additional parameters).
+
+    """
+    def configure(self,
+                  input_shape: ty.Tuple[int, ...]):
+        self._input_shape = input_shape
+        self._compute_output_shape(input_shape)
+
+    @abstractmethod
+    def _compute_output_shape(self, input_shape: ty.Tuple[int, ...]):
+        """
+        Derives the output shape of the operation from the input shape.
+
+        Parameters
+        ----------
+        input_shape : tuple(int)
+            input shape of the operation
+
+        """
+        pass
+
+
+class AbstractSpecifiedShapeOperation(AbstractOperation):
+    """
+    Abstract Operation class for operations whose output shape must be
+    specified by the user.
+
+    Parameters
+    ----------
+    output_shape : tuple(int)
+        output shape of the operation
+
+    """
+    def __init__(self, output_shape: ty.Tuple[int, ...]):
+        super().__init__()
+        self._output_shape = output_shape
+
+    def configure(self,
+                  input_shape: ty.Tuple[int, ...]):
+        self._input_shape = input_shape
+        self._validate_output_shape()
+
+    @abstractmethod
+    def _validate_output_shape(self):
+        """
+        Validates the output shape of the operation given the input shape, the
+        purpose of the operation, as well as any other user inputs and
+        constraints.
+
+        Should raise an exception if the output shape is not valid.
+        """
+        pass
+
+
+class AbstractKeepShapeOperation(AbstractComputedShapeOperation,
+                                 metaclass=ABCMeta):
+    """Abstract Operation that does not change the shape of the input."""
+    def _compute_output_shape(self, input_shape: ty.Tuple[int, ...]):
+        self._output_shape = input_shape
+
+
+class AbstractReduceDimsOperation(AbstractComputedShapeOperation,
+                                  metaclass=ABCMeta):
+    """
+    Abstract Operation that (only) reduces the dimensionality of the
+    input.
+
+    Parameters
+    ----------
+    reduce_dims : int or tuple(int)
+        indices of the dimensions to remove
+    """
+    def __init__(self,
+                 reduce_dims: ty.Union[int, ty.Tuple[int, ...]]):
+        super().__init__()
+        if isinstance(reduce_dims, int):
+            reduce_dims = (reduce_dims,)
+        self.reduce_dims = reduce_dims
+
+    def _compute_output_shape(self, input_shape: ty.Tuple[int, ...]):
+        self._validate_reduce_dims()
+        self._output_shape = tuple(np.delete(np.asarray(input_shape),
+                                             self.reduce_dims))
+
+    def _validate_reduce_dims(self):
+        if len(self.reduce_dims) == 0:
+            raise ValueError("<reduce_dims> may not be empty")
+
+        for idx in self.reduce_dims:
+            # compute the positive index irrespective of the sign of 'idx'
+            idx_pos = len(self._input_shape) + idx if idx < 0 else idx
+            # make sure the positive index is not out of bounds
+            if 0 < idx_pos >= len(self._input_shape):
+                raise IndexError(f"<reduce_dims> value {idx} is out of bounds "
+                                 f"for array of size {len(self._input_shape)}")
+
+
+class AbstractReshapeOperation(AbstractSpecifiedShapeOperation,
+                               metaclass=ABCMeta):
+    """Abstract Operation that reshapes the input, changing the shape but
+    keeping the number of elements constant."""
+    def __init__(self, output_shape):
+        super().__init__(output_shape=output_shape)
+
+    def _validate_output_shape(self):
+        if num_neurons(self._input_shape) != num_neurons(self._output_shape):
+            raise MisconfiguredOpError("input and output shape must have the "
+                                       "same number of elements")
+
+
+class Weights(AbstractKeepShapeOperation):
     """
     Operation that generates one-to-one connectivity with given weights for
     every synapse.
@@ -132,11 +203,6 @@ class Weights(AbstractOperation):
         self.weight = weight
 
     def _compute_weights(self) -> np.ndarray:
-        return np.eye(num_neurons(self.output_shape),
-                      num_neurons(self.input_shape),
+        return np.eye(num_neurons(self._output_shape),
+                      num_neurons(self._input_shape),
                       dtype=np.int32) * self.weight
-
-    def _validate_configuration(self):
-        # check that input and output shape matches
-        if self.input_shape != self.output_shape:
-            raise MisconfiguredOpError("Input and output shape must match")

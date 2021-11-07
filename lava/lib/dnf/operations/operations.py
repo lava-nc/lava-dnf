@@ -5,9 +5,12 @@
 from abc import ABC, ABCMeta, abstractmethod
 import typing as ty
 import numpy as np
+from enum import Enum, unique, auto
 
 from lava.lib.dnf.utils.convenience import num_neurons
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
+
+from lava.lib.dnf.utils.convenience import num_dims
 
 
 class AbstractOperation(ABC):
@@ -157,13 +160,27 @@ class AbstractReduceDimsOperation(AbstractComputedShapeOperation,
         self.reduce_dims = reduce_dims
 
     def _compute_output_shape(self, input_shape: ty.Tuple[int, ...]):
+        self._validate_input_shape()
         self._validate_reduce_dims()
         self._output_shape = tuple(np.delete(np.asarray(input_shape),
                                              self.reduce_dims))
+        if self._output_shape == ():
+            self._output_shape = (1,)
+
+    def _validate_input_shape(self):
+        if num_dims(self._input_shape) == 0:
+            raise MisconfiguredOpError("ReduceDims operation is "
+                                       "configured with an input shape that "
+                                       "is already zero-dimensional")
 
     def _validate_reduce_dims(self):
         if len(self.reduce_dims) == 0:
             raise ValueError("<reduce_dims> may not be empty")
+
+        if len(self.reduce_dims) > len(self._input_shape):
+            raise ValueError(f"given <reduce_dims> {self.reduce_dims} has "
+                             f"more entries than the shape of the input "
+                             f"{self._input_shape}")
 
         for idx in self.reduce_dims:
             # compute the positive index irrespective of the sign of 'idx'
@@ -206,3 +223,99 @@ class Weights(AbstractKeepShapeOperation):
         return np.eye(num_neurons(self._output_shape),
                       num_neurons(self._input_shape),
                       dtype=np.int32) * self.weight
+
+
+@unique
+class ReduceMethod(Enum):
+    """Enum for reduce methods of ReduceDims Operation"""
+    SUM = auto()  # ReduceDims will sum all synaptic weights of collapsed dim
+    MEAN = auto()  # ReduceDims will compute mean of weights of collapsed dim
+
+    @classmethod
+    def validate(cls, reduce_method):
+        """Validate <reduce_op> against all valid enum values"""
+        if not isinstance(reduce_method, ReduceMethod):
+            raise TypeError("reduce_method must be of value ReduceMethod")
+
+
+class ReduceDims(AbstractReduceDimsOperation):
+    """
+    Operation that reduces the dimensionality of the input by projecting
+    a specified subset of dimensions onto the remaining dimensions.
+
+    """
+    def __init__(self,
+                 reduce_dims: ty.Union[int, ty.Tuple[int, ...]],
+                 reduce_method: ReduceMethod):
+        super().__init__(reduce_dims)
+        ReduceMethod.validate(reduce_method)
+        self.reduce_method = reduce_method
+
+    def _compute_weights(self) -> np.ndarray:
+        num_dims_in = num_dims(self._input_shape)
+        num_dims_out = num_dims(self._output_shape)
+
+        num_neurons_in = num_neurons(self._input_shape)
+        num_neurons_out = num_neurons(self._output_shape)
+
+        if num_dims_out == 0:
+            # if the target is a 0D population, the connectivity is from
+            # all neurons in the source population to that one neuron
+            weights = np.zeros((1, num_neurons_in))
+
+            if self.reduce_method == ReduceMethod.SUM:
+                weights += 1
+            elif self.reduce_method == ReduceMethod.MEAN:
+                weights += 1.0 / num_neurons_in
+        else:
+            # create a dense connectivity matrix, where dimensions of the
+            # source and target are not yet flattened
+            shape = self._input_shape + self._output_shape
+            weights = np.zeros(shape)
+
+            ###
+            # create a view on the connectivity matrix, in which the axes are
+            # moved such that the first dimensions are all source dimensions
+            # (target dimensions if projecting down), followed by all target
+            # dimensions (source dimensions if projecting down), followed by
+            # all remaining dimensions
+            ###
+            # indices of source dimensions that will be mapped
+            orig_axes_in = np.delete(np.arange(num_dims_in),
+                                     self.reduce_dims)
+            # indices of target dimension on which the source dimensions will
+            # be mapped
+            orig_axes_out = np.arange(num_dims_out) + num_dims_in
+            # new indices of the source dimensions after moving the axes
+            new_axes_in = np.arange(num_dims_out)
+            # new indices of the target dimensions after moving the axes
+            new_axes_out = new_axes_in + num_dims_out
+            # create the view by moving the axes
+            conn = np.moveaxis(weights,
+                               tuple(orig_axes_in) + tuple(orig_axes_out),
+                               tuple(new_axes_out) + tuple(new_axes_in))
+
+            # for each source-target dimension pair, set connections to 1 for
+            # every pair of neurons along that dimension, as well as to all
+            # neurons in all remaining dimensions
+            if num_dims_out == 1:
+                for a in range(np.size(conn, axis=0)):
+                    conn[a, a, ...] = 1
+            if num_dims_out == 2:
+                for a in range(np.size(conn, axis=0)):
+                    for b in range(np.size(conn, axis=1)):
+                        conn[a, b, a, b, ...] = 1
+
+            # flatten the source and target dimensions of the connectivity
+            # matrix to get a two-dimensional dense connectivity matrix
+            weights = weights.reshape((num_neurons_in, num_neurons_out))
+
+            if self.reduce_method == ReduceMethod.MEAN:
+                # set the weights such that they compute the mean
+                weights = weights / num_neurons_in
+
+            # transpose the connectivity matrix to fit convention used
+            # throughout Lava
+            weights = np.transpose(weights)
+
+        return weights

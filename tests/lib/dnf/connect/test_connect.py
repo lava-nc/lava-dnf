@@ -112,15 +112,6 @@ class TestConnect(unittest.TestCase):
                 MockProcess(output_shape).a_in,
                 ops=MockChangeOperation(output_shape=output_shape))
 
-    def test_misconfigured_operation_raises_error(self):
-        """Tests whether an operation that is misconfigured raises an error."""
-        shape = (5, 3)
-        with self.assertRaises(MisconfiguredOpError):
-            connect(MockProcess(shape).s_out,
-                    MockProcess(shape).a_in,
-                    # this op is misconfigured if it does not change shape
-                    ops=MockChangeOperation(output_shape=shape))
-
     def test_mismatching_op_output_shape_and_dest_shape_raises_error(self):
         """Tests whether an error is raised when the output shape of the
         last operation does not match the destination shape."""

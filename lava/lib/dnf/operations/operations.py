@@ -191,6 +191,50 @@ class AbstractReduceDimsOperation(AbstractComputedShapeOperation,
                                  f"for array of size {len(self._input_shape)}")
 
 
+class AbstractExpandDimsOperation(AbstractComputedShapeOperation,
+                                  metaclass=ABCMeta):
+    """Abstract Operation that expands the dimensionality of the input by
+    concatenating additional dimensions with the given shape
+    <new_dims_shape>.
+
+    Parameters
+    ----------
+    new_dims_shape : int or tuple(int)
+        shape of the added dimensions; they will be concatenated to the shape
+        of the input, for instance an input shape (2,) and
+        new_dims_shape=(6, 8) will produce an output shape (2, 6, 8)
+    """
+    def __init__(self,
+                 new_dims_shape: ty.Union[int, ty.Tuple[int, ...]]):
+        super().__init__()
+        if isinstance(new_dims_shape, int):
+            new_dims_shape = (new_dims_shape,)
+        self.new_dims_shape = new_dims_shape
+
+    def _compute_output_shape(self, input_shape: ty.Tuple[int, ...]):
+        self._validate_new_dims_shape()
+        if num_dims(input_shape) == 0:
+            self._output_shape = self.new_dims_shape
+        else:
+            self._output_shape = input_shape + self.new_dims_shape
+
+        if len(self._output_shape) > 3:
+            raise NotImplementedError("ExpandDims operation is configured to "
+                                      "produce an output shape with "
+                                      "dimensionality larger than 3; higher "
+                                      "dimensionality is currently not "
+                                      "supported")
+
+    def _validate_new_dims_shape(self):
+        """Validate the <new_dims_shape> argument"""
+        if len(self.new_dims_shape) == 0:
+            raise ValueError("<new_dims_shape> may not be empty")
+
+        if any(s < 1 for s in self.new_dims_shape):
+            raise ValueError("values in <new_dims_shape> may not be smaller "
+                             "than 1")
+
+
 class AbstractReshapeOperation(AbstractSpecifiedShapeOperation,
                                metaclass=ABCMeta):
     """Abstract Operation that reshapes the input, changing the shape but

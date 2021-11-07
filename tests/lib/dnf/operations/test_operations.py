@@ -9,7 +9,8 @@ import numpy as np
 from lava.lib.dnf.operations.operations import AbstractOperation, \
     AbstractComputedShapeOperation, AbstractSpecifiedShapeOperation, \
     AbstractKeepShapeOperation, AbstractReduceDimsOperation, \
-    AbstractReshapeOperation, Weights, ReduceDims, ReduceMethod
+    AbstractReshapeOperation, AbstractExpandDimsOperation, Weights, \
+    ReduceDims, ReduceMethod
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 
 from lava.lib.dnf.utils.convenience import num_neurons
@@ -56,6 +57,12 @@ class MockKeepShapeOp(AbstractKeepShapeOperation):
 
 class MockReduceDims(AbstractReduceDimsOperation):
     """Mock Operation that reduces the dimensionality of the incoming matrix"""
+    def _compute_weights(self):
+        return np.ones((1, 1), dtype=np.int32)
+
+
+class MockExpandDims(AbstractExpandDimsOperation):
+    """Mock Operation that expands the dimensionality of the incoming matrix"""
     def _compute_weights(self):
         return np.ones((1, 1), dtype=np.int32)
 
@@ -140,6 +147,56 @@ class TestKeepShapeOperation(unittest.TestCase):
         input_shape = (2, 4)
         op.configure(input_shape=input_shape)
         self.assertEqual(op.output_shape, input_shape)
+
+
+class TestExpandDimsOperation(unittest.TestCase):
+    def test_compute_output_shape_expand_one_dim(self):
+        """Tests whether the output shape is set correctly when a single
+        dimension is added."""
+        op = MockExpandDims(new_dims_shape=(6,))
+        op.configure(input_shape=(2, 4))
+        self.assertEqual(op.output_shape, (2, 4, 6))
+
+    def test_compute_output_shape_expand_multiple_dims(self):
+        """Tests whether the output shape is set correctly when multiple
+         dimensions are added."""
+        op = MockExpandDims(new_dims_shape=(6, 8))
+        op.configure(input_shape=(2,))
+        self.assertEqual(op.output_shape, (2, 6, 8))
+
+    def test_compute_output_shape_expand_from_0d(self):
+        """Tests whether the output shape is set correctly when expanding
+        from 0D to 1D."""
+        op = MockExpandDims(new_dims_shape=(10,))
+        op.configure(input_shape=(1,))
+        self.assertEqual(op.output_shape, (10,))
+
+    def test_negative_shape_values_raise_error(self):
+        """Tests whether an error is raised when <new_dims_shape> contains a
+        negative value."""
+        op = MockExpandDims(new_dims_shape=(-6,))
+        with self.assertRaises(ValueError):
+            op.configure(input_shape=(2, 4))
+
+    def test_zero_shape_values_raise_error(self):
+        """Tests whether an error is raised when <new_dims_shape> contains a
+        zero."""
+        op = MockExpandDims(new_dims_shape=(0,))
+        with self.assertRaises(ValueError):
+            op.configure(input_shape=(2, 4))
+
+    def test_empty_new_dims_shape_raises_error(self):
+        """Tests whether an error is raised when <new_dims_shape> is empty."""
+        op = MockExpandDims(new_dims_shape=())
+        with self.assertRaises(ValueError):
+            op.configure(input_shape=(2, 4))
+
+    def test_output_shape_larger_than_dim_3_raises_error(self):
+        """Tests whether an error is raised when the computed output shape is
+        larger than 3."""
+        op = MockExpandDims(new_dims_shape=(6, 8))
+        with self.assertRaises(NotImplementedError):
+            op.configure(input_shape=(2, 4))
 
 
 class TestReduceDimsOperation(unittest.TestCase):

@@ -287,6 +287,13 @@ class ReduceDims(AbstractReduceDimsOperation):
     Operation that reduces the dimensionality of the input by projecting
     a specified subset of dimensions onto the remaining dimensions.
 
+    Parameters
+    ----------
+    reduce_dims : int or tuple(int)
+        indices of dimension that will be reduced/removed
+    reduce_method : ReduceMethod
+        method by which the dimensions will be reduced (SUM or MEAN)
+
     """
     def __init__(self,
                  reduce_dims: ty.Union[int, ty.Tuple[int, ...]],
@@ -299,67 +306,130 @@ class ReduceDims(AbstractReduceDimsOperation):
         num_dims_in = num_dims(self._input_shape)
         num_dims_out = num_dims(self._output_shape)
 
-        num_neurons_in = num_neurons(self._input_shape)
-        num_neurons_out = num_neurons(self._output_shape)
+        # indices of the output dimensions in the weight matrix that will be
+        # kept from the input, which in this case is all of them;
+        # these will be just the first <num_dims_out> number of axes in the
+        # weight matrix
+        orig_axes_out = np.arange(num_dims_out)
+        # indices of the input dimensions in the weight matrix that will
+        # not be removed; these will be come after the axes of the output
+        # dimensions defined above
+        orig_axes_in = np.delete(np.arange(num_dims_in),
+                                 self.reduce_dims) + num_dims_out
 
-        if num_dims_out == 0:
-            # if the target is a 0D population, the connectivity is from
-            # all neurons in the source population to that one neuron
-            weights = np.zeros((1, num_neurons_in))
+        # generate the weight matrix
+        weights = _project_dims(self._input_shape,
+                                self._output_shape,
+                                tuple(orig_axes_out),
+                                tuple(orig_axes_in))
 
-            if self.reduce_method == ReduceMethod.SUM:
-                weights += 1
-            elif self.reduce_method == ReduceMethod.MEAN:
-                weights += 1.0 / num_neurons_in
-        else:
-            # create a dense connectivity matrix, where dimensions of the
-            # source and target are not yet flattened
-            shape = self._input_shape + self._output_shape
-            weights = np.zeros(shape)
-
-            ###
-            # create a view on the connectivity matrix, in which the axes are
-            # moved such that the first dimensions are all source dimensions
-            # (target dimensions if projecting down), followed by all target
-            # dimensions (source dimensions if projecting down), followed by
-            # all remaining dimensions
-            ###
-            # indices of source dimensions that will be mapped
-            orig_axes_in = np.delete(np.arange(num_dims_in),
-                                     self.reduce_dims)
-            # indices of target dimension on which the source dimensions will
-            # be mapped
-            orig_axes_out = np.arange(num_dims_out) + num_dims_in
-            # new indices of the source dimensions after moving the axes
-            new_axes_in = np.arange(num_dims_out)
-            # new indices of the target dimensions after moving the axes
-            new_axes_out = new_axes_in + num_dims_out
-            # create the view by moving the axes
-            conn = np.moveaxis(weights,
-                               tuple(orig_axes_in) + tuple(orig_axes_out),
-                               tuple(new_axes_out) + tuple(new_axes_in))
-
-            # for each source-target dimension pair, set connections to 1 for
-            # every pair of neurons along that dimension, as well as to all
-            # neurons in all remaining dimensions
-            if num_dims_out == 1:
-                for a in range(np.size(conn, axis=0)):
-                    conn[a, a, ...] = 1
-            if num_dims_out == 2:
-                for a in range(np.size(conn, axis=0)):
-                    for b in range(np.size(conn, axis=1)):
-                        conn[a, b, a, b, ...] = 1
-
-            # flatten the source and target dimensions of the connectivity
-            # matrix to get a two-dimensional dense connectivity matrix
-            weights = weights.reshape((num_neurons_in, num_neurons_out))
-
-            if self.reduce_method == ReduceMethod.MEAN:
-                # set the weights such that they compute the mean
-                weights = weights / num_neurons_in
-
-            # transpose the connectivity matrix to fit convention used
-            # throughout Lava
-            weights = np.transpose(weights)
+        if self.reduce_method == ReduceMethod.MEAN:
+            # set the weights such that they compute the mean
+            weights = weights / num_neurons(self._input_shape)
 
         return weights
+
+
+class ExpandDims(AbstractExpandDimsOperation):
+    """
+    Operation that expands the dimensionality of the input by projecting
+    the dimensions of the input to the newly added dimensions.
+
+    """
+    def __init__(self,
+                 new_dims_shape: ty.Union[int, ty.Tuple[int, ...]]):
+        super().__init__(new_dims_shape)
+
+    def _compute_weights(self) -> np.ndarray:
+        # indices of the output dimensions in the weight matrix that were
+        # already present in the input
+        orig_axes_out = np.arange(num_dims(self._input_shape))
+        # indices of the input dimensions in the weight matrix that will
+        # be kept for the output, which in this case is all of them;
+        # these will come after the axes of the output
+        # dimensions defined above
+        orig_axes_in = orig_axes_out + num_dims(self._output_shape)
+
+        # generate the weight matrix
+        weights = _project_dims(self._input_shape,
+                                self._output_shape,
+                                tuple(orig_axes_out),
+                                tuple(orig_axes_in))
+
+        return weights
+
+
+def _project_dims(input_shape: ty.Tuple[int, ...],
+                  output_shape: ty.Tuple[int, ...],
+                  orig_axes_out: ty.Tuple[int, ...],
+                  orig_axes_in: ty.Tuple[int, ...]) -> np.ndarray:
+    """Projection function that is used both by the ReduceDims and ExpandDims
+    Operation
+
+    Parameters
+    ----------
+    input_shape : tuple(int)
+        input shape of the operation
+    output_shape : tuple(int)
+        output shape of the operation
+    orig_axes_out : tuple(int)
+        indices of the output dimensions that will carry over from the input;
+        these indices are with respect to the overall weight matrix (before
+        flattening) that is created in this function
+    orig_axes_in : tuple(int)
+        indices of the input dimensions that will carry over;
+        these indices are with respect to the overall weight matrix (before
+        flattening) that is created in this function
+
+    Returns
+    -------
+    connectivity weight matrix : numpy.ndarray
+    """
+    num_neurons_in = num_neurons(input_shape)
+    num_neurons_out = num_neurons(output_shape)
+    smaller_num_dims = min(num_dims(input_shape), num_dims(output_shape))
+
+    if smaller_num_dims == 0:
+        # if the target is a 0D population, the connectivity is from
+        # all neurons in the source population to that one neuron
+        weights = np.ones((num_neurons_out, num_neurons_in))
+    else:
+        # create a dense connectivity matrix, where dimensions of the
+        # source and target are not yet flattened
+        shape = output_shape + input_shape
+        weights = np.zeros(shape)
+
+        ###
+        # The following lines create a view on the connectivity matrix,
+        # in which the axes are moved such that the first dimensions are all
+        # target dimensions, followed by all source dimensions, followed by
+        # all remaining dimensions.
+
+        # new indices of the target dimensions after moving the axes
+        new_axes_out = np.arange(len(orig_axes_out))
+        # new indices of the source dimensions after moving the axes
+        new_axes_in = np.arange(len(orig_axes_in)) + len(new_axes_out)
+
+        # create the view by moving the axes
+        conn = np.moveaxis(weights,
+                           orig_axes_out + orig_axes_in,
+                           tuple(new_axes_out) + tuple(new_axes_in))
+        #
+        ###
+
+        # for each source-target dimension pair, set connections to 1 for
+        # every pair of neurons along that dimension, as well as to all
+        # neurons in all remaining dimensions
+        if smaller_num_dims == 1:
+            for a in range(np.size(conn, axis=0)):
+                conn[a, a, ...] = 1
+        if smaller_num_dims == 2:
+            for a in range(np.size(conn, axis=0)):
+                for b in range(np.size(conn, axis=1)):
+                    conn[a, b, a, b, ...] = 1
+
+        # flatten the source and target dimensions of the connectivity
+        # matrix to get a two-dimensional dense connectivity matrix
+        weights = weights.reshape((num_neurons_out, num_neurons_in))
+
+    return weights

@@ -10,7 +10,7 @@ from lava.lib.dnf.operations.operations import AbstractOperation, \
     AbstractComputedShapeOperation, AbstractSpecifiedShapeOperation, \
     AbstractKeepShapeOperation, AbstractReduceDimsOperation, \
     AbstractReshapeOperation, AbstractExpandDimsOperation, Weights, \
-    ReduceDims, ReduceMethod
+    ReduceDims, ReduceMethod, ExpandDims
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 
 from lava.lib.dnf.utils.convenience import num_neurons
@@ -150,10 +150,10 @@ class TestKeepShapeOperation(unittest.TestCase):
 
 
 class TestExpandDimsOperation(unittest.TestCase):
-    def test_compute_output_shape_expand_one_dim(self):
+    def test_compute_output_shape_expand_one_dim_with_int_argument(self):
         """Tests whether the output shape is set correctly when a single
-        dimension is added."""
-        op = MockExpandDims(new_dims_shape=(6,))
+        dimension is added, using an integer to specify the shape."""
+        op = MockExpandDims(new_dims_shape=6)
         op.configure(input_shape=(2, 4))
         self.assertEqual(op.output_shape, (2, 4, 6))
 
@@ -479,6 +479,91 @@ class TestReduceMethod(unittest.TestCase):
         """Tests whether FOO is an invalid value of the ReduceMethod enum."""
         with self.assertRaises(AttributeError):
             _ = ReduceMethod.FOO
+
+
+class TestExpandDims(unittest.TestCase):
+    def test_init(self):
+        """Tests whether an ExpandDims operation can be instantiated."""
+        op = ExpandDims(new_dims_shape=(5,))
+        self.assertIsInstance(op, ExpandDims)
+
+    def test_compute_weights_0d_to_1d(self):
+        """Tests expanding dimensionality from 0D to 1D."""
+        op = ExpandDims(new_dims_shape=(3,))
+        op.configure(input_shape=(1,))
+        computed_weights = op.compute_weights()
+        expected_weights = np.ones((3, 1))
+
+        self.assertTrue(np.array_equal(computed_weights, expected_weights))
+
+    def test_compute_weights_0d_to_2d(self):
+        """Tests expanding dimensionality from 0D to 2D."""
+        op = ExpandDims(new_dims_shape=(3, 3))
+        op.configure(input_shape=(1,))
+        computed_weights = op.compute_weights()
+        expected_weights = np.ones((9, 1))
+
+        self.assertTrue(np.array_equal(computed_weights, expected_weights))
+
+    def test_compute_weights_0d_to_3d(self):
+        """Tests expanding dimensionality from 0D to 3D."""
+        op = ExpandDims(new_dims_shape=(3, 3, 3))
+        op.configure(input_shape=(1,))
+        computed_weights = op.compute_weights()
+        expected_weights = np.ones((27, 1))
+
+        self.assertTrue(np.array_equal(computed_weights, expected_weights))
+
+    def test_compute_weights_1d_to_2d(self):
+        """Tests expanding dimensionality from 1D to 2D."""
+        op = ExpandDims(new_dims_shape=(3,))
+        op.configure(input_shape=(3,))
+        computed_weights = op.compute_weights()
+        expected_weights = np.array([[1, 0, 0],
+                                     [1, 0, 0],
+                                     [1, 0, 0],
+
+                                     [0, 1, 0],
+                                     [0, 1, 0],
+                                     [0, 1, 0],
+
+                                     [0, 0, 1],
+                                     [0, 0, 1],
+                                     [0, 0, 1]])
+
+        self.assertTrue(np.array_equal(computed_weights, expected_weights))
+
+    def test_compute_weights_1d_to_3d(self):
+        """Tests expanding dimensionality from 1D to 3D."""
+        op = ExpandDims(new_dims_shape=(2, 2))
+        op.configure(input_shape=(2,))
+        computed_weights = op.compute_weights()
+        expected_weights = np.array([[1, 0],
+                                     [1, 0],
+                                     [1, 0],
+                                     [1, 0],
+                                     [0, 1],
+                                     [0, 1],
+                                     [0, 1],
+                                     [0, 1]])
+
+        self.assertTrue(np.array_equal(computed_weights, expected_weights))
+
+    def test_compute_weights_2d_to_3d(self):
+        """Tests expanding dimensionality from 2D to 3D."""
+        op = ExpandDims(new_dims_shape=(2,))
+        op.configure(input_shape=(2, 2))
+        computed_weights = op.compute_weights()
+        expected_weights = np.array([[1, 0, 0, 0],
+                                     [1, 0, 0, 0],
+                                     [0, 1, 0, 0],
+                                     [0, 1, 0, 0],
+                                     [0, 0, 1, 0],
+                                     [0, 0, 1, 0],
+                                     [0, 0, 0, 1],
+                                     [0, 0, 0, 1]])
+
+        self.assertTrue(np.array_equal(computed_weights, expected_weights))
 
 
 if __name__ == '__main__':

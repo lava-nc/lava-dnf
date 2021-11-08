@@ -303,25 +303,17 @@ class ReduceDims(AbstractReduceDimsOperation):
         self.reduce_method = reduce_method
 
     def _compute_weights(self) -> np.ndarray:
-        num_dims_in = num_dims(self._input_shape)
-        num_dims_out = num_dims(self._output_shape)
 
-        # indices of the output dimensions in the weight matrix that will be
-        # kept from the input, which in this case is all of them;
-        # these will be just the first <num_dims_out> number of axes in the
-        # weight matrix
-        orig_axes_out = np.arange(num_dims_out)
         # indices of the input dimensions in the weight matrix that will
         # not be removed; these will be come after the axes of the output
         # dimensions defined above
-        orig_axes_in = np.delete(np.arange(num_dims_in),
-                                 self.reduce_dims) + num_dims_out
+        in_axes_all = np.arange(num_dims(self._input_shape))
+        in_axes_kept = np.delete(in_axes_all, self.reduce_dims)
 
         # generate the weight matrix
         weights = _project_dims(self._input_shape,
                                 self._output_shape,
-                                tuple(orig_axes_out),
-                                tuple(orig_axes_in))
+                                in_axes_kept=in_axes_kept)
 
         if self.reduce_method == ReduceMethod.MEAN:
             # set the weights such that they compute the mean
@@ -341,28 +333,24 @@ class ExpandDims(AbstractExpandDimsOperation):
         super().__init__(new_dims_shape)
 
     def _compute_weights(self) -> np.ndarray:
-        # indices of the output dimensions in the weight matrix that were
-        # already present in the input
-        orig_axes_out = np.arange(num_dims(self._input_shape))
-        # indices of the input dimensions in the weight matrix that will
-        # be kept for the output, which in this case is all of them;
-        # these will come after the axes of the output
-        # dimensions defined above
-        orig_axes_in = orig_axes_out + num_dims(self._output_shape)
+        # indices of the output dimensions in the weight matrix that will
+        # be kept from the input
+        out_axes_kept = tuple(np.arange(num_dims(self._input_shape)))
 
         # generate the weight matrix
         weights = _project_dims(self._input_shape,
                                 self._output_shape,
-                                tuple(orig_axes_out),
-                                tuple(orig_axes_in))
+                                out_axes_kept=out_axes_kept)
 
         return weights
 
 
-def _project_dims(input_shape: ty.Tuple[int, ...],
-                  output_shape: ty.Tuple[int, ...],
-                  orig_axes_out: ty.Tuple[int, ...],
-                  orig_axes_in: ty.Tuple[int, ...]) -> np.ndarray:
+def _project_dims(
+    input_shape: ty.Tuple[int, ...],
+    output_shape: ty.Tuple[int, ...],
+    out_axes_kept: ty.Optional[ty.Tuple[int, ...]] = None,
+    in_axes_kept: ty.Optional[ty.Tuple[int, ...]] = None
+) -> np.ndarray:
     """Projection function that is used both by the ReduceDims and ExpandDims
     Operation
 
@@ -372,22 +360,23 @@ def _project_dims(input_shape: ty.Tuple[int, ...],
         input shape of the operation
     output_shape : tuple(int)
         output shape of the operation
-    orig_axes_out : tuple(int)
-        indices of the output dimensions that will carry over from the input;
-        these indices are with respect to the overall weight matrix (before
-        flattening) that is created in this function
-    orig_axes_in : tuple(int)
-        indices of the input dimensions that will carry over;
-        these indices are with respect to the overall weight matrix (before
-        flattening) that is created in this function
+    out_axes_kept : tuple(int)
+        indices of the output dimensions in the weight matrix that will
+        be kept from the input
+    in_axes_kept : tuple(int)
+        indices of the input dimensions in the weight matrix that will
+        be kept for the output
 
     Returns
     -------
     connectivity weight matrix : numpy.ndarray
+
     """
     num_neurons_in = num_neurons(input_shape)
     num_neurons_out = num_neurons(output_shape)
-    smaller_num_dims = min(num_dims(input_shape), num_dims(output_shape))
+    num_dims_in = num_dims(input_shape)
+    num_dims_out = num_dims(output_shape)
+    smaller_num_dims = min(num_dims_in, num_dims_out)
 
     if smaller_num_dims == 0:
         # if the target is a 0D population, the connectivity is from
@@ -402,18 +391,25 @@ def _project_dims(input_shape: ty.Tuple[int, ...],
         ###
         # The following lines create a view on the connectivity matrix,
         # in which the axes are moved such that the first dimensions are all
-        # target dimensions, followed by all source dimensions, followed by
-        # all remaining dimensions.
+        # output dimensions that will be kept, followed by all input
+        # dimensions that will be kept, followed by all remaining dimensions.
+        if in_axes_kept is None:
+            in_axes_kept = np.arange(num_dims_in)
+        in_axes_kept = tuple(in_axes_kept + num_dims_out)
 
-        # new indices of the target dimensions after moving the axes
-        new_axes_out = np.arange(len(orig_axes_out))
-        # new indices of the source dimensions after moving the axes
-        new_axes_in = np.arange(len(orig_axes_in)) + len(new_axes_out)
+        if out_axes_kept is None:
+            out_axes_kept = np.arange(num_dims_out)
+        out_axes_kept = tuple(out_axes_kept)
+
+        # new indices of the kept output dimensions after moving the axes
+        new_axes_out = tuple(np.arange(len(out_axes_kept)))
+        # new indices of the kept input dimensions after moving the axes
+        new_axes_in = tuple(np.arange(len(in_axes_kept)) + len(new_axes_out))
 
         # create the view by moving the axes
         conn = np.moveaxis(weights,
-                           orig_axes_out + orig_axes_in,
-                           tuple(new_axes_out) + tuple(new_axes_in))
+                           out_axes_kept + in_axes_kept,
+                           new_axes_out + new_axes_in)
         #
         ###
 

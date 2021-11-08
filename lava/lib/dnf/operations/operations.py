@@ -184,9 +184,9 @@ class AbstractReduceDimsOperation(AbstractComputedShapeOperation,
 
         for idx in self.reduce_dims:
             # compute the positive index irrespective of the sign of 'idx'
-            idx_pos = len(self._input_shape) + idx if idx < 0 else idx
+            idx_positive = len(self._input_shape) + idx if idx < 0 else idx
             # make sure the positive index is not out of bounds
-            if 0 < idx_pos >= len(self._input_shape):
+            if idx_positive < 0 or idx_positive >= len(self._input_shape):
                 raise IndexError(f"<reduce_dims> value {idx} is out of bounds "
                                  f"for array of size {len(self._input_shape)}")
 
@@ -297,7 +297,7 @@ class ReduceDims(AbstractReduceDimsOperation):
     """
     def __init__(self,
                  reduce_dims: ty.Union[int, ty.Tuple[int, ...]],
-                 reduce_method: ReduceMethod):
+                 reduce_method: ty.Optional[ReduceMethod] = ReduceMethod.SUM):
         super().__init__(reduce_dims)
         ReduceMethod.validate(reduce_method)
         self.reduce_method = reduce_method
@@ -308,7 +308,7 @@ class ReduceDims(AbstractReduceDimsOperation):
         # not be removed; these will be come after the axes of the output
         # dimensions defined above
         in_axes_all = np.arange(num_dims(self._input_shape))
-        in_axes_kept = np.delete(in_axes_all, self.reduce_dims)
+        in_axes_kept = tuple(np.delete(in_axes_all, self.reduce_dims))
 
         # generate the weight matrix
         weights = _project_dims(self._input_shape,
@@ -395,7 +395,7 @@ def _project_dims(
         # dimensions that will be kept, followed by all remaining dimensions.
         if in_axes_kept is None:
             in_axes_kept = np.arange(num_dims_in)
-        in_axes_kept = tuple(in_axes_kept + num_dims_out)
+        in_axes_kept = tuple(np.asarray(in_axes_kept) + num_dims_out)
 
         if out_axes_kept is None:
             out_axes_kept = np.arange(num_dims_out)
@@ -419,13 +419,72 @@ def _project_dims(
         if smaller_num_dims == 1:
             for a in range(np.size(conn, axis=0)):
                 conn[a, a, ...] = 1
-        if smaller_num_dims == 2:
+        elif smaller_num_dims == 2:
             for a in range(np.size(conn, axis=0)):
                 for b in range(np.size(conn, axis=1)):
                     conn[a, b, a, b, ...] = 1
+        elif smaller_num_dims == 3:
+            for a in range(np.size(conn, axis=0)):
+                for b in range(np.size(conn, axis=1)):
+                    for c in range(np.size(conn, axis=2)):
+                        conn[a, b, c, a, b, c, ...] = 1
+        else:
+            raise NotImplementedError("projection is not implemented for "
+                                      "dimensionality > 3")
 
         # flatten the source and target dimensions of the connectivity
         # matrix to get a two-dimensional dense connectivity matrix
         weights = weights.reshape((num_neurons_out, num_neurons_in))
 
     return weights
+
+
+class Reorder(AbstractKeepShapeOperation):
+    """
+    Operation that reorders the dimensions in the input to a specified new
+    order.
+
+    Parameters
+    ----------
+    order : tuple(int)
+
+    """
+    def __init__(self, order: ty.Tuple[int, ...]):
+        super().__init__()
+        self._order = order
+
+    def _compute_weights(self) -> np.ndarray:
+        weights = _project_dims(self._input_shape,
+                                self._output_shape,
+                                out_axes_kept=self._order)
+
+        return weights
+
+    # TODO redesign this
+    def configure(self,
+                  input_shape: ty.Tuple[int, ...]):
+        self._input_shape = input_shape
+        self._validate_user_inputs()
+        self._compute_output_shape(input_shape)
+
+    def _validate_user_inputs(self):
+        num_dims_in = num_dims(self._input_shape)
+
+        if num_dims_in < 2:
+            raise MisconfiguredOpError("the input dimensionality of <order> "
+                                       "is smaller than 2; there are no "
+                                       "dimensions to reorder")
+
+        if len(self._order) != num_dims_in:
+            raise MisconfiguredOpError("<order> must have the same number of "
+                                       "entries as the input shape: "
+                                       f"len({self._order}) != len("
+                                       f"{self._input_shape})")
+
+        for idx in self._order:
+            # compute the positive index irrespective of the sign of 'idx'
+            idx_positive = len(self._input_shape) + idx if idx < 0 else idx
+            # make sure the positive index is not out of bounds
+            if idx_positive < 0 or idx_positive >= len(self._input_shape):
+                raise IndexError(f"<order> value {idx} is out of bounds "
+                                 f"for array of size {len(self._input_shape)}")

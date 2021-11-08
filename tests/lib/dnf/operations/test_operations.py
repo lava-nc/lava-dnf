@@ -10,7 +10,7 @@ from lava.lib.dnf.operations.operations import AbstractOperation, \
     AbstractComputedShapeOperation, AbstractSpecifiedShapeOperation, \
     AbstractKeepShapeOperation, AbstractReduceDimsOperation, \
     AbstractReshapeOperation, AbstractExpandDimsOperation, Weights, \
-    ReduceDims, ReduceMethod, ExpandDims
+    ReduceDims, ReduceMethod, ExpandDims, Reorder
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 
 from lava.lib.dnf.utils.convenience import num_neurons
@@ -388,6 +388,18 @@ class TestReduceDims(unittest.TestCase):
 
         self.assertTrue(np.array_equal(computed_weights, expected_weights))
 
+    def test_order_of_reduce_dims_does_not_impact_result(self):
+        """Tests whether the order of <reduce_dims> does not matter."""
+        input_shape = (3, 4, 5)
+        op1 = ReduceDims(reduce_dims=(1, 2))
+        op1.configure(input_shape=input_shape)
+
+        op2 = ReduceDims(reduce_dims=(1, 2))
+        op2.configure(input_shape=input_shape)
+
+        self.assertTrue(np.array_equal(op1.output_shape,
+                                       op2.output_shape))
+
     def test_compute_weights_3d_to_1d_axis_keep_axis_0_sum(self):
         """Tests reducing dimensions 1 and 2 from 3D to 1D using SUM."""
         op = ReduceDims(reduce_dims=(1, 2),
@@ -564,6 +576,154 @@ class TestExpandDims(unittest.TestCase):
                                      [0, 0, 0, 1]])
 
         self.assertTrue(np.array_equal(computed_weights, expected_weights))
+
+
+class TestReorder(unittest.TestCase):
+    def test_init(self):
+        """Tests whether a Reorder operation can be instantiated."""
+        op = Reorder(order=(1, 0, 2))
+        self.assertIsInstance(op, Reorder)
+
+    def test_order_with_more_elements_than_input_raises_error(self):
+        """Tests whether an error is raised when the specified new <order>
+        has more elements than the number of input dimensions."""
+        op = Reorder(order=(1, 0, 2))
+        with self.assertRaises(MisconfiguredOpError):
+            op.configure(input_shape=(2, 2))
+
+    def test_order_with_less_elements_than_input_raises_error(self):
+        """Tests whether an error is raised when the specified new <order>
+        has less elements than the number of input dimensions."""
+        op = Reorder(order=(1,))
+        with self.assertRaises(MisconfiguredOpError):
+            op.configure(input_shape=(2, 2))
+
+    def test_negative_order_index_within_bounds_works(self):
+        """Tests whether indices in <order> can be specified with negative
+        numbers."""
+        op = Reorder(order=(0, -2))
+        op.configure(input_shape=(2, 2))
+
+    def test_order_index_out_of_bounds_raises_error(self):
+        """Tests whether an error is raised when an index in <order> is
+        larger than the dimensionality of the input."""
+        op = Reorder(order=(0, 2))
+        with self.assertRaises(IndexError):
+            op.configure(input_shape=(2, 2))
+
+    def test_negative_order_index_out_of_bounds_raises_error(self):
+        """Tests whether an error is raised when an index in <order> is
+        ne."""
+        op = Reorder(order=(0, -3))
+        with self.assertRaises(IndexError):
+            op.configure(input_shape=(2, 2))
+
+    def test_input_dimensionality_0_raises_error(self):
+        """Tests whether an error is raised when the input dimensionality is
+        0, in which case reordering does not make sense."""
+        op = Reorder(order=(0,))
+        with self.assertRaises(MisconfiguredOpError):
+            op.configure(input_shape=(1,))
+
+    def test_input_dimensionality_1_raises_error(self):
+        """Tests whether an error is raised when the input dimensionality is
+        1, in which case reordering does not make sense."""
+        op = Reorder(order=(0,))
+        with self.assertRaises(MisconfiguredOpError):
+            op.configure(input_shape=(5,))
+
+    def test_compute_weights_no_change_2d(self):
+        """Tests 'reordering' a 2D input to the same order."""
+        op = Reorder(order=(0, 1))
+        op.configure(input_shape=(3, 3))
+        computed_weights = op.compute_weights()
+        expected_weights = np.eye(9)
+
+        self.assertTrue(np.array_equal(computed_weights, expected_weights))
+
+    def test_compute_weights_reordered_2d(self):
+        """Tests reordering a 2D input by switching the dimensions."""
+        op = Reorder(order=(1, 0))
+        op.configure(input_shape=(3, 3))
+        computed_weights = op.compute_weights()
+        expected_weights = np.array([[1, 0, 0, 0, 0, 0, 0, 0, 0],
+                                     [0, 0, 0, 1, 0, 0, 0, 0, 0],
+                                     [0, 0, 0, 0, 0, 0, 1, 0, 0],
+                                     [0, 1, 0, 0, 0, 0, 0, 0, 0],
+                                     [0, 0, 0, 0, 1, 0, 0, 0, 0],
+                                     [0, 0, 0, 0, 0, 0, 0, 1, 0],
+                                     [0, 0, 1, 0, 0, 0, 0, 0, 0],
+                                     [0, 0, 0, 0, 0, 1, 0, 0, 0],
+                                     [0, 0, 0, 0, 0, 0, 0, 0, 1]])
+
+        self.assertTrue(np.array_equal(computed_weights, expected_weights))
+
+    def test_compute_weights_reordered_3d(self):
+        """Tests reordering a 3D input by switching the dimensions in all
+        possible combinations."""
+        orders = [(0, 1, 2),
+                  (0, 2, 1),
+                  (1, 0, 2),
+                  (1, 2, 0),
+                  (2, 0, 1),
+                  (2, 1, 0)]
+
+        expected_weights = [
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 1, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 1, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 1, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 1, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 1, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 1]]),
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0],
+                      [0, 1, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 1, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 1, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 1, 0],
+                      [0, 0, 0, 0, 0, 1, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 1]]),
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 1, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 1, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 1, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 1, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 1, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 1]]),
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 1, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 1, 0],
+                      [0, 1, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 1, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 1, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 1]]),
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 1, 0, 0, 0],
+                      [0, 1, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 1, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 1, 0],
+                      [0, 0, 0, 1, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 1]]),
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 1, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 1, 0],
+                      [0, 1, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 1, 0, 0],
+                      [0, 0, 0, 1, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 1]])]
+
+        for order, expected in zip(orders, expected_weights):
+            op = Reorder(order=order)
+            op.configure(input_shape=(2, 2, 2))
+            computed = op.compute_weights()
+
+            self.assertTrue(np.array_equal(computed, expected))
 
 
 if __name__ == '__main__':

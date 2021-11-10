@@ -11,8 +11,9 @@ from lava.magma.core.process.process import AbstractProcess
 
 from lava.lib.dnf.connect.connect import connect
 from lava.lib.dnf.connect.exceptions import MisconfiguredConnectError
-from lava.lib.dnf.operations.operations import AbstractComputedShapeOperation, \
-    AbstractSpecifiedShapeOperation
+from lava.lib.dnf.operations.operations import AbstractOperation
+from lava.lib.dnf.operations.shape_handlers import AbstractShapeHandler,\
+    KeepShapeHandler
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 from lava.lib.dnf.utils.convenience import num_neurons
 
@@ -25,30 +26,43 @@ class MockProcess(AbstractProcess):
         self.s_out = OutPort(shape)
 
 
-class MockNoChangeOperation(AbstractComputedShapeOperation):
+class MockNoChangeOperation(AbstractOperation):
     """Mock Operation that does not change shape"""
-    def _compute_weights(self):
-        return np.eye(num_neurons(self._output_shape),
-                      num_neurons(self._input_shape),
+    def __init__(self):
+        super().__init__(shape_handler=KeepShapeHandler())
+
+    def _compute_weights(self) -> np.ndarray:
+        return np.eye(num_neurons(self.output_shape),
+                      num_neurons(self.input_shape),
                       dtype=np.int32)
 
-    def _compute_output_shape(self, input_shape: ty.Tuple[int, ...]):
-        self._output_shape = input_shape
+
+class MockShapeHandler(AbstractShapeHandler):
+    """Mock ShapeHandler for an operation that changes the shape."""
+    def __init__(self, output_shape):
+        super().__init__()
+        self._output_shape = output_shape
+
+    def _validate_args(self):
+        if self.input_shape == self.output_shape:
+            raise MisconfiguredOpError("operation is intended to change shape")
+
+    def _compute_output_shape(self):
+        pass
+
+    def _validate_input_shape(self, input_shape):
+        pass
 
 
-class MockChangeOperation(AbstractSpecifiedShapeOperation):
+class MockChangeOperation(AbstractOperation):
     """Mock Operation that changes shape"""
     def __init__(self, output_shape):
-        super().__init__(output_shape)
+        super().__init__(MockShapeHandler(output_shape))
 
     def _compute_weights(self):
-        return np.eye(num_neurons(self._output_shape),
-                      num_neurons(self._input_shape),
+        return np.eye(num_neurons(self.output_shape),
+                      num_neurons(self.input_shape),
                       dtype=np.int32)
-
-    def _validate_output_shape(self):
-        if self._input_shape == self._output_shape:
-            raise MisconfiguredOpError("operation is intended to change shape")
 
 
 class TestConnect(unittest.TestCase):
@@ -161,8 +175,8 @@ class TestConnect(unittest.TestCase):
                 self.weight = weight
 
             def _compute_weights(self):
-                return np.eye(num_neurons(self._output_shape),
-                              num_neurons(self._input_shape),
+                return np.eye(num_neurons(self.output_shape),
+                              num_neurons(self.input_shape),
                               dtype=np.int32) * self.weight
 
         shape = (5, 3)

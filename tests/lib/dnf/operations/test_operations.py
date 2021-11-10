@@ -3,73 +3,21 @@
 # See: https://spdx.org/licenses/
 
 import unittest
-import typing as ty
 import numpy as np
 
 from lava.lib.dnf.operations.operations import AbstractOperation, \
-    AbstractComputedShapeOperation, AbstractSpecifiedShapeOperation, \
-    AbstractKeepShapeOperation, AbstractReduceDimsOperation, \
-    AbstractReshapeOperation, AbstractExpandDimsOperation, Weights, \
-    ReduceDims, ReduceMethod, ExpandDims, Reorder
-from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
+    Weights, ReduceDims, ReduceMethod, ExpandDims, Reorder
+from lava.lib.dnf.operations.shape_handlers import KeepShapeHandler
 
 from lava.lib.dnf.utils.convenience import num_neurons
 
 
 class MockOperation(AbstractOperation):
     """Generic mock Operation"""
-    def _compute_weights(self) -> np.ndarray:
-        return np.ones((1, 1), dtype=np.int32)
-
-    def configure(self, input_shape: ty.Tuple[int, ...]):
-        self._input_shape = input_shape
-        self._output_shape = input_shape
-
-
-class MockComputedShapeOperation(AbstractComputedShapeOperation):
-    """Mock Operation whose output shape is computed from its input shape"""
-    def _compute_weights(self) -> np.ndarray:
-        return np.ones((1, 1), dtype=np.int32)
-
-    def _compute_output_shape(self, input_shape: ty.Tuple[int, ...]):
-        self._output_shape = input_shape
-
-
-class MockSpecifiedShapeOperation(AbstractSpecifiedShapeOperation):
-    """Mock Operation whose output shape is specified by the user"""
-    def __init__(self, output_shape):
-        super().__init__(output_shape)
+    def __init__(self):
+        super().__init__(shape_handler=KeepShapeHandler())
 
     def _compute_weights(self) -> np.ndarray:
-        return np.ones((1, 1), dtype=np.int32)
-
-    def _validate_output_shape(self):
-        # some arbitrary validation criterion to test validation
-        if self._input_shape != self._output_shape:
-            raise MisconfiguredOpError("testing validation")
-
-
-class MockKeepShapeOp(AbstractKeepShapeOperation):
-    """Mock Operation that does not change its shape"""
-    def _compute_weights(self):
-        return np.ones((1, 1), dtype=np.int32)
-
-
-class MockReduceDims(AbstractReduceDimsOperation):
-    """Mock Operation that reduces the dimensionality of the incoming matrix"""
-    def _compute_weights(self):
-        return np.ones((1, 1), dtype=np.int32)
-
-
-class MockExpandDims(AbstractExpandDimsOperation):
-    """Mock Operation that expands the dimensionality of the incoming matrix"""
-    def _compute_weights(self):
-        return np.ones((1, 1), dtype=np.int32)
-
-
-class MockReshapeOp(AbstractReshapeOperation):
-    """Mock Operation that reshapes the incoming matrix"""
-    def _compute_weights(self):
         return np.ones((1, 1), dtype=np.int32)
 
 
@@ -85,8 +33,15 @@ class TestAbstractOperation(unittest.TestCase):
         """Tests whether the output shape property works."""
         op = MockOperation()
         shape = (2, 4)
-        op._output_shape = shape
+        op._shape_handler._output_shape = shape
         self.assertEqual(op.output_shape, shape)
+
+    def test_input_shape_getter(self):
+        """Tests whether the input shape property works."""
+        op = MockOperation()
+        shape = (2, 4)
+        op._shape_handler._input_shape = shape
+        self.assertEqual(op.input_shape, shape)
 
     def test_computing_conn_with_prior_configuration_works(self):
         """Tests whether compute_weights() works and can be called once
@@ -98,193 +53,14 @@ class TestAbstractOperation(unittest.TestCase):
 
         self.assertEqual(computed_weights, expected_weights)
 
-
-class TestAbstractComputedShapeOperation(unittest.TestCase):
-    def test_configure_sets_input_shape(self):
-        """Tests whether the configure() method sets the input shape."""
+    def test_configure_sets_input_and_output_shape(self):
+        """Tests whether the configure() method sets the input and
+        output shape."""
         input_shape = (2, 4)
-        op = MockComputedShapeOperation()
+        op = MockOperation()
         op.configure(input_shape=input_shape)
-        self.assertEqual(op._input_shape, input_shape)
-
-    def test_configure(self):
-        """Tests whether the configure() method executes
-        _compute_output_shape()."""
-        op = MockComputedShapeOperation()
-        input_shape = (2, 4)
-        op.configure(input_shape=input_shape)
-        self.assertEqual(op._input_shape, input_shape)
+        self.assertEqual(op.input_shape, input_shape)
         self.assertEqual(op.output_shape, input_shape)
-
-
-class TestAbstractSpecifiedShapeOperation(unittest.TestCase):
-    def test_specifying_output_shape(self):
-        """Tests whether the output shape can be specified in the __init__
-        method."""
-        output_shape = (2, 4)
-        op = MockSpecifiedShapeOperation(output_shape)
-        self.assertEqual(op.output_shape, output_shape)
-
-    def test_configure_sets_input_shape(self):
-        """Tests whether the configure() method sets the input shape."""
-        input_shape = (2, 4)
-        op = MockSpecifiedShapeOperation((2, 4))
-        op.configure(input_shape=input_shape)
-        self.assertEqual(op._input_shape, input_shape)
-
-    def test_configure_validates_output_shape(self):
-        """Tests whether the configure() method validates the output shape."""
-        input_shape = (2, 4)
-        op = MockSpecifiedShapeOperation((5, 3))
-        with self.assertRaises(MisconfiguredOpError):
-            op.configure(input_shape)
-
-
-class TestKeepShapeOperation(unittest.TestCase):
-    def test_compute_output_shape(self):
-        """Tests whether the output shape is set correctly."""
-        op = MockKeepShapeOp()
-        input_shape = (2, 4)
-        op.configure(input_shape=input_shape)
-        self.assertEqual(op.output_shape, input_shape)
-
-
-class TestExpandDimsOperation(unittest.TestCase):
-    def test_compute_output_shape_expand_one_dim_with_int_argument(self):
-        """Tests whether the output shape is set correctly when a single
-        dimension is added, using an integer to specify the shape."""
-        op = MockExpandDims(new_dims_shape=6)
-        op.configure(input_shape=(2, 4))
-        self.assertEqual(op.output_shape, (2, 4, 6))
-
-    def test_compute_output_shape_expand_multiple_dims(self):
-        """Tests whether the output shape is set correctly when multiple
-         dimensions are added."""
-        op = MockExpandDims(new_dims_shape=(6, 8))
-        op.configure(input_shape=(2,))
-        self.assertEqual(op.output_shape, (2, 6, 8))
-
-    def test_compute_output_shape_expand_from_0d(self):
-        """Tests whether the output shape is set correctly when expanding
-        from 0D to 1D."""
-        op = MockExpandDims(new_dims_shape=(10,))
-        op.configure(input_shape=(1,))
-        self.assertEqual(op.output_shape, (10,))
-
-    def test_negative_shape_values_raise_error(self):
-        """Tests whether an error is raised when <new_dims_shape> contains a
-        negative value."""
-        op = MockExpandDims(new_dims_shape=(-6,))
-        with self.assertRaises(ValueError):
-            op.configure(input_shape=(2, 4))
-
-    def test_zero_shape_values_raise_error(self):
-        """Tests whether an error is raised when <new_dims_shape> contains a
-        zero."""
-        op = MockExpandDims(new_dims_shape=(0,))
-        with self.assertRaises(ValueError):
-            op.configure(input_shape=(2, 4))
-
-    def test_empty_new_dims_shape_raises_error(self):
-        """Tests whether an error is raised when <new_dims_shape> is empty."""
-        op = MockExpandDims(new_dims_shape=())
-        with self.assertRaises(ValueError):
-            op.configure(input_shape=(2, 4))
-
-    def test_output_shape_larger_than_dim_3_raises_error(self):
-        """Tests whether an error is raised when the computed output shape is
-        larger than 3."""
-        op = MockExpandDims(new_dims_shape=(6, 8))
-        with self.assertRaises(NotImplementedError):
-            op.configure(input_shape=(2, 4))
-
-
-class TestReduceDimsOperation(unittest.TestCase):
-    def test_compute_output_shape_remove_one_dim(self):
-        """Tests whether the output shape is set correctly when a single
-        dimension is removed."""
-        op = MockReduceDims(reduce_dims=1)
-        op.configure(input_shape=(2, 4))
-        self.assertEqual(op.output_shape, (2,))
-
-    def test_compute_output_shape_negative_index(self):
-        """Tests whether the output shape is set correctly when a single
-        dimension is removed, using a negative index."""
-        op = MockReduceDims(reduce_dims=-1)
-        op.configure(input_shape=(2, 4))
-        self.assertEqual(op.output_shape, (2,))
-
-    def test_compute_output_shape_remove_multiple_dims(self):
-        """Tests whether the output shape is set correctly when multiple
-        dimensions are removed."""
-        op = MockReduceDims(reduce_dims=(0, -1))
-        op.configure(input_shape=(2, 3, 4, 5))
-        self.assertEqual(op.output_shape, (3, 4))
-
-    def test_compute_output_shape_remove_all(self):
-        """Tests whether the output shape is set correctly when all
-        dimensions are removed."""
-        op = MockReduceDims(reduce_dims=(0, 1, 2))
-        op.configure(input_shape=(2, 3, 4))
-        self.assertEqual(op.output_shape, (1,))
-
-    def test_reduce_dims_with_out_of_bounds_index_raises_error(self):
-        """Tests whether an error is raised when <reduce_dims> contains an
-        index that is out of bounds for the input shape of the operation."""
-        with self.assertRaises(IndexError):
-            op = MockReduceDims(reduce_dims=2)
-            op.configure(input_shape=(2, 4))
-            op.compute_weights()
-
-    def test_reduce_dims_with_negative_out_of_bounds_index_raises_error(self):
-        """Tests whether an error is raised when <reduce_dims> contains a
-        negative index that is out of bounds for the input shape of the
-        operation."""
-        with self.assertRaises(IndexError):
-            op = MockReduceDims(reduce_dims=-3)
-            op.configure(input_shape=(2, 4))
-            op.compute_weights()
-
-    def test_empty_reduce_dims_raises_error(self):
-        """Tests whether an error is raised when <reduce_dims> is an empty
-        tuple."""
-        with self.assertRaises(ValueError):
-            op = MockReduceDims(reduce_dims=())
-            op.configure(input_shape=(2, 4))
-            op.compute_weights()
-
-    def test_reduce_dims_with_too_many_entries_raises_error(self):
-        """Tests whether an error is raised when <reduce_dims> has more
-        elements than the dimensionality of the input."""
-        with self.assertRaises(ValueError):
-            op = MockReduceDims(reduce_dims=(0, 0))
-            op.configure(input_shape=(4,))
-            op.compute_weights()
-
-    def test_zero_dimensional_input_shape_raises_error(self):
-        """Tests whether an error is raised when the input shape is already
-        zero-dimensional."""
-        with self.assertRaises(MisconfiguredOpError):
-            op = MockReduceDims(reduce_dims=0)
-            op.configure(input_shape=(1,))
-
-
-class TestReshapeOperation(unittest.TestCase):
-    def test_compute_output_shape(self):
-        """Tests whether the output shape is set correctly."""
-        output_shape = (8,)
-        op = MockReshapeOp(output_shape=output_shape)
-        op.configure(input_shape=(2, 4))
-        self.assertEqual(op.output_shape, output_shape)
-
-    def test_compute_output_shape_with_incorrect_num_neurons_raises_error(self):
-        """Tests whether an error is raised when the number of neurons in
-        the input and output shape does not match."""
-        with self.assertRaises(MisconfiguredOpError):
-            output_shape = (9,)
-            op = MockReshapeOp(output_shape=output_shape)
-            op.configure(input_shape=(2, 4))
-            op.compute_weights()
 
 
 class TestWeights(unittest.TestCase):
@@ -387,18 +163,6 @@ class TestReduceDims(unittest.TestCase):
                                      [0, 0, 0, 0, 0, 0, 1, 1, 1]])
 
         self.assertTrue(np.array_equal(computed_weights, expected_weights))
-
-    def test_order_of_reduce_dims_does_not_impact_result(self):
-        """Tests whether the order of <reduce_dims> does not matter."""
-        input_shape = (3, 4, 5)
-        op1 = ReduceDims(reduce_dims=(1, 2))
-        op1.configure(input_shape=input_shape)
-
-        op2 = ReduceDims(reduce_dims=(1, 2))
-        op2.configure(input_shape=input_shape)
-
-        self.assertTrue(np.array_equal(op1.output_shape,
-                                       op2.output_shape))
 
     def test_compute_weights_3d_to_1d_axis_keep_axis_0_sum(self):
         """Tests reducing dimensions 1 and 2 from 3D to 1D using SUM."""
@@ -583,54 +347,6 @@ class TestReorder(unittest.TestCase):
         """Tests whether a Reorder operation can be instantiated."""
         op = Reorder(order=(1, 0, 2))
         self.assertIsInstance(op, Reorder)
-
-    def test_order_with_more_elements_than_input_raises_error(self):
-        """Tests whether an error is raised when the specified new <order>
-        has more elements than the number of input dimensions."""
-        op = Reorder(order=(1, 0, 2))
-        with self.assertRaises(MisconfiguredOpError):
-            op.configure(input_shape=(2, 2))
-
-    def test_order_with_less_elements_than_input_raises_error(self):
-        """Tests whether an error is raised when the specified new <order>
-        has less elements than the number of input dimensions."""
-        op = Reorder(order=(1,))
-        with self.assertRaises(MisconfiguredOpError):
-            op.configure(input_shape=(2, 2))
-
-    def test_negative_order_index_within_bounds_works(self):
-        """Tests whether indices in <order> can be specified with negative
-        numbers."""
-        op = Reorder(order=(0, -2))
-        op.configure(input_shape=(2, 2))
-
-    def test_order_index_out_of_bounds_raises_error(self):
-        """Tests whether an error is raised when an index in <order> is
-        larger than the dimensionality of the input."""
-        op = Reorder(order=(0, 2))
-        with self.assertRaises(IndexError):
-            op.configure(input_shape=(2, 2))
-
-    def test_negative_order_index_out_of_bounds_raises_error(self):
-        """Tests whether an error is raised when an index in <order> is
-        ne."""
-        op = Reorder(order=(0, -3))
-        with self.assertRaises(IndexError):
-            op.configure(input_shape=(2, 2))
-
-    def test_input_dimensionality_0_raises_error(self):
-        """Tests whether an error is raised when the input dimensionality is
-        0, in which case reordering does not make sense."""
-        op = Reorder(order=(0,))
-        with self.assertRaises(MisconfiguredOpError):
-            op.configure(input_shape=(1,))
-
-    def test_input_dimensionality_1_raises_error(self):
-        """Tests whether an error is raised when the input dimensionality is
-        1, in which case reordering does not make sense."""
-        op = Reorder(order=(0,))
-        with self.assertRaises(MisconfiguredOpError):
-            op.configure(input_shape=(5,))
 
     def test_compute_weights_no_change_2d(self):
         """Tests 'reordering' a 2D input to the same order."""

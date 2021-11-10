@@ -5,11 +5,11 @@
 from abc import ABC, abstractmethod
 import typing as ty
 import numpy as np
-from enum import Enum, unique, auto
 
 from lava.lib.dnf.utils.convenience import num_neurons
 from lava.lib.dnf.operations.shape_handlers import AbstractShapeHandler,\
     KeepShapeHandler, ReduceDimsHandler, ExpandDimsHandler, ReorderHandler
+from lava.lib.dnf.operations.enums import ReduceMethod
 
 from lava.lib.dnf.utils.convenience import num_dims
 
@@ -103,19 +103,6 @@ class Weights(AbstractOperation):
         return np.eye(num_neurons(self.output_shape),
                       num_neurons(self.input_shape),
                       dtype=np.int32) * self.weight
-
-
-@unique
-class ReduceMethod(Enum):
-    """Enum for reduce methods of ReduceDims Operation"""
-    SUM = auto()  # ReduceDims will sum all synaptic weights of collapsed dim
-    MEAN = auto()  # ReduceDims will compute mean of weights of collapsed dim
-
-    @classmethod
-    def validate(cls, reduce_method):
-        """Validate <reduce_op> against all valid enum values"""
-        if not isinstance(reduce_method, ReduceMethod):
-            raise TypeError("reduce_method must be of value ReduceMethod")
 
 
 class ReduceDims(AbstractOperation):

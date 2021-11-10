@@ -237,26 +237,6 @@ class TestReduceDims(unittest.TestCase):
         self.assertTrue(np.array_equal(computed_weights, expected_weights))
 
 
-class TestReduceMethod(unittest.TestCase):
-    def test_validate_sum(self):
-        """Tests whether SUM is a valid type of the ReduceMethod enum."""
-        ReduceMethod.validate(ReduceMethod.SUM)
-
-    def test_validate_mean(self):
-        """Tests whether MEAN is a valid type of the ReduceMethod enum."""
-        ReduceMethod.validate(ReduceMethod.MEAN)
-
-    def test_invalid_type_raises_type_error(self):
-        """Tests whether int is an invalid type of the ReduceMethod enum."""
-        with self.assertRaises(TypeError):
-            ReduceMethod.validate(int)
-
-    def test_invalid_value_raises_value_error(self):
-        """Tests whether FOO is an invalid value of the ReduceMethod enum."""
-        with self.assertRaises(AttributeError):
-            _ = ReduceMethod.FOO
-
-
 class TestExpandDims(unittest.TestCase):
     def test_init(self):
         """Tests whether an ExpandDims operation can be instantiated."""

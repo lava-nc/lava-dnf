@@ -4,11 +4,20 @@
 
 import unittest
 import numpy as np
+import typing as ty
 
-from lava.lib.dnf.operations.operations import AbstractOperation, \
-    Weights, ReduceDims, ReduceMethod, ExpandDims, Reorder
+from lava.lib.dnf.operations.operations import (
+    AbstractOperation,
+    Weights,
+    ReduceDims,
+    ReduceMethod,
+    ExpandDims,
+    Reorder,
+    Convolution)
+from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
+from lava.lib.dnf.operations.enums import BorderType
 from lava.lib.dnf.operations.shape_handlers import KeepShapeHandler
-
+from lava.lib.dnf.kernels.kernels import Kernel
 from lava.lib.dnf.utils.convenience import num_neurons
 
 
@@ -420,6 +429,712 @@ class TestReorder(unittest.TestCase):
             computed = op.compute_weights()
 
             self.assertTrue(np.array_equal(computed, expected))
+
+
+class TestConvolution(unittest.TestCase):
+    class MockKernel(Kernel):
+        def __init__(self, weights=None):
+            if weights is None:
+                weights = np.zeros((1,))
+            super().__init__(weights=weights)
+
+    def test_init(self):
+        """Tests whether a Convolution operation can be instantiated while
+        passing in a kernel."""
+        kernel = TestConvolution.MockKernel()
+        op = Convolution(kernel)
+        # convolution is instantiated
+        self.assertIsInstance(op, Convolution)
+        # kernel is set
+        self.assertEqual(op.kernel, kernel)
+        # border type defaults to PADDED
+        self.assertEqual(op.border_types[0], BorderType.PADDED)
+
+    def test_kernel_of_type_numpy_ndarray(self):
+        """Tests whether a <kernel> argument of type numpy.ndarray is
+        converted internally into an AbstractKernel instance."""
+        numpy_kernel = np.zeros((1,))
+        op = Convolution(numpy_kernel)
+        self.assertIsInstance(op.kernel, Kernel)
+
+    def test_setting_valid_border_type(self):
+        """Tests whether a valid border type is set correctly."""
+        kernel = TestConvolution.MockKernel()
+        border_type = BorderType.CIRCULAR
+        op = Convolution(kernel, border_type)
+        self.assertEqual(op.border_types[0], border_type)
+
+    def test_invalid_type_of_border_type(self):
+        """Checks whether a border type with an invalid type throws an
+        exception."""
+        with self.assertRaises(Exception) as context:
+            Convolution(TestConvolution.MockKernel(),
+                        border_types=["padded"])
+        self.assertIsInstance(context.exception, TypeError)
+
+    def test_invalid_border_type_list(self):
+        """Checks whether a list containing an invalid border type raises
+        and error."""
+        border_types = [BorderType.PADDED, "circular"]
+        with self.assertRaises(TypeError):
+            Convolution(TestConvolution.MockKernel(),
+                        border_types=border_types)
+
+    def test_specifying_single_border_type_for_all_input_dimensions(self):
+        """Checks whether you can specify a single border type for all
+        dimensions of the input."""
+        kernel = TestConvolution.MockKernel()
+        border_type_in = BorderType.CIRCULAR
+        op = Convolution(kernel, border_type_in)
+        input_shape = (2, 2)
+        op.configure(input_shape=input_shape)
+
+        self.assertEqual(len(op.border_types), len(input_shape))
+
+        for border_type_op in op.border_types:
+            self.assertEqual(border_type_op, border_type_in)
+
+    def test_specifying_more_border_types_than_input_dims_raises_error(self):
+        """Checks whether specifying too many border types raises an
+        exception."""
+        kernel = TestConvolution.MockKernel()
+        input_shape = (2, 2)
+        border_types = [BorderType.CIRCULAR] * (len(input_shape) + 1)
+        op = Convolution(kernel, border_types)
+
+        with self.assertRaises(ValueError):
+            op.configure(input_shape=input_shape)
+
+    def _test_compute_weights(
+        self,
+        kernel_weights: np.ndarray,
+        border_types: ty.Union[BorderType, ty.List[BorderType]],
+        input_shapes: ty.List[ty.Tuple[int, ...]],
+        expected_weights: ty.List[np.ndarray]
+    ):
+        """Helper method to test compute_weights() method"""
+        kernel = TestConvolution.MockKernel(kernel_weights)
+
+        for input_shape, expected in zip(input_shapes, expected_weights):
+            with self.subTest(msg=f"input shape: {input_shape}"):
+                op = Convolution(kernel, border_types=border_types)
+                op.configure(input_shape)
+                computed = op.compute_weights()
+
+                self.assertTrue(np.array_equal(computed, expected))
+
+    def test_compute_weights_0d_padded(self):
+        """Tests whether the Convolution operation can be applied to 0D
+        inputs with PADDED border type. It may not make sense to do this but
+        it is possible."""
+        self._test_compute_weights(
+            kernel_weights=np.array([2]),
+            border_types=BorderType.PADDED,
+            input_shapes=[(1,)],
+            expected_weights=[np.array([[2]])]
+        )
+
+    def test_compute_weights_0d_circular(self):
+        """Tests whether the Convolution operation can be applied to 0D
+        inputs with CIRCULAR border type. It may not make sense to do this but
+        it is possible."""
+        self._test_compute_weights(
+            kernel_weights=np.array([2]),
+            border_types=BorderType.CIRCULAR,
+            input_shapes=[(1,)],
+            expected_weights=[np.array([[2]])]
+        )
+
+    def test_connectivity_matrix_1d_odd_kernel_padded(self):
+        """Tests whether computing weights works for 1D inputs with an odd sized
+        kernel and PADDED border type. The input sizes cover all relevant
+        cases, where the input size is smaller, equal to, and larger than the
+        kernel size."""
+        expected_weights = [
+            np.array([[2, 3],
+                      [1, 2]]),
+            np.array([[2, 3, 0],
+                      [1, 2, 3],
+                      [0, 1, 2]]),
+            np.array([[2, 3, 0, 0],
+                      [1, 2, 3, 0],
+                      [0, 1, 2, 3],
+                      [0, 0, 1, 2]]),
+            np.array([[2, 3, 0, 0, 0],
+                      [1, 2, 3, 0, 0],
+                      [0, 1, 2, 3, 0],
+                      [0, 0, 1, 2, 3],
+                      [0, 0, 0, 1, 2]])]
+
+        self._test_compute_weights(
+            kernel_weights=np.array([1, 2, 3]),
+            border_types=BorderType.PADDED,
+            input_shapes=[(2,), (3,), (4,), (5,)],
+            expected_weights=expected_weights
+        )
+
+    def test_connectivity_matrix_1d_odd_kernel_circular(self):
+        """Tests whether computing weights works for 1D inputs with an odd sized
+        kernel and CIRCULAR border type."""
+        expected_weights = [
+            np.array([[2, 1],
+                      [1, 2]]),
+            np.array([[2, 3, 1],
+                      [1, 2, 3],
+                      [3, 1, 2]]),
+            np.array([[2, 3, 0, 1],
+                      [1, 2, 3, 0],
+                      [0, 1, 2, 3],
+                      [3, 0, 1, 2]]),
+            np.array([[2, 3, 0, 0, 1],
+                      [1, 2, 3, 0, 0],
+                      [0, 1, 2, 3, 0],
+                      [0, 0, 1, 2, 3],
+                      [3, 0, 0, 1, 2]])
+        ]
+
+        self._test_compute_weights(
+            kernel_weights=np.array([1, 2, 3]),
+            border_types=BorderType.CIRCULAR,
+            input_shapes=[(2,), (3,), (4,), (5,)],
+            expected_weights=expected_weights
+        )
+
+    def test_connectivity_matrix_1d_even_kernel_padded(self):
+        """Tests whether computing weights works for 1D inputs with an even
+        sized kernel and PADDED border type."""
+        expected_weights = [
+             np.array([[3, 4],
+                       [2, 3]]),
+             np.array([[3, 4, 0],
+                       [2, 3, 4],
+                       [1, 2, 3]]),
+             np.array([[3, 4, 0, 0],
+                       [2, 3, 4, 0],
+                       [1, 2, 3, 4],
+                       [0, 1, 2, 3]]),
+             np.array([[3, 4, 0, 0, 0],
+                       [2, 3, 4, 0, 0],
+                       [1, 2, 3, 4, 0],
+                       [0, 1, 2, 3, 4],
+                       [0, 0, 1, 2, 3]]),
+             np.array([[3, 4, 0, 0, 0, 0],
+                       [2, 3, 4, 0, 0, 0],
+                       [1, 2, 3, 4, 0, 0],
+                       [0, 1, 2, 3, 4, 0],
+                       [0, 0, 1, 2, 3, 4],
+                       [0, 0, 0, 1, 2, 3]])
+        ]
+
+        self._test_compute_weights(
+            kernel_weights=np.array([1, 2, 3, 4]),
+            border_types=BorderType.PADDED,
+            input_shapes=[(2,), (3,), (4,), (5,), (6,)],
+            expected_weights=expected_weights
+        )
+
+    def test_connectivity_matrix_1d_even_kernel_circular(self):
+        """Tests whether computing weights works for 1D inputs with an even
+        sized kernel and CIRCULAR border type."""
+        expected_weights = [
+            np.array([[3, 2],
+                      [2, 3]]),
+            np.array([[3, 4, 2],
+                      [2, 3, 4],
+                      [4, 2, 3]]),
+            np.array([[3, 4, 1, 2],
+                      [2, 3, 4, 1],
+                      [1, 2, 3, 4],
+                      [4, 1, 2, 3]]),
+            np.array([[3, 4, 0, 1, 2],
+                      [2, 3, 4, 0, 1],
+                      [1, 2, 3, 4, 0],
+                      [0, 1, 2, 3, 4],
+                      [4, 0, 1, 2, 3]]),
+            np.array([[3, 4, 0, 0, 1, 2],
+                      [2, 3, 4, 0, 0, 1],
+                      [1, 2, 3, 4, 0, 0],
+                      [0, 1, 2, 3, 4, 0],
+                      [0, 0, 1, 2, 3, 4],
+                      [4, 0, 0, 1, 2, 3]])
+        ]
+
+        self._test_compute_weights(
+            kernel_weights=np.array([1, 2, 3, 4]),
+            border_types=BorderType.CIRCULAR,
+            input_shapes=[(2,), (3,), (4,), (5,), (6,)],
+            expected_weights=expected_weights
+        )
+
+    def test_connectivity_matrix_2d_odd_kernel_padded(self):
+        """Tests whether computing weights works for 2D inputs with an odd
+        sized kernel and PADDED border type."""
+        expected_weights = [
+            np.array([[5]]),
+
+            np.array([[5, 6, 8, 9],
+                      [4, 5, 7, 8],
+
+                      [2, 3, 5, 6],
+                      [1, 2, 4, 5]]),
+
+            np.array([[5, 6, 0, 8, 9, 0, 0, 0, 0],
+                      [4, 5, 6, 7, 8, 9, 0, 0, 0],
+                      [0, 4, 5, 0, 7, 8, 0, 0, 0],
+
+                      [2, 3, 0, 5, 6, 0, 8, 9, 0],
+                      [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                      [0, 1, 2, 0, 4, 5, 0, 7, 8],
+
+                      [0, 0, 0, 2, 3, 0, 5, 6, 0],
+                      [0, 0, 0, 1, 2, 3, 4, 5, 6],
+                      [0, 0, 0, 0, 1, 2, 0, 4, 5]]),
+
+            np.array(
+                [[5, 6, 0, 0, 8, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                 [4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                 [0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 0, 0, 0, 0],
+                 [0, 0, 4, 5, 0, 0, 7, 8, 0, 0, 0, 0, 0, 0, 0, 0],
+
+                 [2, 3, 0, 0, 5, 6, 0, 0, 8, 9, 0, 0, 0, 0, 0, 0],
+                 [1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 0],
+                 [0, 1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0],
+                 [0, 0, 1, 2, 0, 0, 4, 5, 0, 0, 7, 8, 0, 0, 0, 0],
+
+                 [0, 0, 0, 0, 2, 3, 0, 0, 5, 6, 0, 0, 8, 9, 0, 0],
+                 [0, 0, 0, 0, 1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0],
+                 [0, 0, 0, 0, 0, 1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9],
+                 [0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 4, 5, 0, 0, 7, 8],
+
+                 [0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 5, 6, 0, 0],
+                 [0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 0, 4, 5, 6, 0],
+                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 0, 4, 5, 6],
+                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 4, 5]]),
+
+            np.array([[5, 6, 0, 0, 0, 8, 9, 0, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [4, 5, 6, 0, 0, 7, 8, 9, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 4, 5, 6, 0, 0, 7, 8, 9, 0, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 4, 5, 6, 0, 0, 7, 8, 9, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 4, 5, 0, 0, 0, 7, 8, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+
+                      [2, 3, 0, 0, 0, 5, 6, 0, 0, 0, 8, 9, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [1, 2, 3, 0, 0, 4, 5, 6, 0, 0, 7, 8, 9, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 1, 2, 3, 0, 0, 4, 5, 6, 0, 0, 7, 8, 9, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 2, 3, 0, 0, 4, 5, 6, 0, 0, 7, 8, 9,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 1, 2, 0, 0, 0, 4, 5, 0, 0, 0, 7, 8,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+
+                      [0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 5, 6, 0, 0, 0,
+                       8, 9, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 1, 2, 3, 0, 0, 4, 5, 6, 0, 0,
+                       7, 8, 9, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 1, 2, 3, 0, 0, 4, 5, 6, 0,
+                       0, 7, 8, 9, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 0, 0, 4, 5, 6,
+                       0, 0, 7, 8, 9, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 4, 5,
+                       0, 0, 0, 7, 8, 0, 0, 0, 0, 0],
+
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0,
+                       5, 6, 0, 0, 0, 8, 9, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 0, 0,
+                       4, 5, 6, 0, 0, 7, 8, 9, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 0,
+                       0, 4, 5, 6, 0, 0, 7, 8, 9, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3,
+                       0, 0, 4, 5, 6, 0, 0, 7, 8, 9],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2,
+                       0, 0, 0, 4, 5, 0, 0, 0, 7, 8],
+
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                       2, 3, 0, 0, 0, 5, 6, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                       1, 2, 3, 0, 0, 4, 5, 6, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                       0, 1, 2, 3, 0, 0, 4, 5, 6, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, 1, 2, 3, 0, 0, 4, 5, 6],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, 0, 1, 2, 0, 0, 0, 4, 5]])
+        ]
+
+        self._test_compute_weights(
+            kernel_weights=np.array([[1, 2, 3],
+                                     [4, 5, 6],
+                                     [7, 8, 9]]),
+            border_types=BorderType.PADDED,
+            input_shapes=[(1, 1), (2, 2), (3, 3), (4, 4), (5, 5)],
+            expected_weights=expected_weights
+        )
+
+    def test_connectivity_matrix_2d_odd_kernel_circular(self):
+        """Tests whether computing weights works for 2D inputs with an odd
+        sized kernel and CIRCULAR border type."""
+        expected_weights = [
+            np.array([[5]]),
+
+            np.array([[5, 4, 2, 1],
+                      [4, 5, 1, 2],
+
+                      [2, 1, 5, 4],
+                      [1, 2, 4, 5]]),
+
+            np.array([[5, 6, 4, 8, 9, 7, 2, 3, 1],
+                      [4, 5, 6, 7, 8, 9, 1, 2, 3],
+                      [6, 4, 5, 9, 7, 8, 3, 1, 2],
+
+                      [2, 3, 1, 5, 6, 4, 8, 9, 7],
+                      [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                      [3, 1, 2, 6, 4, 5, 9, 7, 8],
+
+                      [8, 9, 7, 2, 3, 1, 5, 6, 4],
+                      [7, 8, 9, 1, 2, 3, 4, 5, 6],
+                      [9, 7, 8, 3, 1, 2, 6, 4, 5]]),
+            np.array(
+                 [[5, 6, 0, 4, 8, 9, 0, 7, 0, 0, 0, 0, 2, 3, 0, 1],
+                  [4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 0, 1, 2, 3, 0],
+                  [0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 0, 1, 2, 3],
+                  [6, 0, 4, 5, 9, 0, 7, 8, 0, 0, 0, 0, 3, 0, 1, 2],
+
+                  [2, 3, 0, 1, 5, 6, 0, 4, 8, 9, 0, 7, 0, 0, 0, 0],
+                  [1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 0],
+                  [0, 1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0],
+                  [3, 0, 1, 2, 6, 0, 4, 5, 9, 0, 7, 8, 0, 0, 0, 0],
+
+                  [0, 0, 0, 0, 2, 3, 0, 1, 5, 6, 0, 4, 8, 9, 0, 7],
+                  [0, 0, 0, 0, 1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0],
+                  [0, 0, 0, 0, 0, 1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9],
+                  [0, 0, 0, 0, 3, 0, 1, 2, 6, 0, 4, 5, 9, 0, 7, 8],
+
+                  [8, 9, 0, 7, 0, 0, 0, 0, 2, 3, 0, 1, 5, 6, 0, 4],
+                  [7, 8, 9, 0, 0, 0, 0, 0, 1, 2, 3, 0, 4, 5, 6, 0],
+                  [0, 7, 8, 9, 0, 0, 0, 0, 0, 1, 2, 3, 0, 4, 5, 6],
+                  [9, 0, 7, 8, 0, 0, 0, 0, 3, 0, 1, 2, 6, 0, 4, 5]]),
+
+            np.array([[5, 6, 0, 0, 4, 8, 9, 0, 0, 7, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 2, 3, 0, 0, 1],
+                      [4, 5, 6, 0, 0, 7, 8, 9, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 1, 2, 3, 0, 0],
+                      [0, 4, 5, 6, 0, 0, 7, 8, 9, 0, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 1, 2, 3, 0],
+                      [0, 0, 4, 5, 6, 0, 0, 7, 8, 9, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 1, 2, 3],
+                      [6, 0, 0, 4, 5, 9, 0, 0, 7, 8, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 3, 0, 0, 1, 2],
+
+                      [2, 3, 0, 0, 1, 5, 6, 0, 0, 4, 8, 9, 0, 0, 7,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [1, 2, 3, 0, 0, 4, 5, 6, 0, 0, 7, 8, 9, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 1, 2, 3, 0, 0, 4, 5, 6, 0, 0, 7, 8, 9, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 2, 3, 0, 0, 4, 5, 6, 0, 0, 7, 8, 9,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [3, 0, 0, 1, 2, 6, 0, 0, 4, 5, 9, 0, 0, 7, 8,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+
+                      [0, 0, 0, 0, 0, 2, 3, 0, 0, 1, 5, 6, 0, 0, 4,
+                       8, 9, 0, 0, 7, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 1, 2, 3, 0, 0, 4, 5, 6, 0, 0,
+                       7, 8, 9, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 1, 2, 3, 0, 0, 4, 5, 6, 0,
+                       0, 7, 8, 9, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 0, 0, 4, 5, 6,
+                       0, 0, 7, 8, 9, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 3, 0, 0, 1, 2, 6, 0, 0, 4, 5,
+                       9, 0, 0, 7, 8, 0, 0, 0, 0, 0],
+
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 1,
+                       5, 6, 0, 0, 4, 8, 9, 0, 0, 7],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 0, 0,
+                       4, 5, 6, 0, 0, 7, 8, 9, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 0,
+                       0, 4, 5, 6, 0, 0, 7, 8, 9, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3,
+                       0, 0, 4, 5, 6, 0, 0, 7, 8, 9],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 1, 2,
+                       6, 0, 0, 4, 5, 9, 0, 0, 7, 8],
+
+                      [8, 9, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                       2, 3, 0, 0, 1, 5, 6, 0, 0, 4],
+                      [7, 8, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                       1, 2, 3, 0, 0, 4, 5, 6, 0, 0],
+                      [0, 7, 8, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                       0, 1, 2, 3, 0, 0, 4, 5, 6, 0],
+                      [0, 0, 7, 8, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, 1, 2, 3, 0, 0, 4, 5, 6],
+                      [9, 0, 0, 7, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                       3, 0, 0, 1, 2, 6, 0, 0, 4, 5]])
+        ]
+
+        self._test_compute_weights(
+            kernel_weights=np.array([[1, 2, 3],
+                                     [4, 5, 6],
+                                     [7, 8, 9]]),
+            border_types=BorderType.CIRCULAR,
+            input_shapes=[(1, 1), (2, 2), (3, 3), (4, 4), (5, 5)],
+            expected_weights=expected_weights
+        )
+
+    def test_connectivity_matrix_2d_even_kernel_padded(self):
+        """Tests whether computing weights works for 2D inputs with an even
+        sized kernel and PADDED border type."""
+        expected_weights = [
+            np.array([[11]]),
+
+            np.array([[11, 12, 15, 16],
+                      [10, 11, 14, 15],
+
+                      [7, 8, 11, 12],
+                      [6, 7, 10, 11]]),
+
+            np.array([[11, 12,  0, 15, 16,  0, 0, 0, 0],
+                      [10, 11, 12, 14, 15, 16, 0, 0, 0],
+                      [ 9, 10, 11, 13, 14, 15, 0, 0, 0],
+
+                      [7, 8, 0, 11, 12,  0, 15, 16,  0],
+                      [6, 7, 8, 10, 11, 12, 14, 15, 16],
+                      [5, 6, 7,  9, 10, 11, 13, 14, 15],
+
+                      [3, 4, 0, 7, 8, 0, 11, 12,  0],
+                      [2, 3, 4, 6, 7, 8, 10, 11, 12],
+                      [1, 2, 3, 5, 6, 7,  9, 10, 11]]),
+
+            np.array([[11, 12, 0, 0, 15, 16, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, 0],
+                      [10, 11, 12, 0, 14, 15, 16, 0, 0, 0, 0, 0, 0,
+                       0, 0, 0],
+                      [9, 10, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0,
+                       0, 0, 0, 0],
+                      [0, 9, 10, 11, 0, 13, 14, 15, 0, 0, 0, 0, 0,
+                       0, 0, 0],
+
+                      [7, 8, 0, 0, 11, 12, 0, 0, 15, 16, 0, 0, 0,
+                       0, 0, 0],
+                      [6, 7, 8, 0, 10, 11, 12, 0, 14, 15, 16, 0, 0,
+                       0, 0, 0],
+                      [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+                       0, 0, 0, 0],
+                      [0, 5, 6, 7, 0, 9, 10, 11, 0, 13, 14, 15, 0,
+                       0, 0, 0],
+
+                      [3, 4, 0, 0, 7, 8, 0, 0, 11, 12, 0, 0, 15,
+                       16, 0, 0],
+                      [2, 3, 4, 0, 6, 7, 8, 0, 10, 11, 12, 0, 14,
+                       15, 16, 0],
+                      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+                       14, 15, 16],
+                      [0, 1, 2, 3, 0, 5, 6, 7, 0, 9, 10, 11, 0, 13,
+                       14, 15],
+
+                      [0, 0, 0, 0, 3, 4, 0, 0, 7, 8, 0, 0, 11, 12,
+                       0, 0],
+                      [0, 0, 0, 0, 2, 3, 4, 0, 6, 7, 8, 0, 10, 11,
+                       12, 0],
+                      [0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                       11, 12],
+                      [0, 0, 0, 0, 0, 1, 2, 3, 0, 5, 6, 7, 0, 9,
+                       10, 11]]),
+
+            np.array([[11, 12, 0, 0, 0, 15, 16, 0, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [10, 11, 12, 0, 0, 14, 15, 16, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [9, 10, 11, 12, 0, 13, 14, 15, 16, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 9, 10, 11, 12, 0, 13, 14, 15, 16, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 9, 10, 11, 0, 0, 13, 14, 15, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+
+                      [7, 8, 0, 0, 0, 11, 12, 0, 0, 0, 15, 16, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [6, 7, 8, 0, 0, 10, 11, 12, 0, 0, 14, 15, 16,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [5, 6, 7, 8, 0, 9, 10, 11, 12, 0, 13, 14, 15,
+                       16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 5, 6, 7, 8, 0, 9, 10, 11, 12, 0, 13, 14,
+                       15, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 5, 6, 7, 0, 0, 9, 10, 11, 0, 0, 13,
+                       14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+
+                      [3, 4, 0, 0, 0, 7, 8, 0, 0, 0, 11, 12, 0, 0,
+                       0, 15, 16, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [2, 3, 4, 0, 0, 6, 7, 8, 0, 0, 10, 11, 12, 0,
+                       0, 14, 15, 16, 0, 0, 0, 0, 0, 0, 0],
+                      [1, 2, 3, 4, 0, 5, 6, 7, 8, 0, 9, 10, 11, 12,
+                       0, 13, 14, 15, 16, 0, 0, 0, 0, 0, 0],
+                      [0, 1, 2, 3, 4, 0, 5, 6, 7, 8, 0, 9, 10, 11,
+                       12, 0, 13, 14, 15, 16, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 2, 3, 0, 0, 5, 6, 7, 0, 0, 9, 10,
+                       11, 0, 0, 13, 14, 15, 0, 0, 0, 0, 0],
+
+                      [0, 0, 0, 0, 0, 3, 4, 0, 0, 0, 7, 8, 0, 0, 0,
+                       11, 12, 0, 0, 0, 15, 16, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 2, 3, 4, 0, 0, 6, 7, 8, 0, 0,
+                       10, 11, 12, 0, 0, 14, 15, 16, 0, 0],
+                      [0, 0, 0, 0, 0, 1, 2, 3, 4, 0, 5, 6, 7, 8, 0,
+                       9, 10, 11, 12, 0, 13, 14, 15, 16, 0],
+                      [0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0, 5, 6, 7, 8,
+                       0, 9, 10, 11, 12, 0, 13, 14, 15, 16],
+                      [0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 0, 0, 5, 6, 7,
+                       0, 0, 9, 10, 11, 0, 0, 13, 14, 15],
+
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 4, 0, 0, 0,
+                       7, 8, 0, 0, 0, 11, 12, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 0, 0,
+                       6, 7, 8, 0, 0, 10, 11, 12, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0,
+                       5, 6, 7, 8, 0, 9, 10, 11, 12, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4,
+                       0, 5, 6, 7, 8, 0, 9, 10, 11, 12],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3,
+                       0, 0, 5, 6, 7, 0, 0, 9, 10, 11]])
+        ]
+
+        self._test_compute_weights(
+            kernel_weights=np.array([[1, 2, 3, 4],
+                                     [5, 6, 7, 8],
+                                     [9, 10, 11, 12],
+                                     [13, 14, 15, 16]]),
+            border_types=BorderType.PADDED,
+            input_shapes=[(1, 1), (2, 2), (3, 3), (4, 4), (5, 5)],
+            expected_weights=expected_weights
+        )
+
+    def test_connectivity_matrix_2d_even_kernel_circular(self):
+        """Tests whether computing weights works for 2D inputs with an even
+        sized kernel and CIRCULAR border type."""
+        expected_weights = [
+            np.array([[11]]),
+
+            np.array([[11, 10, 7, 6],
+                      [10, 11, 6, 7],
+                      [7, 6, 11, 10],
+                      [6, 7, 10, 11]]),
+
+            np.array([[11, 12, 10, 15, 16, 14, 7, 8, 6],
+                      [10, 11, 12, 14, 15, 16, 6, 7, 8],
+                      [12, 10, 11, 16, 14, 15, 8, 6, 7],
+
+                      [7, 8, 6, 11, 12, 10, 15, 16, 14],
+                      [6, 7, 8, 10, 11, 12, 14, 15, 16],
+                      [8, 6, 7, 12, 10, 11, 16, 14, 15],
+
+                      [15, 16, 14, 7, 8, 6, 11, 12, 10],
+                      [14, 15, 16, 6, 7, 8, 10, 11, 12],
+                      [16, 14, 15, 8, 6, 7, 12, 10, 11]]),
+
+            np.array([[11, 12, 9, 10, 15, 16, 13, 14, 3, 4, 1, 2,
+                       7, 8, 5, 6],
+                      [10, 11, 12, 9, 14, 15, 16, 13, 2, 3, 4, 1,
+                       6, 7, 8, 5],
+                      [9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4,
+                       5, 6, 7, 8],
+                      [12, 9, 10, 11, 16, 13, 14, 15, 4, 1, 2, 3,
+                       8, 5, 6, 7],
+
+                      [7, 8, 5, 6, 11, 12, 9, 10, 15, 16, 13, 14,
+                       3, 4, 1, 2],
+                      [6, 7, 8, 5, 10, 11, 12, 9, 14, 15, 16, 13,
+                       2, 3, 4, 1],
+                      [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+                       1, 2, 3, 4],
+                      [8, 5, 6, 7, 12, 9, 10, 11, 16, 13, 14, 15,
+                       4, 1, 2, 3],
+
+                      [3, 4, 1, 2, 7, 8, 5, 6, 11, 12, 9, 10, 15,
+                       16, 13, 14],
+                      [2, 3, 4, 1, 6, 7, 8, 5, 10, 11, 12, 9, 14,
+                       15, 16, 13],
+                      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+                       14, 15, 16],
+                      [4, 1, 2, 3, 8, 5, 6, 7, 12, 9, 10, 11, 16,
+                       13, 14, 15],
+
+                      [15, 16, 13, 14, 3, 4, 1, 2, 7, 8, 5, 6, 11,
+                       12, 9, 10],
+                      [14, 15, 16, 13, 2, 3, 4, 1, 6, 7, 8, 5, 10,
+                       11, 12, 9],
+                      [13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+                       10, 11, 12],
+                      [16, 13, 14, 15, 4, 1, 2, 3, 8, 5, 6, 7, 12,
+                       9, 10, 11]]),
+
+            np.array([[11, 12, 0, 9, 10, 15, 16, 0, 13, 14, 0, 0,
+                       0, 0, 0, 3, 4, 0, 1, 2, 7, 8, 0, 5, 6],
+                      [10, 11, 12, 0, 9, 14, 15, 16, 0, 13, 0, 0,
+                       0, 0, 0, 2, 3, 4, 0, 1, 6, 7, 8, 0, 5],
+                      [9, 10, 11, 12, 0, 13, 14, 15, 16, 0, 0, 0,
+                       0, 0, 0, 1, 2, 3, 4, 0, 5, 6, 7, 8, 0],
+                      [0, 9, 10, 11, 12, 0, 13, 14, 15, 16, 0, 0,
+                       0, 0, 0, 0, 1, 2, 3, 4, 0, 5, 6, 7, 8],
+                      [12, 0, 9, 10, 11, 16, 0, 13, 14, 15, 0, 0,
+                       0, 0, 0, 4, 0, 1, 2, 3, 8, 0, 5, 6, 7],
+
+                      [7, 8, 0, 5, 6, 11, 12, 0, 9, 10, 15, 16, 0,
+                       13, 14, 0, 0, 0, 0, 0, 3, 4, 0, 1, 2],
+                      [6, 7, 8, 0, 5, 10, 11, 12, 0, 9, 14, 15, 16,
+                       0, 13, 0, 0, 0, 0, 0, 2, 3, 4, 0, 1],
+                      [5, 6, 7, 8, 0, 9, 10, 11, 12, 0, 13, 14, 15,
+                       16, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0],
+                      [0, 5, 6, 7, 8, 0, 9, 10, 11, 12, 0, 13, 14,
+                       15, 16, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4],
+                      [8, 0, 5, 6, 7, 12, 0, 9, 10, 11, 16, 0, 13,
+                       14, 15, 0, 0, 0, 0, 0, 4, 0, 1, 2, 3],
+
+                      [3, 4, 0, 1, 2, 7, 8, 0, 5, 6, 11, 12, 0, 9,
+                       10, 15, 16, 0, 13, 14, 0, 0, 0, 0, 0],
+                      [2, 3, 4, 0, 1, 6, 7, 8, 0, 5, 10, 11, 12, 0,
+                       9, 14, 15, 16, 0, 13, 0, 0, 0, 0, 0],
+                      [1, 2, 3, 4, 0, 5, 6, 7, 8, 0, 9, 10, 11, 12,
+                       0, 13, 14, 15, 16, 0, 0, 0, 0, 0, 0],
+                      [0, 1, 2, 3, 4, 0, 5, 6, 7, 8, 0, 9, 10, 11,
+                       12, 0, 13, 14, 15, 16, 0, 0, 0, 0, 0],
+                      [4, 0, 1, 2, 3, 8, 0, 5, 6, 7, 12, 0, 9, 10,
+                       11, 16, 0, 13, 14, 15, 0, 0, 0, 0, 0],
+
+                      [0, 0, 0, 0, 0, 3, 4, 0, 1, 2, 7, 8, 0, 5, 6,
+                       11, 12, 0, 9, 10, 15, 16, 0, 13, 14],
+                      [0, 0, 0, 0, 0, 2, 3, 4, 0, 1, 6, 7, 8, 0, 5,
+                       10, 11, 12, 0, 9, 14, 15, 16, 0, 13],
+                      [0, 0, 0, 0, 0, 1, 2, 3, 4, 0, 5, 6, 7, 8, 0,
+                       9, 10, 11, 12, 0, 13, 14, 15, 16, 0],
+                      [0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0, 5, 6, 7, 8,
+                       0, 9, 10, 11, 12, 0, 13, 14, 15, 16],
+                      [0, 0, 0, 0, 0, 4, 0, 1, 2, 3, 8, 0, 5, 6, 7,
+                       12, 0, 9, 10, 11, 16, 0, 13, 14, 15],
+
+                      [15, 16, 0, 13, 14, 0, 0, 0, 0, 0, 3, 4, 0,
+                       1, 2, 7, 8, 0, 5, 6, 11, 12, 0, 9, 10],
+                      [14, 15, 16, 0, 13, 0, 0, 0, 0, 0, 2, 3, 4,
+                       0, 1, 6, 7, 8, 0, 5, 10, 11, 12, 0, 9],
+                      [13, 14, 15, 16, 0, 0, 0, 0, 0, 0, 1, 2, 3,
+                       4, 0, 5, 6, 7, 8, 0, 9, 10, 11, 12, 0],
+                      [0, 13, 14, 15, 16, 0, 0, 0, 0, 0, 0, 1, 2,
+                       3, 4, 0, 5, 6, 7, 8, 0, 9, 10, 11, 12],
+                      [16, 0, 13, 14, 15, 0, 0, 0, 0, 0, 4, 0, 1,
+                       2, 3, 8, 0, 5, 6, 7, 12, 0, 9, 10, 11]])
+        ]
+
+        self._test_compute_weights(
+            kernel_weights=np.array([[1, 2, 3, 4],
+                                      [5, 6, 7, 8],
+                                      [9, 10, 11, 12],
+                                      [13, 14, 15, 16]]),
+            border_types=BorderType.CIRCULAR,
+            input_shapes=[(1, 1), (2, 2), (3, 3), (4, 4), (5, 5)],
+            expected_weights=expected_weights
+        )
 
 
 if __name__ == '__main__':

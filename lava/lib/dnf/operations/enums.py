@@ -7,12 +7,12 @@ from enum import Enum, unique, auto
 
 @unique
 class ReduceMethod(Enum):
-    """Enum for reduce methods of ReduceDims Operation"""
+    """Enum for reduce methods of ReduceDims operation"""
     SUM = auto()  # ReduceDims will sum all synaptic weights of collapsed dim
     MEAN = auto()  # ReduceDims will compute mean of weights of collapsed dim
 
     @classmethod
     def validate(cls, reduce_method):
-        """Validate <reduce_op> against all valid enum values"""
+        """Validate type of <reduce_op>"""
         if not isinstance(reduce_method, ReduceMethod):
             raise TypeError("reduce_method must be of value ReduceMethod")

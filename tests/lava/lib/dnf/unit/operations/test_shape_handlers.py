@@ -5,9 +5,13 @@
 import unittest
 import numpy as np
 
-from lava.lib.dnf.operations.shape_handlers import AbstractShapeHandler, \
-    KeepShapeHandler, ReduceDimsHandler, ReshapeHandler, ExpandDimsHandler, \
-    ReorderHandler
+from lava.lib.dnf.operations.shape_handlers import (
+    AbstractShapeHandler,
+    KeepShapeHandler,
+    ReduceDimsHandler,
+    ReshapeHandler,
+    ExpandDimsHandler,
+    ReorderHandler)
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 
 

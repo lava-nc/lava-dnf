@@ -70,7 +70,8 @@ class AbstractShapeHandler(ABC):
 
 
 class KeepShapeHandler(AbstractShapeHandler):
-    """Abstract Operation that does not change the shape of the input."""
+    """Shape handler for operations that do not change the shape of the
+     input."""
     def _compute_output_shape(self):
         self._output_shape = self._input_shape
 
@@ -211,7 +212,7 @@ class ReshapeHandler(AbstractShapeHandler):
 
 
 class ReorderHandler(AbstractShapeHandler):
-    """Shape handler for operations that reorder the input shape.\
+    """Shape handler for operations that reorder the input shape.
 
     Parameters
     ----------

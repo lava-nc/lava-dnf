@@ -16,3 +16,15 @@ class ReduceMethod(Enum):
         """Validate type of <reduce_op>"""
         if not isinstance(reduce_method, ReduceMethod):
             raise TypeError("reduce_method must be of value ReduceMethod")
+
+
+@unique
+class BorderType(Enum):
+    PADDED = auto()
+    CIRCULAR = auto()
+
+    @classmethod
+    def validate(cls, border_type):
+        """Validate type of <border_type>"""
+        if not isinstance(border_type, BorderType):
+            raise TypeError("border_type must be of value BorderType")

@@ -16,5 +16,5 @@ class MisconfiguredOpError(Exception):
     """
     def __init__(self, msg: ty.Optional[str] = None):
         if msg is None:
-            msg = f"operation is misconfigured"
+            msg = "operation is misconfigured"
         super().__init__(msg)

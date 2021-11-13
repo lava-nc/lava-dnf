@@ -4,7 +4,6 @@
 
 import unittest
 import numpy as np
-import typing as ty
 
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.magma.core.process.process import AbstractProcess

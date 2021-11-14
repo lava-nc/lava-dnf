@@ -497,7 +497,9 @@ class Convolution(AbstractOperation):
 
         """
         if shift != 0:
-            assert axis < array.ndim, "axis does not exist in array"
+            if axis > array.ndim - 1:
+                raise IndexError(f"axis {axis} does not exist for array of "
+                                 f"shape {array.shape}")
 
             array = np.swapaxes(array, 0, axis)
             shifted_array = np.empty_like(array)

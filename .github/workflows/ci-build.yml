@@ -18,11 +18,9 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pybuilder
-
     - name: Run pybuilder w/o unit tests
       run: |
         pyb analyze
-
   security-lint:
     name: Security Lint with bandit
     runs-on: ubuntu-latest
@@ -39,11 +37,9 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pybuilder
-
     - name: Run pybuilder to lint security w/ bandit
       run: |
         pyb bandit
-
   unit-tests:
     name: Run unit tests
     runs-on: ${{ matrix.operating-system }}
@@ -63,7 +59,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-
+        pip install pybuilder
     - name: Run unit tests
       run: |
         pyb -E unit

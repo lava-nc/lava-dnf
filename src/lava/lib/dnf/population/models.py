@@ -28,7 +28,7 @@ class PopulationSubProcessModel(AbstractSubProcessModel):
         tau_voltage: int = kwargs.pop("tau_voltage", 2)
         tau_current: int = kwargs.pop("tau_current", 10)
         threshold: int = kwargs.pop("threshold", 200)
-        bias_mant: int = kwargs.pop("bias_mant", 0)
+        bias: int = kwargs.pop("bias", 0)
         bias_exp: int = kwargs.pop("bias_exp", 1)
 
         # create LIF neurons
@@ -37,7 +37,7 @@ class PopulationSubProcessModel(AbstractSubProcessModel):
                            vth=threshold,
                            du=self._tau_to_decay(tau_current),
                            dv=self._tau_to_decay(tau_voltage),
-                           bias_mant=bias_mant,
+                           bias_mant=bias,
                            bias_exp=bias_exp,
                            delay_bits=1)
 

@@ -7,8 +7,9 @@ import numpy as np
 
 from lava.lib.dnf.connect.connect import connect
 from lava.lib.dnf.population.process import Population
+from lava.lib.dnf.kernels.kernels import SelectiveKernel
 from lava.lib.dnf.operations.operations import Weights, ReduceDims, Reorder, \
-    ExpandDims
+    ExpandDims, Convolution
 
 
 class TestConnectingWithOperations(unittest.TestCase):
@@ -202,6 +203,18 @@ class TestConnectingWithOperations(unittest.TestCase):
                                ops=[expand_op, reorder_op])
 
             self.assertTrue(np.array_equal(computed.weights.get(), expected))
+
+    def test_connect_population_with_selective_kernel(self):
+        """Tests whether populations can be connected to themselves using the
+        Convolution operation and a SelectiveKernel."""
+        for shape in [(1,), (5,), (5, 5), (5, 5, 5)]:
+            population = Population(shape=shape)
+            kernel = SelectiveKernel(amp_exc=1.0,
+                                     width_exc=[2] * len(shape),
+                                     global_inh=-0.1)
+            connect(population.s_out,
+                    population.a_in,
+                    ops=[Convolution(kernel)])
 
 
 if __name__ == '__main__':

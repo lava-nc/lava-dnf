@@ -62,7 +62,7 @@ def gauss(shape: ty.Tuple[int, ...],
     if mean is None:
         mean = np.zeros((dimensionality,))
     else:
-        if isinstance(mean, np.ndarray) and mean.shape != shape:
+        if isinstance(mean, np.ndarray) and mean.shape != (len(shape),):
             raise ValueError("the shape of <mean> is incompatible with "
                              "the specified <shape>; <mean> should be of "
                              f"shape ({len(shape)},) but is {mean.shape}")
@@ -71,7 +71,7 @@ def gauss(shape: ty.Tuple[int, ...],
     if stddev is None:
         stddev = np.ones((dimensionality,))
     else:
-        if isinstance(stddev, np.ndarray) and stddev.shape != shape:
+        if isinstance(stddev, np.ndarray) and stddev.shape != (len(shape),):
             raise ValueError("the shape of <stddev> is incompatible with "
                              "the specified <shape>; <stddev> should be of "
                              f"shape ({len(shape)},) but is {stddev.shape}")

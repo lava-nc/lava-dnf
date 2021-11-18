@@ -41,3 +41,32 @@ def num_dims(shape: ty.Tuple[int, ...]) -> int:
     dims = 0 if num_neurons(shape) == 1 else len(shape)
 
     return dims
+
+
+def to_ndarray(
+    x: ty.Union[float, ty.Tuple, ty.List, np.ndarray]
+) -> np.ndarray:
+    """
+    Converts float, tuple, or list variables to numpy.ndarray.
+
+    Parameters
+    ----------
+    x : float, tuple, list, numpy.ndarray
+        variable to convert
+
+    Returns
+    -------
+    return : numpy.ndarray
+        input converted to numpy.ndarray
+
+    """
+    if not isinstance(x, np.ndarray):
+        if np.isscalar(x):
+            return np.array([x], np.float32)
+        if isinstance(x, tuple) or isinstance(x, list):
+            return np.array(x)
+        else:
+            raise TypeError("Variable must be of one of the following types: "
+                            "float, tuple, list or numpy.ndarray")
+    else:
+        return x

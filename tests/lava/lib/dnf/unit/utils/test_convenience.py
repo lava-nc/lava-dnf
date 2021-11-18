@@ -3,8 +3,9 @@
 # See: https://spdx.org/licenses/
 
 import unittest
+import numpy as np
 
-from lava.lib.dnf.utils.convenience import num_neurons, num_dims
+from lava.lib.dnf.utils.convenience import num_neurons, num_dims, to_ndarray
 
 
 class TestNumNeurons(unittest.TestCase):
@@ -39,6 +40,34 @@ class TestNumDims(unittest.TestCase):
         two-dimensional shapes."""
         dims = num_dims(shape=(10, 10))
         self.assertEqual(dims, 2)
+
+
+class TestToNdarray(unittest.TestCase):
+    def test_converting_float(self):
+        """Tests whether floats can be converted to an ndarray."""
+        a_float = 5.0
+        ndarray = to_ndarray(a_float)
+        self.assertIsInstance(ndarray, np.ndarray)
+        self.assertTrue(np.array_equal(np.array([a_float]), ndarray))
+
+    def test_converting_list(self):
+        """Tests whether a list can be converted to an ndarray."""
+        a_list = [1, 2, 3]
+        ndarray = to_ndarray(a_list)
+        self.assertIsInstance(ndarray, np.ndarray)
+        self.assertTrue(np.array_equal(np.array(a_list), ndarray))
+
+    def test_converting_tuple(self):
+        """Tests whether a tuple can be converted to an ndarray."""
+        a_tuple = (1, 2, 3)
+        ndarray = to_ndarray(a_tuple)
+        self.assertIsInstance(ndarray, np.ndarray)
+        self.assertTrue(np.array_equal(np.array(a_tuple), ndarray))
+
+    def test_ndarray_not_converted(self):
+        """Tests whether an ndarray is simply returned."""
+        ndarray = np.array([1, 2, 3])
+        self.assertTrue(np.array_equal(ndarray, to_ndarray(ndarray)))
 
 
 if __name__ == '__main__':

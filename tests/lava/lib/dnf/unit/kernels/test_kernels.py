@@ -113,7 +113,7 @@ class TestSelectiveKernel(unittest.TestCase):
                                  global_inh=global_inh,
                                  shape=(size,))
         # weight at the center of the kernel should be amp_exc + global_inh
-        center = int(size/2)
+        center = int(size / 2)
         self.assertEqual(kernel.weights[center], amp_exc + global_inh)
 
     def test_computed_weights_when_dimensions_have_same_width_2d(self):

@@ -7,7 +7,7 @@ import numpy as np
 
 from lava.lib.dnf.connect.connect import connect
 from lava.lib.dnf.population.process import Population
-from lava.lib.dnf.kernels.kernels import SelectiveKernel
+from lava.lib.dnf.kernels.kernels import SelectiveKernel, MultiPeakKernel
 from lava.lib.dnf.operations.operations import Weights, ReduceDims, Reorder, \
     ExpandDims, Convolution
 
@@ -212,6 +212,19 @@ class TestConnectingWithOperations(unittest.TestCase):
             kernel = SelectiveKernel(amp_exc=1.0,
                                      width_exc=[2] * len(shape),
                                      global_inh=-0.1)
+            connect(population.s_out,
+                    population.a_in,
+                    ops=[Convolution(kernel)])
+
+    def test_connect_population_with_multi_peak_kernel(self):
+        """Tests whether populations can be connected to themselves using the
+        Convolution operation and a MultiPeakKernel."""
+        for shape in [(1,), (5,), (5, 5), (5, 5, 5)]:
+            population = Population(shape=shape)
+            kernel = MultiPeakKernel(amp_exc=1.0,
+                                     width_exc=[2] * len(shape),
+                                     amp_inh=-0.5,
+                                     width_inh=[4] * len(shape))
             connect(population.s_out,
                     population.a_in,
                     ops=[Convolution(kernel)])

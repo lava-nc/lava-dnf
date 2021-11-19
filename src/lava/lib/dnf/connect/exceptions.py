@@ -17,6 +17,6 @@ class MisconfiguredConnectError(Exception):
     """
     def __init__(self, msg: ty.Optional[str] = None):
         if msg is None:
-            msg = f"call to connection() misconfigured; check the choice and " \
-                  f"parameterization of all operations"
+            msg = "call to connection() misconfigured; check the choice and " \
+                  "parameterization of all operations"
         super().__init__(msg)

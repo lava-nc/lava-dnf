@@ -15,9 +15,17 @@ from lava.lib.dnf.inputs.patterns.gauss_pattern.process import GaussPattern
 from lava.lib.dnf.utils.math import gauss
 
 
+# TODO: (GK) Change protocol to AsyncProtocol when supported
+# TODO: (GK) Change base class to (Sequential)PyProcessModel when supported
 @implements(proc=GaussPattern, protocol=LoihiProtocol)
 @requires(CPU)
 class GaussPatternProcessModel(PyLoihiProcessModel):
+    """
+    PyLoihiProcessModel for GaussPatternProcess.
+
+    Implements the behavior of sending a gauss pattern asynchronously when
+    a change is triggered.
+    """
     _shape: np.ndarray = LavaPyType(np.ndarray, int)
 
     _amplitude: np.ndarray = LavaPyType(np.ndarray, float)
@@ -31,11 +39,15 @@ class GaussPatternProcessModel(PyLoihiProcessModel):
     a_out: PyOutPort = LavaPyType(PyOutPort.VEC_DENSE, float)
 
     def run_spk(self):
+        # When changed flag is set to True
         if self.changed[0]:
+            # Compute new pattern based on updated parameters
             self.pattern = gauss(shape=self._shape,
                                  domain=None,
                                  amplitude=self._amplitude[0],
                                  mean=self._mean,
                                  stddev=self._stddev)
+            # Reset changed flag
             self.changed[0] = False
+            # Send new pattern through the PyOutPort
             self.a_out.send(self.pattern)

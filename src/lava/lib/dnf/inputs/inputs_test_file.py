@@ -9,14 +9,16 @@ from lava.magma.core.run_configs import Loihi1SimCfg
 from lava.magma.core.run_conditions import RunSteps
 
 from lava.lib.dnf.inputs.patterns.gauss_pattern.process import GaussPattern
-from lava.lib.dnf.inputs.generators.spike_generator.process import SpikeGenerator
+from lava.lib.dnf.inputs.generators.spike_generator.process import \
+    SpikeGenerator
 
 
 def main():
     num_steps = 100
     shape = (60,)
 
-    gauss_pattern = GaussPattern(shape=shape, amplitude=1500.0, mean=40, stddev=15)
+    gauss_pattern = GaussPattern(shape=shape, amplitude=1500.0, mean=40,
+                                 stddev=15)
     spike_generator = SpikeGenerator(shape=shape)
 
     gauss_pattern.out_ports.a_out.connect(spike_generator.in_ports.a_in)

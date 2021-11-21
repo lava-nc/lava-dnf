@@ -11,7 +11,7 @@ from lava.magma.core.resources import CPU
 from lava.magma.core.decorator import implements, requires
 from lava.magma.core.model.py.model import PyLoihiProcessModel
 
-from lava.lib.dnf.inputs.patterns.gauss_pattern.process import GaussPattern
+from lava.lib.dnf.inputs.gauss_pattern.process import GaussPattern
 from lava.lib.dnf.utils.math import gauss
 
 

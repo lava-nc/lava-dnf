@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from lava.magma.core.run_configs import Loihi1SimCfg
 from lava.magma.core.run_conditions import RunSteps
 
-from lava.lib.dnf.inputs.patterns.gauss_pattern.process import GaussPattern
-from lava.lib.dnf.inputs.generators.spike_generator.process import \
+from lava.lib.dnf.inputs.gauss_pattern import GaussPattern
+from lava.lib.dnf.inputs.spike_generator import \
     SpikeGenerator
 
 

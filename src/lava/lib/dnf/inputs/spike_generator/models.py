@@ -11,7 +11,7 @@ from lava.magma.core.resources import CPU
 from lava.magma.core.decorator import implements, requires
 from lava.magma.core.model.py.model import PyLoihiProcessModel
 
-from lava.lib.dnf.inputs.generators.spike_generator.process import \
+from lava.lib.dnf.inputs.spike_generator.process import \
     SpikeGenerator
 
 TIME_STEPS_PER_MINUTE = 6000.0

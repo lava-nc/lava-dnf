@@ -27,16 +27,17 @@ class SpikeGenerator(AbstractProcess):
     shape: tuple(int)
         number of neurons per dimension, e.g. shape=(30, 40)
     """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         shape = kwargs.pop("shape")
 
-        self.inter_spike_distances = Var(shape=shape, init=0)
-        self.first_spike_times = Var(shape=shape, init=0)
-        self.last_spiked = Var(shape=shape, init=-np.inf)
+        self.inter_spike_distances = Var(shape=shape, init=np.zeros(shape))
+        self.first_spike_times = Var(shape=shape, init=np.zeros(shape))
+        self.last_spiked = Var(shape=shape, init=np.full(shape, -np.inf))
 
-        self.spikes = Var(shape=shape, init=0)
+        self.spikes = Var(shape=shape, init=np.zeros(shape))
 
         self.a_in = InPort(shape=shape)
         self.s_out = OutPort(shape=shape)

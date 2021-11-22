@@ -8,7 +8,7 @@ from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
 from lava.magma.core.model.py.ports import PyInPort, PyOutPort
 from lava.magma.core.model.py.type import LavaPyType
 from lava.magma.core.resources import CPU
-from lava.magma.core.decorator import implements, requires
+from lava.magma.core.decorator import implements, requires, tag
 from lava.magma.core.model.py.model import PyLoihiProcessModel
 
 from lava.lib.dnf.inputs.spike_generator.process import \
@@ -22,6 +22,7 @@ MIN_SPIKE_RATE = 0.5
 # TODO: (GK) Change base class to (Sequential)PyProcessModel when supported (?)
 @implements(proc=SpikeGenerator, protocol=LoihiProtocol)
 @requires(CPU)
+@tag('floating_pt')
 class SpikeGeneratorProcessModel(PyLoihiProcessModel):
     """
     PyLoihiProcessModel for SpikeGeneratorProcess.

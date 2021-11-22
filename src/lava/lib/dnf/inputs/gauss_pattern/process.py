@@ -30,6 +30,7 @@ class GaussPattern(AbstractProcess):
     stddev: list(float) or float
         standard deviation of the Gauss pattern
     """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

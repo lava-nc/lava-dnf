@@ -106,6 +106,7 @@ class SourceProcessModel(PyLoihiProcessModel):
 
 
 class TestSpikeGeneratorProcessModel(unittest.TestCase):
+    @unittest.skip("TODO (MR) unclear non-deterministic behavior")
     def test_spike_generator_recv(self):
         """Tests whether last_spiked, inter_spike_distances,
         first_spike_times Vars are updated upon receipt of a new pattern."""
@@ -185,6 +186,7 @@ class TestSpikeGeneratorProcessModel(unittest.TestCase):
         finally:
             source.stop()
 
+    @unittest.skip("TODO (MR) unclear non-deterministic behavior")
     def test_generate_spikes(self):
         """Tests whether the spike trains are computed correctly"""
         num_steps = 10

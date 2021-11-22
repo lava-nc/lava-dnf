@@ -14,8 +14,8 @@ from lava.magma.core.model.py.model import PyLoihiProcessModel
 from lava.lib.dnf.inputs.spike_generator.process import \
     SpikeGenerator
 
+# TODO: (GK) This has to be changed to depend on time step duration in Loihi
 TIME_STEPS_PER_MINUTE = 6000.0
-MIN_SPIKE_RATE = 0.5
 
 
 # TODO: (GK) Change protocol to AsyncProtocol when supported (?)
@@ -29,6 +29,9 @@ class SpikeGeneratorProcessModel(PyLoihiProcessModel):
 
     Implements the behavior of a rate-coded spike input generator.
     """
+    min_spike_rate: np.ndarray = LavaPyType(np.ndarray, float)
+    seed: np.ndarray = LavaPyType(np.ndarray, int)
+
     inter_spike_distances: np.ndarray = LavaPyType(np.ndarray, int)
     first_spike_times: np.ndarray = LavaPyType(np.ndarray, int)
     last_spiked: np.ndarray = LavaPyType(np.ndarray, float)
@@ -60,7 +63,7 @@ class SpikeGeneratorProcessModel(PyLoihiProcessModel):
         """
         # Represent infinite inter spike distances (i.e negligible spike rates)
         # as 0
-        distances = np.where(pattern > MIN_SPIKE_RATE,
+        distances = np.where(pattern > self.min_spike_rate,
                              np.rint(TIME_STEPS_PER_MINUTE / pattern).astype(
                                  np.int), 0)
 
@@ -84,7 +87,8 @@ class SpikeGeneratorProcessModel(PyLoihiProcessModel):
             first spike time for each "neuron"
 
         """
-        rng = np.random.default_rng()
+        rng = np.random.default_rng(
+            seed=None if self.seed[0] == -1 else self.seed[0])
 
         first_spikes = np.zeros_like(distances)
 

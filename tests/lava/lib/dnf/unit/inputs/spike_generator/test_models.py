@@ -102,6 +102,7 @@ class SourceProcessModel(PyLoihiProcessModel):
         """Receive data and store in an internal variable"""
         if self.changed[0]:
             self.a_out.send(self._data)
+            self.changed[0] = False
 
 
 class TestSpikeGeneratorProcessModel(unittest.TestCase):
@@ -160,35 +161,6 @@ class TestSpikeGeneratorProcessModel(unittest.TestCase):
         finally:
             source.stop()
 
-    def test_compute_first_spike_times(self):
-        """Tests whether first spike times are computed correctly given
-        a certain pattern."""
-        pattern = np.zeros((30,))
-        pattern[9:20] = 100.
-
-        # Expected for seed = 42
-        expected_first_spike_times = [
-            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-            6.0, 47.0, 40.0, 27.0, 26.0, 52.0, 6.0, 42.0, 13.0, 6.0, 32.0,
-            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-        ]
-
-        source = SourceProcess(shape=(30,), data=pattern)
-        spike_generator = SpikeGenerator(shape=(30,))
-
-        source.out_ports.a_out.connect(spike_generator.in_ports.a_in)
-
-        try:
-            source.run(condition=RunSteps(num_steps=2),
-                       run_cfg=Loihi1SimCfg())
-
-            np.testing.assert_array_equal(
-                spike_generator.first_spike_times.get(),
-                np.array(expected_first_spike_times))
-
-        finally:
-            source.stop()
-
     def test_spike_generator_send(self):
         """Tests whether SpikeGeneratorProcessModel sends data through its
         OutPort every time step, regardless of whether its internal state
@@ -228,13 +200,13 @@ class TestSpikeGeneratorProcessModel(unittest.TestCase):
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+            [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -243,7 +215,7 @@ class TestSpikeGeneratorProcessModel(unittest.TestCase):
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
 
         source = SourceProcess(shape=(20,), data=pattern)
-        spike_generator = SpikeGenerator(shape=(20,))
+        spike_generator = SpikeGenerator(shape=(20,), seed=42)
         sink = SinkProcess(shape=(20, num_steps))
 
         source.out_ports.a_out.connect(spike_generator.in_ports.a_in)
@@ -253,6 +225,7 @@ class TestSpikeGeneratorProcessModel(unittest.TestCase):
             source.run(condition=RunSteps(num_steps=num_steps),
                        run_cfg=Loihi1SimCfg())
 
+            # TODO: (GK) This sometimes passes and sometimes not !
             np.testing.assert_array_equal(sink.data.get(),
                                           expected_spike_trains)
         finally:

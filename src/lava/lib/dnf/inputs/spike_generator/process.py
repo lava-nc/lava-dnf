@@ -8,6 +8,8 @@ from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.variable import Var
 from lava.magma.core.process.ports.ports import InPort, OutPort
 
+from lava.lib.dnf.utils.validation import validate_shape
+
 
 # TODO: (GK) Should we name it RateSpikeGenerator ?
 class SpikeGenerator(AbstractProcess):
@@ -26,12 +28,29 @@ class SpikeGenerator(AbstractProcess):
     -----------
     shape: tuple(int)
         number of neurons per dimension, e.g. shape=(30, 40)
+    min_spike_rate: float
+        minimum spike rate
+        (neurons with rates below this value will never spike)
+    seed: int
+        seed used for computing first spike times everytime pattern changes
     """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        shape = kwargs.pop("shape")
+        shape = validate_shape(kwargs.pop("shape"))
+
+        min_spike_rate = kwargs.pop("min_spike_rate", 0.5)
+        if min_spike_rate < 0:
+            raise ValueError("<min_spike_rate> cannot be negative.")
+
+        # seed -1 means use random seed
+        seed = kwargs.pop("seed", -1)
+        if seed < -1:
+            raise ValueError("<seed> cannot be negative.")
+
+        self.min_spike_rate = Var(shape=(1,), init=np.array([min_spike_rate]))
+        self.seed = Var(shape=(1,), init=np.array([seed]))
 
         self.inter_spike_distances = Var(shape=shape, init=np.zeros(shape))
         self.first_spike_times = Var(shape=shape, init=np.zeros(shape))

@@ -105,9 +105,10 @@ class TestGaussPatternProcessModel(unittest.TestCase):
             gauss_pattern.mean = [10., 10.]
             gauss_pattern.stddev = [3., 3.]
 
-            gauss_pattern.run(condition=RunSteps(num_steps=3),
+            gauss_pattern.run(condition=RunSteps(num_steps=5),
                               run_cfg=Loihi1SimCfg())
 
+            # TODO: (GK) This sometimes passes and sometimes not !
             np.testing.assert_array_equal(sink_process.data.get(),
                                           gauss_generated_pattern)
         finally:

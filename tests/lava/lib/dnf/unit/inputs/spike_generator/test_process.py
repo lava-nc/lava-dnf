@@ -25,6 +25,15 @@ class TestSpikeGenerator(unittest.TestCase):
         np.testing.assert_array_equal(
             spike_generator.spikes.get(), np.zeros((30, 30)))
 
+    def test_init_validation(self):
+        """Tests whether a SpikeGenerator process instantiation with
+        non-valid min_spike_rate or seed raises a ValueError."""
+        with self.assertRaises(ValueError):
+            SpikeGenerator(shape=(30, 30), min_spike_rate=-5)
+
+        with self.assertRaises(ValueError):
+            SpikeGenerator(shape=(30, 30), min_spike_rate=-5)
+
     def test_running(self):
         """Tests whether a SpikeGenerator process can be run."""
         num_steps = 10

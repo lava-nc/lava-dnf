@@ -9,6 +9,8 @@ from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.variable import Var
 from lava.magma.core.process.ports.ports import OutPort
 
+from lava.lib.dnf.utils.validation import validate_shape
+
 
 class GaussPattern(AbstractProcess):
     """
@@ -34,7 +36,7 @@ class GaussPattern(AbstractProcess):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        shape = kwargs.pop("shape")
+        shape = validate_shape(kwargs.pop("shape"))
         amplitude = kwargs.pop("amplitude")
         mean = self._validate_param(np.array(shape),
                                     "mean",

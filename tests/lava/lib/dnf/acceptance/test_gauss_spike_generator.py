@@ -106,7 +106,7 @@ class TestGaussSpikeGenerator(unittest.TestCase):
 
         gauss_pattern = GaussPattern(shape=shape, amplitude=1500.0, mean=5,
                                      stddev=4)
-        spike_generator = SpikeGenerator(shape=shape)
+        spike_generator = SpikeGenerator(shape=shape, seed=42)
         sink_process = SinkProcess(shape=(shape[0], num_steps_per_pattern * 2))
 
         gauss_pattern.out_ports.a_out.connect(spike_generator.in_ports.a_in)

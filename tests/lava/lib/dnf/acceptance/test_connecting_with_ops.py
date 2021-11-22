@@ -5,6 +5,10 @@
 import unittest
 import numpy as np
 
+from lava.magma.core.run_conditions import RunSteps
+from lava.magma.core.run_configs import Loihi1SimCfg
+from lava.proc.lif.process import LIF
+
 from lava.lib.dnf.connect.connect import connect
 from lava.lib.dnf.population.process import Population
 from lava.lib.dnf.kernels.kernels import SelectiveKernel, MultiPeakKernel
@@ -13,6 +17,33 @@ from lava.lib.dnf.operations.operations import Weights, ReduceDims, Reorder, \
 
 
 class TestConnectingWithOperations(unittest.TestCase):
+    def test_running_reorder(self):
+        """Tests executing a architecture with multi-dimensional input that
+        gets reshaped (here, reordered)."""
+        num_steps = 10
+        shape_src = (5, 3)
+        shape_dst = (3, 5)
+
+        bias = np.zeros(shape_src)
+        bias[:, 0] = 5000
+        src = LIF(shape=shape_src, bias=bias, bias_exp=np.ones(shape_src))
+        dst = LIF(shape=shape_dst)
+
+        weight = 20
+        connect(src.s_out, dst.a_in, ops=[Weights(weight),
+                                          Reorder(order=(1, 0))])
+        src.run(condition=RunSteps(num_steps=num_steps),
+                run_cfg=Loihi1SimCfg())
+
+        computed_dst_u = dst.vars.u.get()
+        expected_dst_u = np.zeros(shape_dst)
+        expected_dst_u[0, :] = weight * num_steps
+
+        src.stop()
+
+        self.assertEqual(src.runtime.current_ts, num_steps)
+        self.assertTrue(np.array_equal(computed_dst_u, expected_dst_u))
+
     def test_connect_population_with_weights_op(self):
         """Tests whether populations can be connected using the Weights
         operation."""

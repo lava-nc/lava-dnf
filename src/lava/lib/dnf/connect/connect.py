@@ -11,6 +11,8 @@ from lava.magma.core.process.ports.ports import InPort, OutPort
 
 from lava.lib.dnf.operations.operations import AbstractOperation
 from lava.lib.dnf.connect.exceptions import MisconfiguredConnectError
+from lava.lib.dnf.connect.reshape_bool.process import ReshapeBool
+from lava.lib.dnf.connect.reshape_int.process import ReshapeInt
 
 
 def connect(
@@ -204,11 +206,17 @@ def _make_connections(src_op: OutPort,
                         weights=weights)
 
     # make connections from the source port to the connections process
-    src_op_flat = src_op.reshape(connections.in_ports.s_in.shape)
-    src_op_flat.connect(connections.in_ports.s_in)
+    # TODO (MR) workaround in absence of ReshapePorts
+    con_ip = connections.s_in
+    rs1 = ReshapeBool(shape_in=src_op.shape, shape_out=con_ip.shape)
+    src_op.connect(rs1.s_in)
+    rs1.s_out.connect(con_ip)
 
     # make connections from the connections process to the destination port
-    con_op = connections.out_ports.a_out.reshape(dst_ip.shape)
-    con_op.connect(dst_ip)
+    # TODO (MR) workaround in absence of ReshapePorts
+    con_op = connections.a_out
+    rs2 = ReshapeInt(shape_in=con_op.shape, shape_out=dst_ip.shape)
+    con_op.connect(rs2.s_in)
+    rs2.s_out.connect(dst_ip)
 
     return connections

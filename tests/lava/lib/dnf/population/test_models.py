@@ -43,30 +43,5 @@ class TestPopulationSubProcessModel(unittest.TestCase):
         self.assertEqual(pop_op.get_src_ports(), [lif_op])
 
 
-class TestTauToDecay(unittest.TestCase):
-    def setUp(self) -> None:
-        """Creates a PopulationSubProcessModel instance to have access
-        to the _tau_to_decay method."""
-        self.pm = PopulationSubProcessModel(Population())
-
-    def test_positive_tau_values_are_converted_to_decays(self):
-        """Tests whether positive tau values are converted to decays."""
-        self.assertEqual(self.pm._tau_to_decay(1), 4095)
-        self.assertEqual(self.pm._tau_to_decay(4095), 1)
-
-    def test_tau_values_below_one_raise_value_error(self):
-        """Tests whether setting tau<1 raises a ValueError."""
-        with self.assertRaises(ValueError):
-            self.pm._tau_to_decay(-10)
-        with self.assertRaises(ValueError):
-            self.pm._tau_to_decay(0)
-        with self.assertRaises(ValueError):
-            self.pm._tau_to_decay(0.9)
-
-    def test_float_tau_values_are_cast_to_int(self):
-        """Tests whether decays are cast to int even if tau is type float."""
-        self.assertIsInstance(self.pm._tau_to_decay(10.5), int)
-
-
 if __name__ == '__main__':
     unittest.main()

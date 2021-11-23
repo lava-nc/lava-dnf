@@ -25,8 +25,8 @@ class PopulationSubProcessModel(AbstractSubProcessModel):
     """
     def __init__(self, proc: Population):
         kwargs = proc.init_args
-        tau_voltage: int = kwargs.pop("tau_voltage", 2)
-        tau_current: int = kwargs.pop("tau_current", 10)
+        dv: int = kwargs.pop("dv", 2047)
+        du: int = kwargs.pop("du", 409)
         threshold: int = kwargs.pop("threshold", 200)
         bias: int = kwargs.pop("bias", 0)
         bias_exp: int = kwargs.pop("bias_exp", 1)
@@ -35,32 +35,11 @@ class PopulationSubProcessModel(AbstractSubProcessModel):
         self.neurons = LIF(name=proc.name + " LIF",
                            shape=proc.shape,
                            vth=threshold,
-                           du=self._tau_to_decay(tau_current),
-                           dv=self._tau_to_decay(tau_voltage),
-                           bias_mant=bias,
-                           bias_exp=bias_exp,
-                           delay_bits=1)
+                           du=du,
+                           dv=dv,
+                           bias=bias,
+                           bias_exp=bias_exp)
 
         # expose the input and output port of the LIF process
         proc.in_ports.a_in.connect(self.neurons.in_ports.a_in)
         self.neurons.out_ports.s_out.connect(proc.out_ports.s_out)
-
-    @staticmethod
-    def _tau_to_decay(tau: ty.Union[int, float]) -> int:
-        """
-        Converts a time scale parameter (tau) to a decay value.
-
-        Parameters:
-        -----------
-        tau : int or float
-            time scale of a neural dynamics
-
-        Returns:
-        --------
-        decay : int
-            decay that corresponds to the given time scale parameter
-        """
-        if not tau >= 1:
-            raise ValueError("tau must be greater-equal 1")
-
-        return int(4095 / tau)

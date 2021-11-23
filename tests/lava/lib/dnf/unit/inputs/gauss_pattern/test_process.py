@@ -27,6 +27,8 @@ class TestGaussPattern(unittest.TestCase):
                                       np.array([15., 15.]))
         np.testing.assert_array_equal(gauss_pattern.stddev,
                                       np.array([5., 5.]))
+        np.testing.assert_array_equal(gauss_pattern.null_pattern.get(),
+                                      np.full((30, 30), np.nan))
         np.testing.assert_array_equal(gauss_pattern.pattern.get(),
                                       np.zeros((30, 30)))
         np.testing.assert_array_equal(gauss_pattern.changed.get(),
@@ -48,6 +50,8 @@ class TestGaussPattern(unittest.TestCase):
                                       np.array([15., 15.]))
         np.testing.assert_array_equal(gauss_pattern.stddev,
                                       np.array([5., 5.]))
+        np.testing.assert_array_equal(gauss_pattern.null_pattern.get(),
+                                      np.full((30, 30), np.nan))
         np.testing.assert_array_equal(gauss_pattern.pattern.get(),
                                       np.zeros((30, 30)))
         np.testing.assert_array_equal(gauss_pattern.changed.get(),

@@ -33,6 +33,7 @@ class GaussPatternProcessModel(PyLoihiProcessModel):
     _mean: np.ndarray = LavaPyType(np.ndarray, float)
     _stddev: np.ndarray = LavaPyType(np.ndarray, float)
 
+    null_pattern: np.ndarray = LavaPyType(np.ndarray, float)
     pattern: np.ndarray = LavaPyType(np.ndarray, float)
 
     changed: np.ndarray = LavaPyType(np.ndarray, bool)
@@ -52,3 +53,6 @@ class GaussPatternProcessModel(PyLoihiProcessModel):
             self.changed[0] = False
             # Send new pattern through the PyOutPort
             self.a_out.send(self.pattern)
+        else:
+            # Send the null pattern
+            self.a_out.send(self.null_pattern)

@@ -11,8 +11,8 @@ from lava.magma.core.resources import CPU
 from lava.magma.core.decorator import implements, requires, tag
 from lava.magma.core.model.py.model import PyLoihiProcessModel
 
-from lava.lib.dnf.inputs.spike_generator.process import \
-    SpikeGenerator
+from lava.lib.dnf.inputs.rate_code_spike_gen.process import \
+    RateCodeSpikeGen
 
 # TODO: (GK) This has to be changed to depend on time step duration in Loihi
 TIME_STEPS_PER_MINUTE = 6000.0
@@ -20,10 +20,10 @@ TIME_STEPS_PER_MINUTE = 6000.0
 
 # TODO: (GK) Change protocol to AsyncProtocol when supported (?)
 # TODO: (GK) Change base class to (Sequential)PyProcessModel when supported (?)
-@implements(proc=SpikeGenerator, protocol=LoihiProtocol)
+@implements(proc=RateCodeSpikeGen, protocol=LoihiProtocol)
 @requires(CPU)
 @tag('floating_pt')
-class SpikeGeneratorProcessModel(PyLoihiProcessModel):
+class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
     """
     PyLoihiProcessModel for SpikeGeneratorProcess.
 
@@ -158,15 +158,16 @@ class SpikeGeneratorProcessModel(PyLoihiProcessModel):
         return spikes
 
     def run_spk(self):
-        # When a new pattern reached the PyInPort ...
-        if self.a_in.probe():
+        # Receive pattern from PyInPort
+        pattern = self.a_in.recv()
+
+        # If the received pattern is not the null_pattern ...
+        if not np.isnan(pattern).any():
             # Save the current time step
             self.ts_last_changed = self.current_ts
             # Reset last spike times
             self.last_spiked = np.full_like(self.last_spiked, -np.inf)
 
-            # Receive the new pattern
-            pattern = self.a_in.recv()
             # Update inter spike distances based on new pattern
             self.inter_spike_distances = self._compute_distances(pattern)
             # Compute first spike time for each "neuron"

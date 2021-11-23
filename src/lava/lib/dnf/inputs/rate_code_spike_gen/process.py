@@ -11,8 +11,7 @@ from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.lib.dnf.utils.validation import validate_shape
 
 
-# TODO: (GK) Should we name it RateSpikeGenerator ?
-class SpikeGenerator(AbstractProcess):
+class RateCodeSpikeGen(AbstractProcess):
     """
     Spike generator Process for rate-coded input.
 
@@ -22,6 +21,7 @@ class SpikeGenerator(AbstractProcess):
 
     Receives a new pattern through a_in only once and while and trigger state
     update upon receipt of new pattern.
+    In other time steps, receives null patterns (array full of numpy.nan).
     Sends spike values through its OutPort s_out every time step.
 
     Parameters:

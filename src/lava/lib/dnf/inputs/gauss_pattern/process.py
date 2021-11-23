@@ -20,6 +20,7 @@ class GaussPattern(AbstractProcess):
     the OutPort a_out.
     It recomputes new patterns and sends them asynchronously only when one of
     the parameters amplitude, mean or stddev changes.
+    Otherwise, sends an array full of numpy.nan.
 
     Parameters:
     -----------
@@ -50,6 +51,8 @@ class GaussPattern(AbstractProcess):
         self._amplitude = Var(shape=(1,), init=np.array([amplitude]))
         self._mean = Var(shape=(len(shape),), init=mean)
         self._stddev = Var(shape=(len(shape),), init=stddev)
+
+        self.null_pattern = Var(shape=shape, init=np.full(shape, np.nan))
 
         self.pattern = Var(shape=shape, init=np.zeros(shape))
 
@@ -82,7 +85,7 @@ class GaussPattern(AbstractProcess):
 
         """
         # If param is a float (or int)
-        if isinstance(param, float) or isinstance(param, int):
+        if not isinstance(param, list):
             # Cast param to float
             param = float(param)
             # Create a list with single element
@@ -109,6 +112,10 @@ class GaussPattern(AbstractProcess):
     def _update(self):
         """Set the value of the changed flag Var to True"""
         self.changed.set(np.array([True]))
+
+        # TODO: (GK) Remove when set blocks until complete
+        # To make sure parameter was set
+        self.changed.get()
 
     @property
     def shape(self) -> np.ndarray:
@@ -140,6 +147,11 @@ class GaussPattern(AbstractProcess):
     def amplitude(self, amplitude: float):
         """Set the value of the amplitude Var and updates the changed flag"""
         self._amplitude.set(np.array([amplitude]))
+
+        # TODO: (GK) Remove when set blocks until complete
+        # To make sure parameter was set
+        self._amplitude.get()
+
         self._update()
 
     @property
@@ -160,6 +172,11 @@ class GaussPattern(AbstractProcess):
         """Set the value of the mean Var and updates the changed flag"""
         mean = self._validate_param(self.shape, "mean", mean)
         self._mean.set(mean)
+
+        # TODO: (GK) Remove when set blocks until complete
+        # To make sure parameter was set
+        self._mean.get()
+
         self._update()
 
     @property
@@ -180,4 +197,9 @@ class GaussPattern(AbstractProcess):
         """Set the value of the stddev Var and updates the changed flag"""
         stddev = self._validate_param(self.shape, "stddev", stddev)
         self._stddev.set(stddev)
+
+        # TODO: (GK) Remove when set blocks until complete
+        # To make sure parameter was set
+        self._stddev.get()
+
         self._update()

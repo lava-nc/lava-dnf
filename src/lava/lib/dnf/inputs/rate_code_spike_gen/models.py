@@ -18,8 +18,8 @@ from lava.lib.dnf.inputs.rate_code_spike_gen.process import \
 TIME_STEPS_PER_MINUTE = 6000.0
 
 
-# TODO: (GK) Change protocol to AsyncProtocol when supported (?)
-# TODO: (GK) Change base class to (Sequential)PyProcessModel when supported (?)
+# TODO: (GK) Change protocol to AsyncProtocol when supported
+# TODO: (GK) Change base class to (Sequential)PyProcessModel when supported
 @implements(proc=RateCodeSpikeGen, protocol=LoihiProtocol)
 @requires(CPU)
 @tag('floating_pt')
@@ -65,7 +65,7 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
         # as 0
         distances = np.where(pattern > self.min_spike_rate,
                              np.rint(TIME_STEPS_PER_MINUTE / pattern).astype(
-                                 np.int), 0)
+                                 int), 0)
 
         return distances
 
@@ -125,7 +125,7 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
             spikes array
 
         """
-        spikes = np.zeros(self.spikes.shape, np.bool)
+        spikes = np.zeros(self.spikes.shape, dtype=bool)
 
         # Get time step index since pattern last changed
         current_ts_transformed = time_step - self.ts_last_changed + 1

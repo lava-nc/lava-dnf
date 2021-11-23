@@ -8,13 +8,13 @@ import numpy as np
 from lava.magma.core.run_conditions import RunSteps
 from lava.magma.core.run_configs import Loihi1SimCfg
 
-from lava.lib.dnf.inputs.spike_generator.process import SpikeGenerator
+from lava.lib.dnf.inputs.rate_code_spike_gen.process import RateCodeSpikeGen
 
 
-class TestSpikeGenerator(unittest.TestCase):
+class TestRateCodeSpikeGen(unittest.TestCase):
     def test_init(self):
-        """Tests whether a SpikeGenerator process can be initiated."""
-        spike_generator = SpikeGenerator(shape=(30, 30))
+        """Tests whether a RateCodeSpikeGen process can be initiated."""
+        spike_generator = RateCodeSpikeGen(shape=(30, 30))
 
         np.testing.assert_array_equal(
             spike_generator.inter_spike_distances.get(), np.zeros((30, 30)))
@@ -26,19 +26,19 @@ class TestSpikeGenerator(unittest.TestCase):
             spike_generator.spikes.get(), np.zeros((30, 30)))
 
     def test_init_validation(self):
-        """Tests whether a SpikeGenerator process instantiation with
+        """Tests whether a RateCodeSpikeGen process instantiation with
         non-valid min_spike_rate or seed raises a ValueError."""
         with self.assertRaises(ValueError):
-            SpikeGenerator(shape=(30, 30), min_spike_rate=-5)
+            RateCodeSpikeGen(shape=(30, 30), min_spike_rate=-5)
 
         with self.assertRaises(ValueError):
-            SpikeGenerator(shape=(30, 30), min_spike_rate=-5)
+            RateCodeSpikeGen(shape=(30, 30), min_spike_rate=-5)
 
     def test_running(self):
-        """Tests whether a SpikeGenerator process can be run."""
+        """Tests whether a RateCodeSpikeGen process can be run."""
         num_steps = 10
 
-        spike_generator = SpikeGenerator(shape=(30, 30))
+        spike_generator = RateCodeSpikeGen(shape=(30, 30))
 
         try:
             spike_generator.run(condition=RunSteps(num_steps=num_steps),

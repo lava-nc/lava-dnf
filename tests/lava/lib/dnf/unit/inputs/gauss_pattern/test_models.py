@@ -49,13 +49,15 @@ class SinkProcessModel(PyLoihiProcessModel):
 
     def run_spk(self):
         """Receive data and store in an internal variable"""
-        if self.a_in.probe():
-            a_in = self.a_in.recv()
-            self.data = a_in
+        # Receive data from PyInPort
+        data = self.a_in.recv()
+
+        # If the received pattern is not the null_pattern ...
+        if not np.isnan(data).any():
+            self.data = data
 
 
 class TestGaussPatternProcessModel(unittest.TestCase):
-    @unittest.skip("TODO (MR) unclear non-deterministic behavior")
     def test_gauss_pattern(self):
         """Tests whether GaussPatternProcessModel computes and sends a gauss
         pattern given its parameters."""
@@ -69,8 +71,8 @@ class TestGaussPatternProcessModel(unittest.TestCase):
         gauss_generated_pattern = gauss(shape=(30, 30),
                                         domain=None,
                                         amplitude=200.,
-                                        mean=[15., 15.],
-                                        stddev=[5., 5.])
+                                        mean=np.array([15., 15.]),
+                                        stddev=np.array([5., 5.]))
 
         try:
             gauss_pattern.run(condition=RunSteps(num_steps=3),
@@ -81,7 +83,6 @@ class TestGaussPatternProcessModel(unittest.TestCase):
         finally:
             gauss_pattern.stop()
 
-    @unittest.skip("TODO (MR) unclear non-deterministic behavior")
     def test_change_pattern_triggers_computation_and_send(self):
         """Tests whether GaussPatternProcessModel recomputes a new pattern and
         sends it when its parameters are changed. If that's the case, it will
@@ -96,8 +97,8 @@ class TestGaussPatternProcessModel(unittest.TestCase):
         gauss_generated_pattern = gauss(shape=(30, 30),
                                         domain=None,
                                         amplitude=100.,
-                                        mean=[10., 10.],
-                                        stddev=[3., 3.])
+                                        mean=np.array([10., 10.]),
+                                        stddev=np.array([3., 3.]))
 
         try:
             gauss_pattern.run(condition=RunSteps(num_steps=3),
@@ -110,7 +111,6 @@ class TestGaussPatternProcessModel(unittest.TestCase):
             gauss_pattern.run(condition=RunSteps(num_steps=5),
                               run_cfg=Loihi1SimCfg())
 
-            # TODO: (GK) This sometimes passes and sometimes not !
             np.testing.assert_array_equal(sink_process.data.get(),
                                           gauss_generated_pattern)
         finally:

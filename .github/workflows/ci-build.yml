@@ -62,4 +62,12 @@ jobs:
         pip install pybuilder
     - name: Run unit tests
       run: |
-        pyb -E unit
+        if [ "$RUNNER_OS" == "Linux" ] || [ "$RUNNER_OS" == "macOS" ]; then
+            pyb -E unit
+        elif [ "$RUNNER_OS" == "Windows" ]; then
+            python -m unittest
+        else
+            echo "$RUNNER_OS not supported"
+            exit 1
+        fi
+      shell: bash

@@ -10,7 +10,6 @@ from lava.magma.core.run_configs import Loihi1SimCfg
 from lava.proc.lif.process import LIF
 
 from lava.lib.dnf.connect.connect import connect
-from lava.lib.dnf.population.process import Population
 from lava.lib.dnf.kernels.kernels import SelectiveKernel, MultiPeakKernel
 from lava.lib.dnf.operations.operations import Weights, ReduceDims, Reorder, \
     ExpandDims, Convolution
@@ -48,8 +47,8 @@ class TestConnectingWithOperations(unittest.TestCase):
         """Tests whether populations can be connected using the Weights
         operation."""
         for shape in [(1,), (5,), (5, 5), (5, 5, 5)]:
-            source = Population(shape=shape)
-            destination = Population(shape=shape)
+            source = LIF(shape=shape)
+            destination = LIF(shape=shape)
             weights = Weights(5.0)
             connect(source.s_out, destination.a_in, ops=[weights])
 
@@ -86,8 +85,8 @@ class TestConnectingWithOperations(unittest.TestCase):
                               [0, 0, 0, 1, 0, 0, 0, 1]])]
 
         for dims, order, expected in zip(reduce_dims, orders, matrices):
-            source = Population(shape=(2, 2, 2))
-            destination = Population(shape=(2, 2))
+            source = LIF(shape=(2, 2, 2))
+            destination = LIF(shape=(2, 2))
             reorder_op = Reorder(order=order)
             reduce_op = ReduceDims(reduce_dims=dims)
             computed = connect(source.s_out,
@@ -157,8 +156,8 @@ class TestConnectingWithOperations(unittest.TestCase):
                               [0, 0, 0, 1]])]
 
         for order, expected in zip(orders, matrices):
-            source = Population(shape=(2, 2))
-            destination = Population(shape=(2, 2, 2))
+            source = LIF(shape=(2, 2))
+            destination = LIF(shape=(2, 2, 2))
             reorder_op = Reorder(order=order)
             expand_op = ExpandDims(new_dims_shape=(2,))
             computed = connect(source.s_out,
@@ -228,8 +227,8 @@ class TestConnectingWithOperations(unittest.TestCase):
                               [0, 1]])]
 
         for order, expected in zip(orders, matrices):
-            source = Population(shape=(2,))
-            destination = Population(shape=(2, 2, 2))
+            source = LIF(shape=(2,))
+            destination = LIF(shape=(2, 2, 2))
             reorder_op = Reorder(order=order)
             expand_op = ExpandDims(new_dims_shape=(2, 2))
             computed = connect(source.s_out,
@@ -242,7 +241,7 @@ class TestConnectingWithOperations(unittest.TestCase):
         """Tests whether populations can be connected to themselves using the
         Convolution operation and a SelectiveKernel."""
         for shape in [(1,), (5,), (5, 5), (5, 5, 5)]:
-            population = Population(shape=shape)
+            population = LIF(shape=shape)
             kernel = SelectiveKernel(amp_exc=1.0,
                                      width_exc=[2] * len(shape),
                                      global_inh=-0.1)
@@ -254,7 +253,7 @@ class TestConnectingWithOperations(unittest.TestCase):
         """Tests whether populations can be connected to themselves using the
         Convolution operation and a MultiPeakKernel."""
         for shape in [(1,), (5,), (5, 5), (5, 5, 5)]:
-            population = Population(shape=shape)
+            population = LIF(shape=shape)
             kernel = MultiPeakKernel(amp_exc=1.0,
                                      width_exc=[2] * len(shape),
                                      amp_inh=-0.5,

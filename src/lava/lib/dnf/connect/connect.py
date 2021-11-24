@@ -68,7 +68,7 @@ def _configure_ops(
     ops: ty.List[AbstractOperation],
     src_shape: ty.Tuple[int, ...],
     dst_shape: ty.Tuple[int, ...]
-):
+) -> None:
     """
     Configure all operations by setting their input and output shape and
     checking that the final output shape matches the shape of the destination

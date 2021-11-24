@@ -25,7 +25,7 @@ class ReshapeIntProcessModel(PyLoihiProcessModel):
     s_in: PyInPort = LavaPyType(PyInPort.VEC_DENSE, int)
     s_out: PyOutPort = LavaPyType(PyOutPort.VEC_DENSE, int)
 
-    def run_spk(self):
+    def run_spk(self) -> None:
         rec = self.s_in.recv()
         reshaped_input = np.reshape(rec, tuple(self.shape_out))
         self.s_out.send(reshaped_input)

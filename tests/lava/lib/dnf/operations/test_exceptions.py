@@ -8,7 +8,7 @@ from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 
 
 class TestMisconfiguredOpError(unittest.TestCase):
-    def test_raising_misconfigured_op_error(self):
+    def test_raising_misconfigured_op_error(self) -> None:
         """Tests whether the MisconfiguredOpError can be raised."""
         msg = "test message"
         with self.assertRaises(MisconfiguredOpError) as context:

@@ -10,18 +10,18 @@ from lava.lib.dnf.population.models import PopulationSubProcessModel
 
 
 class TestPopulationSubProcessModel(unittest.TestCase):
-    def test_init_with_default_arguments(self):
+    def test_init_with_default_arguments(self) -> None:
         """Tests creation of a PopulationSubProcessModel."""
         pm = PopulationSubProcessModel(Population())
         self.assertIsInstance(pm, PopulationSubProcessModel)
 
-    def test_lif_process_init(self):
+    def test_lif_process_init(self) -> None:
         """Tests creation of sub process (LIF)."""
         population = Population(shape=(5, 3))
         pm = PopulationSubProcessModel(population)
         self.assertIsInstance(pm.neurons, LIF)
 
-    def test_ports_are_connected_to_process_ports(self):
+    def test_ports_are_connected_to_process_ports(self) -> None:
         """Tests whether the InPorts and OutPorts of the Population process
         are correctly connected to the InPorts and OutPorts of the
         LIF neurons within the ProcessModel."""

@@ -18,12 +18,12 @@ class AbstractShapeHandler(ABC):
     AbstractOperation class.
 
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self._input_shape = None
         self._output_shape = None
 
     def configure(self,
-                  input_shape: ty.Tuple[int, ...]):
+                  input_shape: ty.Tuple[int, ...]) -> None:
         """
         Configures the input and output shape of an operation given an input
         shape.
@@ -40,7 +40,7 @@ class AbstractShapeHandler(ABC):
         self._validate_args()
         self._compute_output_shape()
 
-    def assert_configured(self):
+    def assert_configured(self) -> None:
         """Assert that input and output shape is configured."""
         if self._input_shape is None or self._output_shape is None:
             raise AssertionError("_input_shape and _output_shape "
@@ -57,28 +57,30 @@ class AbstractShapeHandler(ABC):
         return self._input_shape
 
     @abstractmethod
-    def _compute_output_shape(self):
+    def _compute_output_shape(self) -> None:
         pass
 
     @abstractmethod
-    def _validate_args(self):
+    def _validate_args(self) -> None:
         pass
 
     @abstractmethod
-    def _validate_input_shape(self, input_shape) -> ty.Tuple[int, ...]:
+    def _validate_input_shape(self,
+                              input_shape: ty.Tuple[int, ...]) -> None:
         pass
 
 
 class KeepShapeHandler(AbstractShapeHandler):
     """Shape handler for operations that do not change the shape of the
      input."""
-    def _compute_output_shape(self):
+    def _compute_output_shape(self) -> None:
         self._output_shape = self._input_shape
 
-    def _validate_args(self):
+    def _validate_args(self) -> None:
         pass
 
-    def _validate_input_shape(self, input_shape):
+    def _validate_input_shape(self,
+                              input_shape: ty.Tuple[int, ...]) -> None:
         pass
 
 
@@ -93,7 +95,7 @@ class ReduceDimsHandler(AbstractShapeHandler):
         indices of the dimensions to remove
     """
     def __init__(self,
-                 reduce_dims: ty.Union[int, ty.Tuple[int, ...]]):
+                 reduce_dims: ty.Union[int, ty.Tuple[int, ...]]) -> None:
         super().__init__()
         if isinstance(reduce_dims, int):
             reduce_dims = (reduce_dims,)
@@ -104,19 +106,19 @@ class ReduceDimsHandler(AbstractShapeHandler):
         """Return the output shape of the handler"""
         return self._reduce_dims
 
-    def _compute_output_shape(self):
+    def _compute_output_shape(self) -> None:
         self._output_shape = tuple(np.delete(np.asarray(self._input_shape),
                                              self.reduce_dims))
         if self._output_shape == ():
             self._output_shape = (1,)
 
-    def _validate_input_shape(self, input_shape):
+    def _validate_input_shape(self, input_shape: ty.Tuple[int, ...]) -> None:
         if num_dims(input_shape) == 0:
             raise MisconfiguredOpError("ReduceDims shape handler is "
                                        "configured with an input shape that "
                                        "is already zero-dimensional")
 
-    def _validate_args(self):
+    def _validate_args(self) -> None:
         """Validate the <reduce_dims> argument"""
         if len(self.reduce_dims) == 0:
             raise ValueError("<reduce_dims> may not be empty")
@@ -148,7 +150,7 @@ class ExpandDimsHandler(AbstractShapeHandler):
         new_dims_shape=(6, 8) will produce an output shape (2, 6, 8)
     """
     def __init__(self,
-                 new_dims_shape: ty.Union[int, ty.Tuple[int, ...]]):
+                 new_dims_shape: ty.Union[int, ty.Tuple[int, ...]]) -> None:
         super().__init__()
         if isinstance(new_dims_shape, int):
             new_dims_shape = (new_dims_shape,)
@@ -159,7 +161,7 @@ class ExpandDimsHandler(AbstractShapeHandler):
         """Return the <new_dims_shape> attribute"""
         return self._new_dims_shape
 
-    def _compute_output_shape(self):
+    def _compute_output_shape(self) -> None:
         if num_dims(self.input_shape) == 0:
             self._output_shape = self.new_dims_shape
         else:
@@ -172,7 +174,7 @@ class ExpandDimsHandler(AbstractShapeHandler):
                                       "dimensionality is currently not "
                                       "supported")
 
-    def _validate_args(self):
+    def _validate_args(self) -> None:
         """Validate the <new_dims_shape> argument"""
         if len(self.new_dims_shape) == 0:
             raise ValueError("<new_dims_shape> may not be empty")
@@ -181,7 +183,7 @@ class ExpandDimsHandler(AbstractShapeHandler):
             raise ValueError("values in <new_dims_shape> may not be smaller "
                              "than 1")
 
-    def _validate_input_shape(self, input_shape):
+    def _validate_input_shape(self, input_shape: ty.Tuple[int, ...]) -> None:
         pass
 
 
@@ -195,19 +197,19 @@ class ReshapeHandler(AbstractShapeHandler):
         output shape of an operation
 
     """
-    def __init__(self, output_shape):
+    def __init__(self, output_shape: ty.Tuple[int, ...]) -> None:
         super().__init__()
         self._output_shape = output_shape
 
-    def _validate_args(self):
+    def _validate_args(self) -> None:
         if num_neurons(self._input_shape) != num_neurons(self._output_shape):
             raise MisconfiguredOpError("input and output shape must have the "
                                        "same number of elements")
 
-    def _compute_output_shape(self):
+    def _compute_output_shape(self) -> None:
         pass
 
-    def _validate_input_shape(self, input_shape):
+    def _validate_input_shape(self, input_shape: ty.Tuple[int, ...]) -> None:
         pass
 
 
@@ -222,7 +224,7 @@ class ReorderHandler(AbstractShapeHandler):
         must have the same number of elements as the input and output shape
 
     """
-    def __init__(self, order):
+    def __init__(self, order: ty.Tuple[int, ...]) -> None:
         super().__init__()
         self._order = order
 
@@ -231,11 +233,11 @@ class ReorderHandler(AbstractShapeHandler):
         """Return the order of the handler"""
         return self._order
 
-    def _compute_output_shape(self):
+    def _compute_output_shape(self) -> None:
         input_shape = np.array(self._input_shape)
         self._output_shape = tuple(input_shape[list(self._order)])
 
-    def _validate_args(self):
+    def _validate_args(self) -> None:
         """Validate the <order> argument"""
         num_dims_in = num_dims(self._input_shape)
 
@@ -253,7 +255,7 @@ class ReorderHandler(AbstractShapeHandler):
                 raise IndexError(f"<order> value {idx} is out of bounds "
                                  f"for array of size {len(self._input_shape)}")
 
-    def _validate_input_shape(self, input_shape):
+    def _validate_input_shape(self, input_shape: ty.Tuple[int, ...]) -> None:
         num_dims_in = num_dims(input_shape)
 
         if num_dims_in < 2:

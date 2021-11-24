@@ -11,7 +11,8 @@ def gauss(shape: ty.Tuple[int, ...],
           domain: ty.Optional[np.ndarray] = None,
           amplitude: ty.Optional[float] = 1.0,
           mean: ty.Optional[ty.Union[float, np.ndarray]] = None,
-          stddev: ty.Optional[ty.Union[float, np.ndarray]] = None):
+          stddev: ty.Optional[ty.Union[float, np.ndarray]] = None
+          ) -> np.ndarray:
     """
     Evaluates the Gaussian function over a specified domain in multiple
     dimensions.
@@ -103,10 +104,10 @@ def gauss(shape: ty.Tuple[int, ...],
     return gaussian
 
 
-def is_odd(n):
+def is_odd(n: int) -> bool:
     """
     Checks whether n is an odd number.
 
     :param int n: number to check
     :returns bool: True if <n> is an odd number"""
-    return n & 1
+    return bool(n & 1)

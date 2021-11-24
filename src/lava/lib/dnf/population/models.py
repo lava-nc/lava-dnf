@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # See: https://spdx.org/licenses/
 
-import typing as ty
-
 from lava.proc.lif.process import LIF
 from lava.magma.core.model.sub.model import AbstractSubProcessModel
 from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
@@ -23,7 +21,7 @@ class PopulationSubProcessModel(AbstractSubProcessModel):
     proc : Population
         An instance of the Population Process
     """
-    def __init__(self, proc: Population):
+    def __init__(self, proc: Population) -> None:
         kwargs = proc.init_args
         dv: int = kwargs.pop("dv", 2047)
         du: int = kwargs.pop("du", 409)

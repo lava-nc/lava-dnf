@@ -4,6 +4,7 @@
 
 import unittest
 import numpy as np
+import typing as ty
 
 from lava.magma.core.decorator import implements, requires, tag
 from lava.magma.core.model.py.model import PyLoihiProcessModel
@@ -29,12 +30,11 @@ class SinkProcess(AbstractProcess):
     shape: tuple, shape of the process
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: ty.Tuple[int, ...]) -> None:
         super().__init__(**kwargs)
         shape = kwargs.get("shape")
 
         self.data = Var(shape=shape, init=np.nan)
-
         self.s_in = InPort(shape=(shape[0],))
 
 
@@ -43,10 +43,9 @@ class SinkProcess(AbstractProcess):
 @tag('floating_pt')
 class SinkProcessModel(PyLoihiProcessModel):
     data: np.ndarray = LavaPyType(np.ndarray, float)
-
     s_in: PyInPort = LavaPyType(PyInPort.VEC_DENSE, bool)
 
-    def run_spk(self):
+    def run_spk(self) -> None:
         """Receive data and store in an internal variable"""
         s_in = self.s_in.recv()
         self.data[:, self.current_ts - 1] = s_in
@@ -61,32 +60,30 @@ class SourceProcess(AbstractProcess):
     shape: tuple, shape of the process
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self,
+                 **kwargs: ty.Union[ty.Tuple, np.ndarray]) -> None:
         super().__init__(**kwargs)
         shape = kwargs.get("shape")
         data = kwargs.get("data")
 
         self.null_data = Var(shape=shape, init=np.full(shape, np.nan))
-
         self._data = Var(shape=shape, init=data)
-
         self.changed = Var(shape=(1,), init=True)
-
         self.a_out = OutPort(shape=shape)
 
-    def _update(self):
+    def _update(self) -> None:
         self.changed.set(np.array([True]))
         self.changed.get()
 
     @property
-    def data(self):
+    def data(self) -> ty.Union[np.ndarray, None]:
         try:
             return self._data.get()
         except AttributeError:
             return None
 
     @data.setter
-    def data(self, data):
+    def data(self, data: np.ndarray) -> None:
         self._data.set(data)
         self._data.get()
         self._update()
@@ -97,14 +94,11 @@ class SourceProcess(AbstractProcess):
 @tag('floating_pt')
 class SourceProcessModel(PyLoihiProcessModel):
     null_data: np.ndarray = LavaPyType(np.ndarray, float)
-
     _data: np.ndarray = LavaPyType(np.ndarray, float)
-
     changed: np.ndarray = LavaPyType(np.ndarray, bool)
-
     a_out: PyOutPort = LavaPyType(PyOutPort.VEC_DENSE, float)
 
-    def run_spk(self):
+    def run_spk(self) -> None:
         """Send data when change is triggered, null_data otherwise"""
         if self.changed[0]:
             self.a_out.send(self._data)
@@ -114,7 +108,7 @@ class SourceProcessModel(PyLoihiProcessModel):
 
 
 class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
-    def test_recv_null_pattern(self):
+    def test_recv_null_pattern(self) -> None:
         """Tests that last_spiked, inter_spike_distances, first_spike_times
         Vars are not updated upon receipt of a null pattern."""
         pattern = np.zeros((30,))
@@ -143,7 +137,7 @@ class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
         finally:
             source.stop()
 
-    def test_recv_non_null_pattern(self):
+    def test_recv_non_null_pattern(self) -> None:
         """Tests whether last_spiked, inter_spike_distances,
         first_spike_times Vars are updated upon receipt of a new pattern."""
         pattern_1 = np.zeros((30,))
@@ -181,7 +175,7 @@ class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
         finally:
             source.stop()
 
-    def test_compute_distances(self):
+    def test_compute_distances(self) -> None:
         """Tests whether inter spiked distances are computed correctly given
         a certain pattern."""
         pattern = np.zeros((30,))
@@ -207,7 +201,7 @@ class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
         finally:
             source.stop()
 
-    def test_send(self):
+    def test_send(self) -> None:
         """Tests whether RateCodeSpikeGenProcessModel sends data through its
         OutPort every time step, regardless of whether its internal state
         (inter_spike_distances ...) changed or not."""
@@ -231,7 +225,7 @@ class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
         finally:
             source.stop()
 
-    def test_generate_spikes(self):
+    def test_generate_spikes(self) -> None:
         """Tests whether the spike trains are computed correctly"""
         num_steps = 10
 

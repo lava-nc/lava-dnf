@@ -69,7 +69,8 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
 
         return distances
 
-    def _compute_first_spike_times(self, distances):
+    def _compute_first_spike_times(self,
+                                   distances: np.ndarray) -> np.ndarray:
         """Randomly picks an array of first spike time given an array of
         inter spike distances.
 
@@ -157,7 +158,7 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
 
         return spikes
 
-    def run_spk(self):
+    def run_spk(self) -> None:
         # Receive pattern from PyInPort
         pattern = self.a_in.recv()
 

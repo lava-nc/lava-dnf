@@ -25,7 +25,7 @@ class Kernel:
     """
     def __init__(self,
                  weights: np.ndarray,
-                 padding_value: ty.Optional[float] = 0):
+                 padding_value: ty.Optional[float] = 0) -> None:
         self._weights = weights
         self._padding_value = padding_value
 
@@ -63,7 +63,7 @@ class GaussianMixin(ABC):
                  width_exc: ty.Union[float, ty.List[float]],
                  limit: ty.Optional[float] = 1.0,
                  shape: ty.Optional[ty.Tuple[int, ...]] = None,
-                 dominant_width: np.ndarray = None):
+                 dominant_width: np.ndarray = None) -> None:
 
         if amp_exc < 0:
             raise ValueError("<amp_exc> must be positive")
@@ -191,7 +191,7 @@ class SelectiveKernel(GaussianMixin, Kernel):
                  width_exc: ty.Union[float, ty.List[float]],
                  global_inh: float,
                  limit: ty.Optional[float] = 1.0,
-                 shape: ty.Optional[ty.Tuple[int, ...]] = None):
+                 shape: ty.Optional[ty.Tuple[int, ...]] = None) -> None:
 
         GaussianMixin.__init__(self, amp_exc, width_exc, limit, shape)
 
@@ -230,7 +230,7 @@ class MultiPeakKernel(GaussianMixin, Kernel):
                  amp_inh: float,
                  width_inh: ty.Union[float, ty.List[float]],
                  limit: float = 1.0,
-                 shape: ty.Optional[ty.Tuple[int]] = None):
+                 shape: ty.Optional[ty.Tuple[int]] = None) -> None:
 
         if amp_inh > 0:
             raise ValueError("<amp_inh> must be positive")
@@ -252,7 +252,7 @@ class MultiPeakKernel(GaussianMixin, Kernel):
 
     @staticmethod
     def _validate_widths(width_exc: np.ndarray,
-                         width_inh: np.ndarray):
+                         width_inh: np.ndarray) -> None:
         """Validates the excitatory and inhibitory widths against each other."""
 
         if width_exc.shape != width_inh.shape:

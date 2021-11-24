@@ -3,6 +3,7 @@
 # See: https://spdx.org/licenses/
 
 import numpy as np
+import typing as ty
 
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.variable import Var
@@ -35,7 +36,9 @@ class RateCodeSpikeGen(AbstractProcess):
         seed used for computing first spike times everytime pattern changes
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: ty.Union[ty.Tuple[int, ...],
+                                          float,
+                                          int]) -> None:
         super().__init__(**kwargs)
 
         shape = validate_shape(kwargs.pop("shape"))

@@ -9,13 +9,13 @@ from lava.lib.dnf.utils.math import is_odd, gauss
 
 
 class TestGauss(unittest.TestCase):
-    def test_shape(self):
+    def test_shape(self) -> None:
         """Tests whether the returned Gaussian has the specified shape."""
         shape = (5, 3)
         gaussian = gauss(shape)
         self.assertEqual(gaussian.shape, shape)
 
-    def test_default_values(self):
+    def test_default_values(self) -> None:
         """Tests whether the default values for domain, amplitude, mean, and
         stddev are used."""
         shape = (3, 3)
@@ -29,14 +29,14 @@ class TestGauss(unittest.TestCase):
         self.assertEqual(gaussian[0, 2], gaussian[2, 0])
         self.assertEqual(gaussian[1, 2], gaussian[2, 1])
 
-    def test_setting_amplitude(self):
+    def test_setting_amplitude(self) -> None:
         """Tests whether the amplitude is set to the correct value."""
         shape = (3, 3)
         amplitude = 42
         gaussian = gauss(shape, amplitude=amplitude)
         self.assertEqual(gaussian[0, 0], amplitude)
 
-    def test_setting_domain(self):
+    def test_setting_domain(self) -> None:
         """Tests whether the domain is set correctly."""
         shape = (5,)
         domain = np.array([[-2.5, 2.5]])
@@ -46,21 +46,21 @@ class TestGauss(unittest.TestCase):
         # and the gaussian should be symmetrical
         self.assertTrue(np.array_equal(gaussian, np.flip(gaussian)))
 
-    def test_setting_mean(self):
+    def test_setting_mean(self) -> None:
         """Tests whether the mean is set correctly."""
         shape = (5,)
         mean = 1
         gaussian = gauss(shape, mean=mean)
         self.assertEqual(gaussian[mean], 1)
 
-    def test_setting_stddev(self):
+    def test_setting_stddev(self) -> None:
         """Tests whether the stddev can be set."""
         shape = (3,)
         gaussian_narrow = gauss(shape, stddev=1)
         gaussian_broad = gauss(shape, stddev=2)
         self.assertTrue(gaussian_narrow[1] < gaussian_broad[1])
 
-    def test_domain_shape_mismatch_raises_error(self):
+    def test_domain_shape_mismatch_raises_error(self) -> None:
         """Tests whether an error is raised when the shape of the <domain>
         argument is different from <shape>."""
         shape = (5, 3)
@@ -68,7 +68,7 @@ class TestGauss(unittest.TestCase):
         with self.assertRaises(ValueError):
             gauss(shape, domain=domain)
 
-    def test_mean_shape_mismatch_raises_error(self):
+    def test_mean_shape_mismatch_raises_error(self) -> None:
         """Tests whether an error is raised when the shape of the <mean>
         argument is different from <shape>."""
         shape = (5, 3)
@@ -76,7 +76,7 @@ class TestGauss(unittest.TestCase):
         with self.assertRaises(ValueError):
             gauss(shape, mean=mean)
 
-    def test_stddev_shape_mismatch_raises_error(self):
+    def test_stddev_shape_mismatch_raises_error(self) -> None:
         """Tests whether an error is raised when the shape of the <stddev>
         argument is different from <shape>."""
         shape = (5, 3)
@@ -86,7 +86,7 @@ class TestGauss(unittest.TestCase):
 
 
 class TestIsOdd(unittest.TestCase):
-    def test_is_odd(self):
+    def test_is_odd(self) -> None:
         """Tests the is_odd() helper function."""
         self.assertFalse(is_odd(0))
         self.assertTrue(is_odd(1))

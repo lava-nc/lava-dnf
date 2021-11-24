@@ -4,6 +4,7 @@
 
 import unittest
 import numpy as np
+import typing as ty
 
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.magma.core.process.process import AbstractProcess
@@ -19,7 +20,7 @@ from lava.lib.dnf.utils.convenience import num_neurons
 
 class MockProcess(AbstractProcess):
     """Mock Process with an InPort and OutPort"""
-    def __init__(self, shape=(1,)):
+    def __init__(self, shape: ty.Tuple[int, ...] = (1,)) -> None:
         super().__init__()
         self.a_in = InPort(shape)
         self.s_out = OutPort(shape)
@@ -27,7 +28,7 @@ class MockProcess(AbstractProcess):
 
 class MockNoChangeOperation(AbstractOperation):
     """Mock Operation that does not change shape"""
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(shape_handler=KeepShapeHandler())
 
     def _compute_weights(self) -> np.ndarray:
@@ -38,40 +39,40 @@ class MockNoChangeOperation(AbstractOperation):
 
 class MockShapeHandler(AbstractShapeHandler):
     """Mock ShapeHandler for an operation that changes the shape."""
-    def __init__(self, output_shape):
+    def __init__(self, output_shape: ty.Tuple[int, ...]) -> None:
         super().__init__()
         self._output_shape = output_shape
 
-    def _validate_args(self):
+    def _validate_args(self) -> None:
         if self.input_shape == self.output_shape:
             raise MisconfiguredOpError("operation is intended to change shape")
 
-    def _compute_output_shape(self):
+    def _compute_output_shape(self) -> None:
         pass
 
-    def _validate_input_shape(self, input_shape):
+    def _validate_input_shape(self, input_shape: ty.Tuple[int, ...]) -> None:
         pass
 
 
 class MockChangeOperation(AbstractOperation):
     """Mock Operation that changes shape"""
-    def __init__(self, output_shape):
+    def __init__(self, output_shape: ty.Tuple[int, ...]) -> None:
         super().__init__(MockShapeHandler(output_shape))
 
-    def _compute_weights(self):
+    def _compute_weights(self) -> np.ndarray:
         return np.eye(num_neurons(self.output_shape),
                       num_neurons(self.input_shape),
                       dtype=np.int32)
 
 
 class TestConnect(unittest.TestCase):
-    def test_connect_function_exists_and_is_callable(self):
+    def test_connect_function_exists_and_is_callable(self) -> None:
         """Tests whether the connect function exists and is callable."""
         import lava
         self.assertTrue(callable(getattr(lava.lib.dnf.connect.connect,
                                          'connect')))
 
-    def test_connecting_source_and_destination(self):
+    def test_connecting_source_and_destination(self) -> None:
         """Tests connecting a source Process to a destination Process."""
         # create mock processes and an operation to connect
         source = MockProcess(shape=(1, 2, 3))
@@ -100,12 +101,12 @@ class TestConnect(unittest.TestCase):
         self.assertEqual(rs2_op.get_dst_ports(), [dst_op])
         self.assertEqual(dst_op.get_src_ports(), [rs2_op])
 
-    def test_empty_operations_list_raises_value_error(self):
+    def test_empty_operations_list_raises_value_error(self) -> None:
         """Tests whether an empty <ops> argument raises a value error."""
         with self.assertRaises(ValueError):
             connect(MockProcess().s_out, MockProcess().a_in, ops=[])
 
-    def test_ops_list_containing_invalid_type_raises_type_error(self):
+    def test_ops_list_containing_invalid_type_raises_type_error(self) -> None:
         """Tests whether the type of all elements in <ops> is validated."""
         class NotAnOperation:
             pass
@@ -115,13 +116,13 @@ class TestConnect(unittest.TestCase):
                     MockProcess().a_in,
                     ops=[MockNoChangeOperation(), NotAnOperation()])
 
-    def test_single_operation_is_automatically_wrapped_into_list(self):
+    def test_single_operation_is_automatically_wrapped_into_list(self) -> None:
         """Tests whether a single operation is wrapped into a list."""
         connect(MockProcess().s_out,
                 MockProcess().a_in,
                 ops=MockNoChangeOperation())
 
-    def test_operation_that_changes_the_shape(self):
+    def test_operation_that_changes_the_shape(self) -> None:
         """Tests whether an operation that changes shape can be used to
         connect two Processes."""
         output_shape = (3,)
@@ -129,7 +130,8 @@ class TestConnect(unittest.TestCase):
                 MockProcess(output_shape).a_in,
                 ops=MockChangeOperation(output_shape=output_shape))
 
-    def test_mismatching_op_output_shape_and_dest_shape_raises_error(self):
+    def test_mismatching_op_output_shape_and_dest_shape_raises_error(self)\
+            -> None:
         """Tests whether an error is raised when the output shape of the
         last operation does not match the destination shape."""
         with self.assertRaises(MisconfiguredConnectError):
@@ -137,7 +139,7 @@ class TestConnect(unittest.TestCase):
                     MockProcess((5,)).a_in,
                     ops=[MockNoChangeOperation()])
 
-    def test_combining_multiple_ops_that_do_not_change_shape(self):
+    def test_combining_multiple_ops_that_do_not_change_shape(self) -> None:
         """Tests whether multiple operations can be specified that do not
         change the shape."""
         connect(MockProcess((5, 3)).s_out,
@@ -145,7 +147,7 @@ class TestConnect(unittest.TestCase):
                 ops=[MockNoChangeOperation(),
                      MockNoChangeOperation()])
 
-    def test_multiple_non_changing_ops_and_one_that_changes_shape(self):
+    def test_multiple_non_changing_ops_and_one_that_changes_shape(self) -> None:
         """Tests whether an operation that changes the shape
         can be combined with multiple operations that do not change the
         shape."""
@@ -156,7 +158,7 @@ class TestConnect(unittest.TestCase):
                      MockChangeOperation(output_shape),
                      MockNoChangeOperation()])
 
-    def test_multiple_ops_that_change_shape(self):
+    def test_multiple_ops_that_change_shape(self) -> None:
         """Tests whether multiple operations that change shape can be
         combined with one that does not change shape."""
         connect(MockProcess((5, 3)).s_out,
@@ -166,18 +168,18 @@ class TestConnect(unittest.TestCase):
                      MockChangeOperation(output_shape=(2,)),
                      MockNoChangeOperation()])
 
-    def test_weights_from_multiple_ops_get_multiplied(self):
+    def test_weights_from_multiple_ops_get_multiplied(self) -> None:
         """Tests whether compute_weights() multiplies the weights that are
         produced by all specified operations."""
 
         class MockNoChangeOpWeights(MockNoChangeOperation):
             """Mock Operation that generates an identity matrix with a given
             weight."""
-            def __init__(self, weight):
+            def __init__(self, weight: float) -> None:
                 super().__init__()
                 self.weight = weight
 
-            def _compute_weights(self):
+            def _compute_weights(self) -> np.ndarray:
                 return np.eye(num_neurons(self.output_shape),
                               num_neurons(self.input_shape),
                               dtype=np.int32) * self.weight

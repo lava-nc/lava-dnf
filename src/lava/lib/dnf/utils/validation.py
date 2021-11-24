@@ -3,9 +3,10 @@
 # See: https://spdx.org/licenses/
 
 import numpy as np
+import typing as ty
 
 
-def validate_shape(shape):
+def validate_shape(shape: ty.Any) -> ty.Tuple[int, ...]:
     """
     Validate and potentially convert shape parameter.
 

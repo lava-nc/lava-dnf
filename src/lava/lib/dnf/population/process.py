@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # See: https://spdx.org/licenses/
 
+import typing as ty
+
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import InPort, OutPort
 
@@ -31,7 +33,8 @@ class Population(AbstractProcess):
     bias_exp: int
         exponent of the LIF bias
     """
-    def __init__(self, **kwargs):
+    def __init__(self,
+                 **kwargs: ty.Union[str, int, ty.Tuple[int, ...]]) -> None:
         super().__init__(**kwargs)
 
         self.shape: tuple = validate_shape(kwargs.pop("shape", 1))

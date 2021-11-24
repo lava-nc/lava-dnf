@@ -8,7 +8,7 @@ from lava.lib.dnf.connect.exceptions import MisconfiguredConnectError
 
 
 class TestMisconfiguredConnectError(unittest.TestCase):
-    def test_raising_misconfigured_connect_error(self):
+    def test_raising_misconfigured_connect_error(self) -> None:
         """Tests whether the MisconfiguredConnectError can be raised."""
         msg = "test message"
         with self.assertRaises(MisconfiguredConnectError) as context:

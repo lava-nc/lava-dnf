@@ -12,7 +12,7 @@ from lava.lib.dnf.inputs.gauss_pattern.process import GaussPattern
 
 
 class TestGaussPattern(unittest.TestCase):
-    def test_init(self):
+    def test_init(self) -> None:
         """Tests whether a GaussPattern process can be initiated."""
         gauss_pattern = GaussPattern(shape=(30, 30),
                                      amplitude=200.,
@@ -34,7 +34,7 @@ class TestGaussPattern(unittest.TestCase):
         np.testing.assert_array_equal(gauss_pattern.changed.get(),
                                       np.array([True]))
 
-    def test_init_float_parameters(self):
+    def test_init_float_parameters(self) -> None:
         """Tests whether a GaussPattern process can be initiated with float
         mean and stddev."""
         gauss_pattern = GaussPattern(shape=(30, 30),
@@ -57,7 +57,7 @@ class TestGaussPattern(unittest.TestCase):
         np.testing.assert_array_equal(gauss_pattern.changed.get(),
                                       np.array([True]))
 
-    def test_init_validation(self):
+    def test_init_validation(self) -> None:
         """Tests whether a GaussPattern process instantiation with mean or
         stddev length not matching shape dimensionality raises a ValueError."""
         with self.assertRaises(ValueError):
@@ -72,7 +72,7 @@ class TestGaussPattern(unittest.TestCase):
                          mean=15.,
                          stddev=[5., 5., 5.])
 
-    def test_running(self):
+    def test_running(self) -> None:
         """Tests whether a GaussPattern process can be run."""
         num_steps = 10
 
@@ -89,7 +89,7 @@ class TestGaussPattern(unittest.TestCase):
 
         self.assertEqual(gauss_pattern.runtime.current_ts, num_steps)
 
-    def test_set_parameters(self):
+    def test_set_parameters(self) -> None:
         """Tests whether setters for amplitude, mean and stddev actually
         set values for the corresponding Vars and whether the changed Var
         gets set to True."""
@@ -151,7 +151,7 @@ class TestGaussPattern(unittest.TestCase):
         finally:
             gauss_pattern.stop()
 
-    def test_set_parameters_validation(self):
+    def test_set_parameters_validation(self) -> None:
         """Tests whether setters for mean and stddev raise a ValueError for
         lengths not matching shape dimensionality."""
         gauss_pattern = GaussPattern(shape=(30, 30),

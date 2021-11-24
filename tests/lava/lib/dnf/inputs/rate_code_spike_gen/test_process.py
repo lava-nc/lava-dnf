@@ -12,7 +12,7 @@ from lava.lib.dnf.inputs.rate_code_spike_gen.process import RateCodeSpikeGen
 
 
 class TestRateCodeSpikeGen(unittest.TestCase):
-    def test_init(self):
+    def test_init(self) -> None:
         """Tests whether a RateCodeSpikeGen process can be initiated."""
         spike_generator = RateCodeSpikeGen(shape=(30, 30))
 
@@ -25,7 +25,7 @@ class TestRateCodeSpikeGen(unittest.TestCase):
         np.testing.assert_array_equal(
             spike_generator.spikes.get(), np.zeros((30, 30)))
 
-    def test_init_validation(self):
+    def test_init_validation(self) -> None:
         """Tests whether a RateCodeSpikeGen process instantiation with
         non-valid min_spike_rate or seed raises a ValueError."""
         with self.assertRaises(ValueError):
@@ -34,7 +34,7 @@ class TestRateCodeSpikeGen(unittest.TestCase):
         with self.assertRaises(ValueError):
             RateCodeSpikeGen(shape=(30, 30), min_spike_rate=-5)
 
-    def test_running(self):
+    def test_running(self) -> None:
         """Tests whether a RateCodeSpikeGen process can be run."""
         num_steps = 10
 

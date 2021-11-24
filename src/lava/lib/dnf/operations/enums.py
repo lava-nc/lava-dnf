@@ -2,7 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # See: https://spdx.org/licenses/
 
+from __future__ import annotations
+from typing import TypeVar, Type
 from enum import Enum, unique, auto
+
+_T = TypeVar("_T")
 
 
 @unique
@@ -12,10 +16,10 @@ class ReduceMethod(Enum):
     MEAN = auto()  # ReduceDims will compute mean of weights of collapsed dim
 
     @classmethod
-    def validate(cls, reduce_method):
+    def validate(cls: Type[_T], reduce_method: ReduceMethod) -> None:
         """Validate type of <reduce_op>"""
         if not isinstance(reduce_method, ReduceMethod):
-            raise TypeError("reduce_method must be of value ReduceMethod")
+            raise TypeError("reduce_method must be of type ReduceMethod")
 
 
 @unique
@@ -24,7 +28,7 @@ class BorderType(Enum):
     CIRCULAR = auto()
 
     @classmethod
-    def validate(cls, border_type):
+    def validate(cls: Type[_T], border_type: BorderType) -> None:
         """Validate type of <border_type>"""
         if not isinstance(border_type, BorderType):
-            raise TypeError("border_type must be of value BorderType")
+            raise TypeError("border_type must be of type BorderType")

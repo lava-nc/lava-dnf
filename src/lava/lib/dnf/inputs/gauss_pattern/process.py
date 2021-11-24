@@ -34,7 +34,9 @@ class GaussPattern(AbstractProcess):
         standard deviation of the Gauss pattern
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: ty.Union[ty.Tuple[int, ...],
+                                          ty.List[float],
+                                          float]) -> None:
         super().__init__(**kwargs)
 
         shape = validate_shape(kwargs.pop("shape"))
@@ -63,7 +65,7 @@ class GaussPattern(AbstractProcess):
     def _validate_param(self,
                         shape: np.ndarray,
                         param_name: str,
-                        param: ty.Union[float, ty.List[float]]):
+                        param: ty.Union[float, ty.List[float]]) -> np.ndarray:
         """Validates that parameter param with name param_name is either
         a float value or a list of floats of the same length as the
         dimensionality of the given shape.
@@ -109,7 +111,7 @@ class GaussPattern(AbstractProcess):
 
         return np.array(param)
 
-    def _update(self):
+    def _update(self) -> None:
         """Set the value of the changed flag Var to True"""
         self.changed.set(np.array([True]))
 
@@ -118,7 +120,7 @@ class GaussPattern(AbstractProcess):
         self.changed.get()
 
     @property
-    def shape(self) -> np.ndarray:
+    def shape(self) -> ty.Union[np.ndarray, None]:
         """Get value of the shape Var
 
         Returns
@@ -131,7 +133,7 @@ class GaussPattern(AbstractProcess):
             return None
 
     @property
-    def amplitude(self) -> np.ndarray:
+    def amplitude(self) -> ty.Union[np.ndarray, None]:
         """Get value of the amplitude Var
 
         Returns
@@ -144,7 +146,7 @@ class GaussPattern(AbstractProcess):
             return None
 
     @amplitude.setter
-    def amplitude(self, amplitude: float):
+    def amplitude(self, amplitude: float) -> None:
         """Set the value of the amplitude Var and updates the changed flag"""
         self._amplitude.set(np.array([amplitude]))
 
@@ -155,7 +157,7 @@ class GaussPattern(AbstractProcess):
         self._update()
 
     @property
-    def mean(self) -> np.ndarray:
+    def mean(self) -> ty.Union[np.ndarray, None]:
         """Get value of the mean Var
 
         Returns
@@ -168,7 +170,7 @@ class GaussPattern(AbstractProcess):
             return None
 
     @mean.setter
-    def mean(self, mean: ty.Union[float, ty.List[float]]):
+    def mean(self, mean: ty.Union[float, ty.List[float]]) -> None:
         """Set the value of the mean Var and updates the changed flag"""
         mean = self._validate_param(self.shape, "mean", mean)
         self._mean.set(mean)
@@ -180,7 +182,7 @@ class GaussPattern(AbstractProcess):
         self._update()
 
     @property
-    def stddev(self) -> np.ndarray:
+    def stddev(self) -> ty.Union[np.ndarray, None]:
         """Get value of the stddev Var
 
         Returns
@@ -193,7 +195,7 @@ class GaussPattern(AbstractProcess):
             return None
 
     @stddev.setter
-    def stddev(self, stddev: ty.Union[float, ty.List[float]]):
+    def stddev(self, stddev: ty.Union[float, ty.List[float]]) -> None:
         """Set the value of the stddev Var and updates the changed flag"""
         stddev = self._validate_param(self.shape, "stddev", stddev)
         self._stddev.set(stddev)

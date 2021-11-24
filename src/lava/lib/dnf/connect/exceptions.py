@@ -15,7 +15,7 @@ class MisconfiguredConnectError(Exception):
     msg : str (optional)
         custom exception message that overwrites the default
     """
-    def __init__(self, msg: ty.Optional[str] = None):
+    def __init__(self, msg: ty.Optional[str] = None) -> None:
         if msg is None:
             msg = "call to connection() misconfigured; check the choice and " \
                   "parameterization of all operations"

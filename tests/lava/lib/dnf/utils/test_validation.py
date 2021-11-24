@@ -8,27 +8,27 @@ from lava.lib.dnf.utils.validation import validate_shape
 
 
 class TestValidateShape(unittest.TestCase):
-    def test_shape_int(self):
+    def test_shape_int(self) -> None:
         """Tests whether the shape argument is converted to a tuple."""
         shape = validate_shape(shape=5)
         self.assertEqual(shape, (5,))
 
-    def test_shape_tuple(self):
+    def test_shape_tuple(self) -> None:
         """Tests whether a tuple shape argument remains a tuple."""
         shape = validate_shape(shape=(5, 3))
         self.assertTrue(shape == (5, 3))
 
-    def test_shape_list(self):
+    def test_shape_list(self) -> None:
         """Tests whether a list shape argument is converted to a tuple."""
         shape = validate_shape(shape=[5, 3])
         self.assertTrue(shape == (5, 3))
 
-    def test_negative_values(self):
+    def test_negative_values(self) -> None:
         """Tests whether negative shape values raise a ValueError."""
         with self.assertRaises(ValueError):
             validate_shape(shape=(5, -3))
 
-    def test_invalid_type(self):
+    def test_invalid_type(self) -> None:
         """Tests whether an invalid type raises a TypeError."""
         with self.assertRaises(TypeError):
             validate_shape(shape=5.3)

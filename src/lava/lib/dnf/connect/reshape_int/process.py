@@ -3,6 +3,7 @@
 # See: https://spdx.org/licenses/
 
 import numpy as np
+import typing as ty
 
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import InPort, OutPort
@@ -25,7 +26,7 @@ class ReshapeInt(AbstractProcess):
     shape_out: tuple(int) or int
         output shape
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: ty.Tuple[int, ...]) -> None:
         super().__init__(**kwargs)
 
         shape_in = validate_shape(kwargs.pop("shape_in", (1,)))

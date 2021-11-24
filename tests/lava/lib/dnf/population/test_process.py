@@ -12,29 +12,29 @@ from lava.lib.dnf.population.process import Population
 
 
 class TestPopulation(unittest.TestCase):
-    def test_init(self):
+    def test_init(self) -> None:
         """Tests whether a population process can be initiated."""
         population = Population()
         self.assertIsInstance(population, Population)
 
-    def test_name(self):
+    def test_name(self) -> None:
         """Tests the name argument."""
         test_name = "Test name"
         population = Population(name=test_name)
         self.assertEqual(population.name, test_name)
 
-    def test_default_shape(self):
+    def test_default_shape(self) -> None:
         """Tests whether shape is set by default."""
         population = Population()
         self.assertEqual(population.shape, (1,))
 
-    def test_setting_shape(self):
+    def test_setting_shape(self) -> None:
         """Tests whether setting the shape works."""
         shape = (5, 3)
         population = Population(shape=shape)
         self.assertEqual(population.shape, shape)
 
-    def test_ports_exist(self):
+    def test_ports_exist(self) -> None:
         """Tests whether the InPort and OutPort is created."""
         shape = (5, 3)
         population = Population(shape=shape)
@@ -43,7 +43,7 @@ class TestPopulation(unittest.TestCase):
         self.assertEqual(population.in_ports.a_in.shape, shape)
         self.assertEqual(population.out_ports.s_out.shape, shape)
 
-    def test_running(self):
+    def test_running(self) -> None:
         """Tests whether a Population process can be executed."""
         num_steps = 10
         population = Population(shape=(5, 3))

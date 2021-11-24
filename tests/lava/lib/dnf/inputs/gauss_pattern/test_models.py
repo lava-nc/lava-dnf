@@ -4,6 +4,7 @@
 
 import unittest
 import numpy as np
+import typing as ty
 
 from lava.magma.core.decorator import implements, requires, tag
 from lava.magma.core.model.py.model import PyLoihiProcessModel
@@ -30,7 +31,7 @@ class SinkProcess(AbstractProcess):
     shape: tuple, shape of the process
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: ty.Typle[int, ...]) -> None:
         super().__init__(**kwargs)
         shape = kwargs.get("shape")
 
@@ -47,7 +48,7 @@ class SinkProcessModel(PyLoihiProcessModel):
 
     a_in: PyInPort = LavaPyType(PyInPort.VEC_DENSE, float)
 
-    def run_spk(self):
+    def run_spk(self) -> None:
         """Receive data and store in an internal variable"""
         # Receive data from PyInPort
         data = self.a_in.recv()
@@ -58,7 +59,7 @@ class SinkProcessModel(PyLoihiProcessModel):
 
 
 class TestGaussPatternProcessModel(unittest.TestCase):
-    def test_gauss_pattern(self):
+    def test_gauss_pattern(self) -> None:
         """Tests whether GaussPatternProcessModel computes and sends a gauss
         pattern given its parameters."""
         gauss_pattern = GaussPattern(shape=(30, 30),
@@ -83,7 +84,7 @@ class TestGaussPatternProcessModel(unittest.TestCase):
         finally:
             gauss_pattern.stop()
 
-    def test_change_pattern_triggers_computation_and_send(self):
+    def test_change_pattern_triggers_computation_and_send(self) -> None:
         """Tests whether GaussPatternProcessModel recomputes a new pattern and
         sends it when its parameters are changed. If that's the case, it will
         be received by the SinkProcess one timestep later"""

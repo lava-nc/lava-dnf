@@ -17,7 +17,7 @@ from lava.lib.dnf.operations.operations import Weights, ReduceDims, Reorder, \
 
 
 class TestConnectingWithOperations(unittest.TestCase):
-    def test_running_reorder(self):
+    def test_running_reorder(self) -> None:
         """Tests executing a architecture with multi-dimensional input that
         gets reshaped (here, reordered)."""
         num_steps = 10
@@ -44,7 +44,7 @@ class TestConnectingWithOperations(unittest.TestCase):
         self.assertEqual(src.runtime.current_ts, num_steps)
         self.assertTrue(np.array_equal(computed_dst_u, expected_dst_u))
 
-    def test_connect_population_with_weights_op(self):
+    def test_connect_population_with_weights_op(self) -> None:
         """Tests whether populations can be connected using the Weights
         operation."""
         for shape in [(1,), (5,), (5, 5), (5, 5, 5)]:
@@ -53,7 +53,8 @@ class TestConnectingWithOperations(unittest.TestCase):
             weights = Weights(5.0)
             connect(source.s_out, destination.a_in, ops=[weights])
 
-    def test_connect_population_3d_to_2d_with_reduce_dims_and_reorder(self):
+    def test_connect_population_3d_to_2d_with_reduce_dims_and_reorder(self)\
+            -> None:
         """Tests whether reducing dimensions together with reordering works
         when going from 3D to 2D."""
         reduce_dims = [(2,), (1,), (2,), (1,), (0,), (0,)]
@@ -95,7 +96,8 @@ class TestConnectingWithOperations(unittest.TestCase):
 
             self.assertTrue(np.array_equal(computed.weights.get(), expected))
 
-    def test_connect_population_2d_to_3d_with_expand_dims_and_reorder(self):
+    def test_connect_population_2d_to_3d_with_expand_dims_and_reorder(self)\
+            -> None:
         """Tests whether expanding dimensions together with reordering works
         when going from 2D to 3D."""
         orders = [(0, 1, 2),
@@ -165,7 +167,8 @@ class TestConnectingWithOperations(unittest.TestCase):
 
             self.assertTrue(np.array_equal(computed.weights.get(), expected))
 
-    def test_connect_population_1d_to_3d_with_expand_dims_and_reorder(self):
+    def test_connect_population_1d_to_3d_with_expand_dims_and_reorder(self) \
+            -> None:
         """Tests whether expanding dimensions together with reordering works
         when going from 1D to 3D."""
         orders = [(0, 1, 2),
@@ -235,7 +238,7 @@ class TestConnectingWithOperations(unittest.TestCase):
 
             self.assertTrue(np.array_equal(computed.weights.get(), expected))
 
-    def test_connect_population_with_selective_kernel(self):
+    def test_connect_population_with_selective_kernel(self) -> None:
         """Tests whether populations can be connected to themselves using the
         Convolution operation and a SelectiveKernel."""
         for shape in [(1,), (5,), (5, 5), (5, 5, 5)]:
@@ -247,7 +250,7 @@ class TestConnectingWithOperations(unittest.TestCase):
                     population.a_in,
                     ops=[Convolution(kernel)])
 
-    def test_connect_population_with_multi_peak_kernel(self):
+    def test_connect_population_with_multi_peak_kernel(self) -> None:
         """Tests whether populations can be connected to themselves using the
         Convolution operation and a MultiPeakKernel."""
         for shape in [(1,), (5,), (5, 5), (5, 5, 5)]:

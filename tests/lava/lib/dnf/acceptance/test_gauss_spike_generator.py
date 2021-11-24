@@ -4,6 +4,7 @@
 
 import unittest
 import numpy as np
+import typing as ty
 
 from lava.magma.core.decorator import implements, requires, tag
 from lava.magma.core.model.py.model import PyLoihiProcessModel
@@ -30,7 +31,7 @@ class SinkProcess(AbstractProcess):
     shape: tuple, shape of the process
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: ty.Tuple[int, ...]) -> None:
         super().__init__(**kwargs)
         shape = kwargs.get("shape")
 
@@ -47,14 +48,14 @@ class SinkProcessModel(PyLoihiProcessModel):
 
     s_in: PyInPort = LavaPyType(PyInPort.VEC_DENSE, bool)
 
-    def run_spk(self):
+    def run_spk(self) -> None:
         """Receive data and store in an internal variable"""
         s_in = self.s_in.recv()
         self.data[:, self.current_ts - 1] = s_in
 
 
 class TestGaussRateCodeSpikeGen(unittest.TestCase):
-    def test_rate_code_spike_gen_receiving_gauss_pattern(self):
+    def test_rate_code_spike_gen_receiving_gauss_pattern(self) -> None:
         num_steps_per_pattern = 19
         shape = (15,)
         expected_spike_trains = [

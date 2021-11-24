@@ -31,7 +31,7 @@ class AbstractOperation(ABC):
         operation
 
     """
-    def __init__(self, shape_handler: AbstractShapeHandler):
+    def __init__(self, shape_handler: AbstractShapeHandler) -> None:
         self._shape_handler = shape_handler
 
     @property
@@ -63,7 +63,7 @@ class AbstractOperation(ABC):
         return self._compute_weights()
 
     def configure(self,
-                  input_shape: ty.Tuple[int, ...]):
+                  input_shape: ty.Tuple[int, ...]) -> None:
         """
         Configures an operation by setting its input and output shape.
 
@@ -89,7 +89,10 @@ class AbstractOperation(ABC):
         """
         pass
 
-    def _validate_args_with_input_shape(self, input_shape: ty.Tuple[int, ...]):
+    def _validate_args_with_input_shape(
+        self,
+        input_shape: ty.Tuple[int, ...]
+    ) -> None:
         """Validates any input arguments that the operation may receive, and
         that do not get passed on to the ShapeHandler, against the input
         shape."""
@@ -107,7 +110,7 @@ class Weights(AbstractOperation):
         weight used for every connection
 
     """
-    def __init__(self, weight: float):
+    def __init__(self, weight: float) -> None:
         super().__init__(KeepShapeHandler())
         self.weight = weight
 
@@ -132,7 +135,8 @@ class ReduceDims(AbstractOperation):
     """
     def __init__(self,
                  reduce_dims: ty.Union[int, ty.Tuple[int, ...]],
-                 reduce_method: ty.Optional[ReduceMethod] = ReduceMethod.SUM):
+                 reduce_method: ty.Optional[ReduceMethod] = ReduceMethod.SUM
+                 ) -> None:
         super().__init__(ReduceDimsHandler(reduce_dims))
         ReduceMethod.validate(reduce_method)
         self.reduce_method = reduce_method
@@ -164,7 +168,7 @@ class ExpandDims(AbstractOperation):
 
     """
     def __init__(self,
-                 new_dims_shape: ty.Union[int, ty.Tuple[int, ...]]):
+                 new_dims_shape: ty.Union[int, ty.Tuple[int, ...]]) -> None:
         super().__init__(ExpandDimsHandler(new_dims_shape))
 
     def _compute_weights(self) -> np.ndarray:
@@ -191,7 +195,7 @@ class Reorder(AbstractOperation):
         new order of the dimensions (see ReorderHandler)
 
     """
-    def __init__(self, order: ty.Tuple[int, ...]):
+    def __init__(self, order: ty.Tuple[int, ...]) -> None:
         super().__init__(ReorderHandler(order))
 
     def _compute_weights(self) -> np.ndarray:
@@ -326,7 +330,7 @@ class Convolution(AbstractOperation):
         border_types: ty.Optional[ty.Union[BorderType,
                                            ty.List[BorderType]]]
             = BorderType.PADDED
-    ):
+    ) -> None:
         super().__init__(KeepShapeHandler())
 
         self._kernel = self._validate_kernel(kernel)
@@ -371,7 +375,8 @@ class Convolution(AbstractOperation):
         return border_types
 
     def _validate_args_with_input_shape(self,
-                                        input_shape: ty.Tuple[int, ...]):
+                                        input_shape: ty.Tuple[int, ...]
+                                        ) -> None:
         # treating 0D cases like 1D cases here
         input_dim = len(input_shape)
 

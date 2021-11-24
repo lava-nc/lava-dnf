@@ -63,9 +63,13 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
         """
         # Represent infinite inter spike distances (i.e negligible spike rates)
         # as 0
-        distances = np.where(pattern > self.min_spike_rate,
-                             np.rint(TIME_STEPS_PER_MINUTE / pattern).astype(
-                                 int), 0)
+        distances = np.zeros_like(pattern)
+
+        idx_non_negligible = pattern > self.min_spike_rate[0]
+
+        distances[idx_non_negligible] = \
+            np.rint(TIME_STEPS_PER_MINUTE / pattern[idx_non_negligible])\
+            .astype(int)
 
         return distances
 

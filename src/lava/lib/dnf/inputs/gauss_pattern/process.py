@@ -123,6 +123,8 @@ class GaussPattern(AbstractProcess):
         """
         try:
             return self._shape.get()
+        # Catch AttributeError error raised at instantiation of the process
+        # since _shape Var has no runtime associated at that stage
         except AttributeError:
             return None
 
@@ -136,6 +138,8 @@ class GaussPattern(AbstractProcess):
         """
         try:
             return self._amplitude.get()
+        # Catch AttributeError error raised at instantiation of the process
+        # since _amplitude Var has no runtime associated at that stage
         except AttributeError:
             return None
 
@@ -160,6 +164,8 @@ class GaussPattern(AbstractProcess):
         """
         try:
             return self._mean.get()
+        # Catch AttributeError error raised at instantiation of the process
+        # since _mean Var has no runtime associated at that stage
         except AttributeError:
             return None
 
@@ -185,6 +191,8 @@ class GaussPattern(AbstractProcess):
         """
         try:
             return self._stddev.get()
+        # Catch AttributeError error raised at instantiation of the process
+        # since _stddev Var has no runtime associated at that stage
         except AttributeError:
             return None
 

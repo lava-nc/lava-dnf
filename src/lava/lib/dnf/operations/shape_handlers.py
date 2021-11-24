@@ -36,7 +36,7 @@ class AbstractShapeHandler(ABC):
         """
         self._validate_input_shape(input_shape)
         self._input_shape = input_shape
-        # validate any arguments that subclass shape handlers may receive
+        # Validate any arguments that subclass shape handlers may receive
         self._validate_args()
         self._compute_output_shape()
 
@@ -129,9 +129,9 @@ class ReduceDimsHandler(AbstractShapeHandler):
                              f"{self._input_shape}")
 
         for idx in self.reduce_dims:
-            # compute the positive index irrespective of the sign of 'idx'
+            # Compute the positive index irrespective of the sign of 'idx'
             idx_positive = len(self._input_shape) + idx if idx < 0 else idx
-            # make sure the positive index is not out of bounds
+            # Make sure the positive index is not out of bounds
             if idx_positive < 0 or idx_positive >= len(self._input_shape):
                 raise IndexError(f"<reduce_dims> value {idx} is out of bounds "
                                  f"for array of size {len(self._input_shape)}")
@@ -248,9 +248,9 @@ class ReorderHandler(AbstractShapeHandler):
                                        f"{self._input_shape})")
 
         for idx in self._order:
-            # compute the positive index irrespective of the sign of 'idx'
+            # Compute the positive index irrespective of the sign of 'idx'
             idx_positive = len(self._input_shape) + idx if idx < 0 else idx
-            # make sure the positive index is not out of bounds
+            # Make sure the positive index is not out of bounds
             if idx_positive < 0 or idx_positive >= len(self._input_shape):
                 raise IndexError(f"<order> value {idx} is out of bounds "
                                  f"for array of size {len(self._input_shape)}")

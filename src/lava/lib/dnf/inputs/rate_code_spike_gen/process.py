@@ -47,7 +47,7 @@ class RateCodeSpikeGen(AbstractProcess):
         if min_spike_rate < 0:
             raise ValueError("<min_spike_rate> cannot be negative.")
 
-        # seed -1 means use random seed
+        # seed -1 means: use random seed
         seed = kwargs.pop("seed", -1)
         if seed < -1:
             raise ValueError("<seed> cannot be negative.")

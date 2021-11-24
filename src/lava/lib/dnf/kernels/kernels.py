@@ -156,10 +156,10 @@ class GaussianMixin(ABC):
         shape : tuple(int)
             shape of the kernel
         """
-        # compute shape from limit
+        # Compute shape from limit
         shape = np.uint(np.ceil(2 * self._limit * width))
 
-        # ensure that the kernel has an odd size
+        # Ensure that the kernel has an odd size
         shape = np.where(shape % 2 == 0, shape + 1, shape)
 
         return tuple(shape)

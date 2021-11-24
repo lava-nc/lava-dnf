@@ -87,20 +87,20 @@ def _configure_ops(
     -------
 
     """
-    # we go from the source through all operations and memorize the output
+    # We go from the source through all operations and memorize the output
     # shape of the last operation (here, the source)
     prev_output_shape = src_shape
 
-    # for every operation in the list of operations
+    # For every operation in the list of operations...
     for op in ops:
-        # let the operation configure the output shape given the incoming
+        # ...let the operation configure the output shape given the incoming
         # input shape
         input_shape = prev_output_shape
         op.configure(input_shape)
-        # memorize the computed output shape for the next iteration of the loop
+        # Memorize the computed output shape for the next iteration of the loop
         prev_output_shape = op.output_shape
 
-    # check that the output shape of the last operation matches the shape of
+    # Check that the output shape of the last operation matches the shape of
     # the InPort of the destination Process
     if prev_output_shape != dst_shape:
         raise MisconfiguredConnectError(
@@ -125,15 +125,15 @@ def _validate_ops(
         validated list of operations
 
     """
-    # make <ops> a list if it is not one already
+    # Make <ops> a list if it is not one already
     if not isinstance(ops, list):
         ops = [ops]
 
-    # empty lists raise an error
+    # Empty lists raise an error
     if len(ops) == 0:
         raise ValueError("list of operations is empty")
 
-    # check whether each element in <operations> is of type AbstractOperation
+    # Check whether each element in <operations> is of type AbstractOperation
     for op in ops:
         if not isinstance(op, AbstractOperation):
             raise TypeError("elements in list of operations must be of type "
@@ -160,16 +160,16 @@ def _compute_weights(ops: ty.List[AbstractOperation]) -> np.ndarray:
     """
     weights = None
 
-    # for every operation
+    # For every operation...
     for op in ops:
-        # compute the weights of the current operation
+        # ...compute the weights of the current operation
         op_weights = op.compute_weights()
 
-        # if it's the first operation in the list, initialize overall
+        # If it is the first operation in the list, initialize the overall
         # weights
         if weights is None:
             weights = op_weights
-        # otherwise multiply weights with the connectivity matrix from the last
+        # Otherwise, multiply weights with the connectivity matrix from the last
         # operations in the list to create the overall weights matrix
         else:
             weights = np.matmul(op_weights, weights)
@@ -201,18 +201,18 @@ def _make_connections(src_op: OutPort,
 
     """
 
-    # create the connections process
+    # Create the connections process
     connections = Dense(shape=weights.shape,
                         weights=weights)
 
-    # make connections from the source port to the connections process
+    # Make connections from the source port to the connections process
     # TODO (MR) workaround in absence of ReshapePorts
     con_ip = connections.s_in
     rs1 = ReshapeBool(shape_in=src_op.shape, shape_out=con_ip.shape)
     src_op.connect(rs1.s_in)
     rs1.s_out.connect(con_ip)
 
-    # make connections from the connections process to the destination port
+    # Make connections from the connections process to the destination port
     # TODO (MR) workaround in absence of ReshapePorts
     con_op = connections.a_out
     rs2 = ReshapeInt(shape_in=con_op.shape, shape_out=dst_ip.shape)

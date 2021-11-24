@@ -29,7 +29,6 @@ class PopulationSubProcessModel(AbstractSubProcessModel):
         bias: int = kwargs.pop("bias", 0)
         bias_exp: int = kwargs.pop("bias_exp", 1)
 
-        # create LIF neurons
         self.neurons = LIF(name=proc.name + " LIF",
                            shape=proc.shape,
                            vth=threshold,
@@ -38,6 +37,6 @@ class PopulationSubProcessModel(AbstractSubProcessModel):
                            bias=bias,
                            bias_exp=bias_exp)
 
-        # expose the input and output port of the LIF process
+        # Expose the input and output port of the LIF process
         proc.in_ports.a_in.connect(self.neurons.in_ports.a_in)
         self.neurons.out_ports.s_out.connect(proc.out_ports.s_out)

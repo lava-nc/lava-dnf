@@ -27,10 +27,10 @@ def validate_shape(shape: ty.Any) -> ty.Tuple[int, ...]:
     if shape is None:
         raise AssertionError("<shape> may not be None")
 
-    # convert single int values to a tuple
+    # Convert single int values to a tuple
     if isinstance(shape, int):
         shape = (shape,)
-    # check whether all elements in the tuple (or list) are of type int
+    # Check whether all elements in the tuple (or list) are of type int
     # and positive
     if isinstance(shape, tuple) or isinstance(shape, list):
         for s in shape:
@@ -39,10 +39,10 @@ def validate_shape(shape: ty.Any) -> ty.Tuple[int, ...]:
             if s < 0:
                 raise ValueError("all elements of <shape> must be greater "
                                  "than zero")
-        # convert list to tuple
+        # Convert list to tuple
         if isinstance(shape, list):
             shape = tuple(shape)
-    # if <shape> is not yet a tuple, raise a TypeError
+    # If <shape> is not yet a tuple, raise a TypeError
     if not isinstance(shape, tuple):
         raise TypeError("<shape> must be of type int or tuple(int)")
 

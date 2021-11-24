@@ -41,15 +41,15 @@ class GaussPatternProcessModel(PyLoihiProcessModel):
     a_out: PyOutPort = LavaPyType(PyOutPort.VEC_DENSE, float)
 
     def run_spk(self) -> None:
-        # When changed flag is set to True
+        # When changed flag is set to True...
         if self.changed[0]:
-            # Compute new pattern based on updated parameters
-            self.pattern = gauss(shape=self._shape,
+            # ...compute new pattern based on updated parameters
+            self.pattern = gauss(shape=tuple(self._shape),
                                  domain=None,
                                  amplitude=self._amplitude[0],
                                  mean=self._mean,
                                  stddev=self._stddev)
-            # Reset changed flag
+            # Reset the 'changed' flag
             self.changed[0] = False
             # Send new pattern through the PyOutPort
             self.a_out.send(self.pattern)

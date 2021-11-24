@@ -37,7 +37,7 @@ def num_dims(shape: ty.Tuple[int, ...]) -> int:
     -------
     number of dimensions : int
     """
-    # assume dimensionality 0 if there is only a single neuron
+    # Assume dimensionality 0 if there is only a single neuron
     dims = 0 if num_neurons(shape) == 1 else len(shape)
 
     return dims

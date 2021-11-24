@@ -31,7 +31,7 @@ class SinkProcess(AbstractProcess):
     shape: tuple, shape of the process
     """
 
-    def __init__(self, **kwargs: ty.Typle[int, ...]) -> None:
+    def __init__(self, **kwargs: ty.Tuple[int, ...]) -> None:
         super().__init__(**kwargs)
         shape = kwargs.get("shape")
 

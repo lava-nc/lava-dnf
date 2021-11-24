@@ -46,10 +46,10 @@ def gauss(shape: ty.Tuple[int, ...],
     gaussian : numpy.ndarray
         multi-dimensional array with samples of the Gaussian
     """
-    # dimensionality of the Gaussian
+    # Dimensionality of the Gaussian
     dimensionality = len(shape)
 
-    # domain defaults to the indices of the sampling points
+    # Domain defaults to the indices of the sampling points
     if domain is None:
         domain = np.zeros((dimensionality, 2))
         domain[:, 1] = np.array(shape[:]) - 1
@@ -59,7 +59,7 @@ def gauss(shape: ty.Tuple[int, ...],
                              "the specified <shape>; <domain> should be of "
                              f"shape ({len(shape)}, 2) but is {domain.shape}")
 
-    # mean defaults to 0
+    # Mean defaults to 0
     if mean is None:
         mean = np.zeros((dimensionality,))
     else:
@@ -68,7 +68,7 @@ def gauss(shape: ty.Tuple[int, ...],
                              "the specified <shape>; <mean> should be of "
                              f"shape ({len(shape)},) but is {mean.shape}")
 
-    # standard deviation defaults to 1
+    # Standard deviation defaults to 1
     if stddev is None:
         stddev = np.ones((dimensionality,))
     else:
@@ -77,28 +77,28 @@ def gauss(shape: ty.Tuple[int, ...],
                              "the specified <shape>; <stddev> should be of "
                              f"shape ({len(shape)},) but is {stddev.shape}")
 
-    # create linear spaces for each dimension
+    # Create linear spaces for each dimension
     linspaces = []
     for i in range(dimensionality):
         linspaces.append(np.linspace(domain[i, 0], domain[i, 1], shape[i]))
 
-    # arrange linear spaces into a meshgrid
+    # Arrange linear spaces into a meshgrid
     linspaces = np.array(linspaces, dtype=object)
     grid = np.meshgrid(*linspaces, copy=False)
     grid = np.array(grid)
 
-    # swap axes to get around perculiarity of meshgrid
+    # Swap axes to get around perculiarity of meshgrid
     if dimensionality > 1:
         grid = np.swapaxes(grid, 1, 2)
 
-    # reshape meshgrid to fit multi-variate normal
+    # Reshape meshgrid to fit multi-variate normal
     grid = np.moveaxis(grid, 0, -1)
 
-    # compute normal probability density function
+    # Compute normal probability density function
     mv_normal_pdf = scipy.stats.multivariate_normal.pdf(grid,
                                                         mean=mean,
                                                         cov=stddev)
-    # normalize probability density function and apply amplitude
+    # Normalize probability density function and apply amplitude
     gaussian = amplitude * mv_normal_pdf / np.max(mv_normal_pdf)
 
     return gaussian

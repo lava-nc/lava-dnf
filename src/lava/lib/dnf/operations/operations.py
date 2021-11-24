@@ -56,10 +56,9 @@ class AbstractOperation(ABC):
         connectivity weight matrix : numpy.ndarray
 
         """
-        # assert that the input and output shape is configured
+        # Assert that the input and output shape is configured
         self._shape_handler.assert_configured()
 
-        # compute and return connectivity weight matrix
         return self._compute_weights()
 
     def configure(self,
@@ -142,20 +141,20 @@ class ReduceDims(AbstractOperation):
         self.reduce_method = reduce_method
 
     def _compute_weights(self) -> np.ndarray:
-        # indices of the input dimensions in the weight matrix that will
-        # not be removed; these will be come after the axes of the output
-        # dimensions defined above
+        # Indices of the input dimensions in the weight matrix
+        # that will not be removed
         in_axes_all = np.arange(num_dims(self.input_shape))
+
         sh = ty.cast(ReduceDimsHandler, self._shape_handler)
         in_axes_kept = tuple(np.delete(in_axes_all, sh.reduce_dims))
 
-        # generate the weight matrix
+        # Generate the weight matrix
         weights = _project_dims(self.input_shape,
                                 self.output_shape,
                                 in_axes_kept=in_axes_kept)
 
         if self.reduce_method == ReduceMethod.MEAN:
-            # set the weights such that they compute the mean
+            # Set the weights such that they compute the mean
             weights = weights / num_neurons(self.input_shape)
 
         return weights
@@ -172,11 +171,11 @@ class ExpandDims(AbstractOperation):
         super().__init__(ExpandDimsHandler(new_dims_shape))
 
     def _compute_weights(self) -> np.ndarray:
-        # indices of the output dimensions in the weight matrix that will
+        # Indices of the output dimensions in the weight matrix that will
         # be kept from the input
         out_axes_kept = tuple(np.arange(num_dims(self.input_shape)))
 
-        # generate the weight matrix
+        # Generate the weight matrix
         weights = _project_dims(self.input_shape,
                                 self.output_shape,
                                 out_axes_kept=out_axes_kept)
@@ -242,11 +241,11 @@ def _project_dims(
     smaller_num_dims = min(num_dims_in, num_dims_out)
 
     if smaller_num_dims == 0:
-        # if the target is a 0D population, the connectivity is from
+        # If the target is a 0D population, the connectivity is from
         # all neurons in the source population to that one neuron
         weights = np.ones((num_neurons_out, num_neurons_in))
     else:
-        # create a dense connectivity matrix, where dimensions of the
+        # Create a dense connectivity matrix, where dimensions of the
         # source and target are not yet flattened
         shape = output_shape + input_shape
         weights = np.zeros(shape)
@@ -264,19 +263,19 @@ def _project_dims(
             out_axes_kept = np.arange(num_dims_out)
         out_axes_kept = tuple(out_axes_kept)
 
-        # new indices of the kept output dimensions after moving the axes
+        # New indices of the kept output dimensions after moving the axes
         new_axes_out = tuple(np.arange(len(out_axes_kept)))
-        # new indices of the kept input dimensions after moving the axes
+        # New indices of the kept input dimensions after moving the axes
         new_axes_in = tuple(np.arange(len(in_axes_kept)) + len(new_axes_out))
 
-        # create the view by moving the axes
+        # Create the view by moving the axes
         conn = np.moveaxis(weights,
                            out_axes_kept + in_axes_kept,
                            new_axes_out + new_axes_in)
         #
         ###
 
-        # for each source-target dimension pair, set connections to 1 for
+        # For each source-target dimension pair, set connections to 1 for
         # every pair of neurons along that dimension, as well as to all
         # neurons in all remaining dimensions
         if smaller_num_dims == 1:
@@ -295,7 +294,7 @@ def _project_dims(
             raise NotImplementedError("projection is not implemented for "
                                       "dimensionality > 3")
 
-        # flatten the source and target dimensions of the connectivity
+        # Flatten the source and target dimensions of the connectivity
         # matrix to get a two-dimensional dense connectivity matrix
         weights = weights.reshape((num_neurons_out, num_neurons_in))
 
@@ -388,27 +387,27 @@ class Convolution(AbstractOperation):
 
     def _compute_weights(self) -> np.ndarray:
 
-        # input shape equals output shape
+        # Input shape equals output shape
         shape = self.input_shape
-        # do not use num_dims() here to treat 0D like 1D
+        # Do not use num_dims() here to treat 0D like 1D
         num_dims = len(shape)
         _num_neurons = num_neurons(shape)
 
-        # generate a dense connectivity matrix
+        # Generate a dense connectivity matrix
         connectivity_matrix = np.zeros((_num_neurons, _num_neurons))
 
-        # copy the weights of the kernel
+        # Copy the weights of the kernel
         kernel_weights = np.copy(self.kernel.weights)
 
         for i in range(num_dims):
-            # compute the size difference between the population and the
+            # Compute the size difference between the population and the
             # kernel in the current dimension
             size_diff = shape[i] - np.size(kernel_weights, axis=i)
 
             if size_diff != 0:
                 pad_width = np.zeros((num_dims, 2), dtype=int)
                 pad_width[i, :] = int(np.floor(np.abs(size_diff) / 2.0))
-                # if the padding cannot be distributed evenly...
+                # If the padding cannot be distributed evenly...
                 if is_odd(size_diff):
                     if is_odd(np.size(kernel_weights, axis=i)):
                         # ...add one in front if the kernel size is odd...
@@ -419,7 +418,7 @@ class Convolution(AbstractOperation):
                         pad_width[i, 1] += 1
 
                 if size_diff > 0:
-                    # pad the kernel with its padding value
+                    # Pad the kernel with its padding value
                     kernel_weights = \
                         np.pad(kernel_weights,
                                pad_width=pad_width,
@@ -435,19 +434,19 @@ class Convolution(AbstractOperation):
                                                range(-delete_back, 0),
                                                axis=i)
 
-        # compute the center of the kernel
+        # Compute the center of the kernel
         kernel_center = np.floor(np.array(kernel_weights.shape) / 2.0)
 
-        # iterate over the shape of the input population
+        # Iterate over the shape of the input population
         for index, _ in np.ndenumerate(np.zeros(shape)):
-            # compute how much the kernel must be shifted to bring its
+            # Compute how much the kernel must be shifted to bring its
             # center to the correct position
             shift = kernel_center.astype(int) - np.array(index,
                                                          dtype=int)
 
             conn_weights = kernel_weights
 
-            # shift the weights depending on the border method
+            # Shift the weights depending on the border method
             for i in range(num_dims):
                 if self.border_types[i] == BorderType.CIRCULAR:
                     conn_weights = np.roll(conn_weights, -shift[i], axis=i)
@@ -458,7 +457,7 @@ class Convolution(AbstractOperation):
                                          axis=i,
                                          fill_value=self.kernel.padding_value)
 
-                    # if the connection weight matrix is too large for the
+                    # If the connection weight matrix is too large for the
                     # population...
                     size_diff = shape[i] - np.size(conn_weights, axis=i)
                     if size_diff < 0:
@@ -467,11 +466,11 @@ class Convolution(AbstractOperation):
                                                  range(-np.abs(size_diff), 0),
                                                  axis=i)
 
-            # flatten kernel matrix
+            # Flatten kernel matrix
             if num_dims > 1:
                 conn_weights = np.ravel(conn_weights)
 
-            # fill the connectivity matrix
+            # Fill the connectivity matrix
             flat_index = np.ravel_multi_index(index, shape)
             connectivity_matrix[flat_index, :] = conn_weights
 

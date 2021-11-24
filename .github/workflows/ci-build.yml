@@ -45,7 +45,7 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest, macos-latest]
 
     steps:
     - uses: actions/checkout@v2
@@ -62,12 +62,4 @@ jobs:
         pip install pybuilder
     - name: Run unit tests
       run: |
-        if [ "$RUNNER_OS" == "Linux" ] || [ "$RUNNER_OS" == "macOS" ]; then
-            pyb -E unit
-        elif [ "$RUNNER_OS" == "Windows" ]; then
-            python -m unittest
-        else
-            echo "$RUNNER_OS not supported"
-            exit 1
-        fi
-      shell: bash
+        pyb -E unit

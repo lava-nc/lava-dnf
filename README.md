@@ -50,13 +50,13 @@ Infrastructure
 ## Example
 
 ```python
-from lava.lib.dnf.population.process import Population
+from lava.proc.lif.process import LIF
 from lava.lib.dnf.kernels.kernels import SelectiveKernel
 from lava.lib.dnf.connect.connect import connect
 from lava.lib.dnf.operations.operations import Convolution
 
 # create population of 20x20 spiking neurons
-dnf = Population(shape=(20, 20))
+dnf = LIF(shape=(20, 20))
 
 # create a selective kernel
 kernel = SelectiveKernel(amp_exc=18, width_exc=[4, 4], global_inh=-15)
@@ -64,6 +64,3 @@ kernel = SelectiveKernel(amp_exc=18, width_exc=[4, 4], global_inh=-15)
 # apply the kernel to the population to create a DNF with a selective regime
 connect(dnf.s_out, dnf.a_in, [Convolution(kernel)])
 ```
-
-
-

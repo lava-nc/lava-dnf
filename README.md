@@ -41,11 +41,6 @@ Examples demonstrating basic DNF regimes and instabilities
 - Detection of input
 - Selection of input
 - Working memory of input
-- Neural oscillator
-
-Infrastructure
-- Sensor and data input/output
-- Plotting
 
 ## Example
 

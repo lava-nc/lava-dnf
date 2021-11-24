@@ -14,7 +14,7 @@ use_plugin("pypi:pybuilder_bandit")
 name = "lava-dnf"
 default_task = ["analyze", "publish"]
 version = "0.1.0"
-summary = "A library that provides processes and other software infrastructure to build architectures composed of Dynamic Neural Fields (DNF). This library also provides tools to direct sensory input to neural architectures and to read output, for instance for motor control. Lava-DNF is part of Lava Framework "
+summary = "A library that provides processes and other software infrastructure to build architectures composed of Dynamic Neural Fields (DNF)."
 url = "https://lava-nc.org"
 license = ["BSD-3-Clause"]
 

@@ -85,9 +85,9 @@ class TestRasterPlot(unittest.TestCase):
                                                spike_rates=np.array(
                                                    spike_rates))
 
-        self.assertListEqual(expected_x, x)
-        self.assertListEqual(expected_y, y)
-        self.assertListEqual(expected_colors, colors)
+        self.assertEqual(expected_x, x)
+        self.assertEqual(expected_y, y)
+        self.assertEqual(expected_colors, colors)
 
     @patch("matplotlib.pyplot.show")
     def test_raster_plot_with_default_args(self,

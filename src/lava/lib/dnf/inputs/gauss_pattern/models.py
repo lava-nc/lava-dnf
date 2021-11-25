@@ -19,7 +19,7 @@ from lava.lib.dnf.utils.math import gauss
 # TODO: (GK) Change base class to (Sequential)PyProcessModel when supported
 @implements(proc=GaussPattern, protocol=LoihiProtocol)
 @requires(CPU)
-@tag('floating_pt')
+@tag('floating_pt', 'fixed_pt')  # TODO (MR) gated by PR #96
 class GaussPatternProcessModel(PyLoihiProcessModel):
     """
     PyLoihiProcessModel for GaussPatternProcess.

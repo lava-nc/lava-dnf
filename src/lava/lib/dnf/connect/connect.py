@@ -9,7 +9,7 @@ from lava.magma.core.process.process import AbstractProcess
 from lava.proc.dense.models import Dense
 from lava.magma.core.process.ports.ports import InPort, OutPort
 
-from lava.lib.dnf.operations.operations import AbstractOperation
+from lava.lib.dnf.operations.operations import AbstractOperation, Weights
 from lava.lib.dnf.connect.exceptions import MisconfiguredConnectError
 from lava.lib.dnf.connect.reshape_bool.process import ReshapeBool
 from lava.lib.dnf.connect.reshape_int.process import ReshapeInt
@@ -18,7 +18,8 @@ from lava.lib.dnf.connect.reshape_int.process import ReshapeInt
 def connect(
     src_op: OutPort,
     dst_ip: InPort,
-    ops: ty.Union[ty.List[AbstractOperation], AbstractOperation]
+    ops: ty.Optional[ty.Union[ty.List[AbstractOperation],
+                              AbstractOperation]] = None
 ) -> AbstractProcess:
     """
     Creates and returns a Connections Process <conn> and connects the source
@@ -37,7 +38,7 @@ def connect(
         OutPort of the source Process that will be connected
     dst_ip : InPort
         InPort of the destination Process that will be connected
-    ops : list(AbstractOperation)
+    ops : list(AbstractOperation), optional
         list of operations that describes how the connection between
         <src_op> and <dst_ip> will be created
 
@@ -48,7 +49,7 @@ def connect(
 
     """
     # validate the list of operations
-    ops = _validate_ops(ops)
+    ops = _validate_ops(ops, src_op.shape, dst_ip.shape)
 
     # configure all operations in the <ops> list with input and output shape
     _configure_ops(ops, src_op.shape, dst_ip.shape)
@@ -83,9 +84,6 @@ def _configure_ops(
     dst_shape : tuple(int)
         shape of the InPort of the destination Process
 
-    Returns
-    -------
-
     """
     # We go from the source through all operations and memorize the output
     # shape of the last operation (here, the source)
@@ -109,7 +107,9 @@ def _configure_ops(
 
 
 def _validate_ops(
-    ops: ty.Union[AbstractOperation, ty.List[AbstractOperation]]
+    ops: ty.Union[AbstractOperation, ty.List[AbstractOperation]],
+    src_shape: ty.Tuple[int, ...],
+    dst_shape: ty.Tuple[int, ...]
 ) -> ty.List[AbstractOperation]:
     """
     Validates the <ops> argument of the 'connect' function
@@ -118,6 +118,10 @@ def _validate_ops(
     -----------
     ops : list or AbstractOperation
         the list of operations to be validated
+    src_shape : tuple(int)
+        shape of the OutPort of the source Process
+    dst_shape : tuple(int)
+        shape of the InPort of the destination Process
 
     Returns:
     --------
@@ -125,6 +129,18 @@ def _validate_ops(
         validated list of operations
 
     """
+    # If no operations were specified...
+    if ops is None:
+        if src_shape != dst_shape:
+            raise MisconfiguredConnectError(
+                f"shape of source Port {src_shape} != {dst_shape} "
+                "shape of destination Port; when connecting differently "
+                "shaped Ports you have to specify operations with the "
+                "<ops> argument")
+
+        # ...create a default operation
+        ops = [Weights(1)]
+
     # Make <ops> a list if it is not one already
     if not isinstance(ops, list):
         ops = [ops]
@@ -133,11 +149,13 @@ def _validate_ops(
     if len(ops) == 0:
         raise ValueError("list of operations is empty")
 
-    # Check whether each element in <operations> is of type AbstractOperation
+    # Check whether each element in <operations> is of type
+    # AbstractOperation
     for op in ops:
         if not isinstance(op, AbstractOperation):
-            raise TypeError("elements in list of operations must be of type "
-                            f"Operation, found type {type(op)}")
+            raise TypeError("elements in list of operations must be of "
+                            "type AbstractOperation, found type "
+                            f"{type(op)}")
 
     return ops
 

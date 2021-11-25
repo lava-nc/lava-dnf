@@ -72,15 +72,12 @@ class TestConnect(unittest.TestCase):
         self.assertTrue(callable(getattr(lava.lib.dnf.connect.connect,
                                          'connect')))
 
-    def test_connecting_source_and_destination(self) -> None:
-        """Tests connecting a source Process to a destination Process."""
-        # create mock processes and an operation to connect
-        source = MockProcess(shape=(1, 2, 3))
-        destination = MockProcess(shape=(1, 2, 3))
-        op = MockNoChangeOperation()
-
-        # connect source to target
-        connections = connect(source.s_out, destination.a_in, ops=[op])
+    def _test_connections(self,
+                          source: MockProcess,
+                          destination: MockProcess,
+                          connections: AbstractProcess) -> None:
+        """For a given source, destination, and connections Processes,
+        tests whether they have been connected."""
 
         # check whether the connect function returns a process
         self.assertIsInstance(connections, AbstractProcess)
@@ -100,6 +97,46 @@ class TestConnect(unittest.TestCase):
         rs2_op = con_op.get_dst_ports()[0].process.out_ports.s_out
         self.assertEqual(rs2_op.get_dst_ports(), [dst_op])
         self.assertEqual(dst_op.get_src_ports(), [rs2_op])
+
+    def test_connecting_with_op_that_does_not_change_shape(self) -> None:
+        """Tests connecting a source Process to a destination Process."""
+        # create mock processes and an operation to connect
+        source = MockProcess(shape=(1, 2, 3))
+        destination = MockProcess(shape=(1, 2, 3))
+        op = MockNoChangeOperation()
+
+        # connect source to target
+        connections = connect(source.s_out, destination.a_in, ops=[op])
+
+        self._test_connections(source, destination, connections)
+
+    def test_connecting_without_ops(self) -> None:
+        """Tests connecting a source Process to a destination Process
+        without specifying any operations."""
+        # create mock processes of the same shape
+        shape = (1, 2, 3)
+        source = MockProcess(shape=shape)
+        destination = MockProcess(shape=shape)
+
+        # connect source to target
+        connections = connect(source.s_out, destination.a_in)
+
+        # default connection weights should be the identity matrix
+        np.testing.assert_array_equal(connections.weights.get(),
+                                      np.eye(int(np.prod(shape))))
+
+        self._test_connections(source, destination, connections)
+
+    def test_connecting_different_shapes_without_ops_raises_error(self) -> None:
+        """Tests whether an exception is raised when trying to connect two
+        Processes that have different shapes while not specifying any
+        operations."""
+        # create mock processes of different shapes
+        source = MockProcess(shape=(1, 2, 3))
+        destination = MockProcess(shape=(3, 2, 1))
+
+        with self.assertRaises(MisconfiguredConnectError):
+            connect(source.s_out, destination.a_in)
 
     def test_empty_operations_list_raises_value_error(self) -> None:
         """Tests whether an empty <ops> argument raises a value error."""

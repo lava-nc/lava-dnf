@@ -23,8 +23,8 @@ def raster_plot(spike_data: np.ndarray,
     Parameters
     ----------
     spike_data : numpy.ndarray
-        spike data of dtype=bool (spike: 1, no-spike: 0) and shape (
-        num_neurons, num_time_steps)
+        spike data of dtype=bool (spike: 1, no-spike: 0) and shape
+        (num_neurons, num_time_steps)
     color : str, optional
         color used for plotting spikes; if color is set to "rate" a
         color map is used to visualize the spike rate for each neuron in a time

@@ -50,5 +50,9 @@ def plot_1d(probe_data_dnf: np.ndarray,
     ax1.set_xlim(0, num_time_steps)
     ax1.set_ylim(-1, num_neurons)
 
-    plt.tight_layout()
+    plt.subplots_adjust(bottom=0.1, right=0.8, top=0.9)
+    cax = plt.axes([0.85, 0.1, 0.035, 0.8])
+    plt.colorbar(cax=cax, label="Spike rate")
+
+    # plt.tight_layout()
     plt.show()

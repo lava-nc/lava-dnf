@@ -22,7 +22,7 @@ TIME_STEPS_PER_MINUTE = 6000.0
 # TODO: (GK) Change base class to (Sequential)PyProcessModel when supported
 @implements(proc=RateCodeSpikeGen, protocol=LoihiProtocol)
 @requires(CPU)
-@tag('floating_pt')
+@tag('floating_pt', 'fixed_pt')  # TODO (MR) gated by PR #96
 class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
     """
     PyLoihiProcessModel for SpikeGeneratorProcess.

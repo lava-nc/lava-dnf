@@ -16,7 +16,7 @@ from lava.lib.dnf.connect.reshape_bool.process import ReshapeBool
 
 @implements(proc=ReshapeBool, protocol=LoihiProtocol)
 @requires(CPU)
-@tag('floating_pt')
+@tag('floating_pt', 'fixed_pt')  # TODO (MR) gated by PR #96
 class ReshapeBoolProcessModel(PyLoihiProcessModel):
     """ProcessModel for the Reshape Process"""
 

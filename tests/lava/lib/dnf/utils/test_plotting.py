@@ -6,10 +6,88 @@ import unittest
 from unittest.mock import patch, MagicMock
 import numpy as np
 
-from lava.lib.dnf.utils.plotting import raster_plot
+from lava.lib.dnf.utils.plotting import raster_plot, \
+    _compute_spike_rates, _compute_colored_spike_coordinates
 
 
 class TestRasterPlot(unittest.TestCase):
+    def test_compute_spike_rates(self):
+        """Tests whether the _compute_spike_rates protected function used
+        internally by raster plot computes instantaneous spike rates as
+        expected."""
+        spike_data = [
+            [0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+            [1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0],
+            [0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
+
+        expected_spike_rates = [
+            [0.25, 0.5, 0.75, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.5],
+            [0.5, 0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.5, 0.5],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.75, 1.0],
+            [0.5, 0.75, 0.75, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 0.25, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.25, 0.5, 0.5, 0.75, 0.75, 0.5, 0.75, 0.75, 0.75, 1.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.25, 0.25, 0.25, 0.25, 0.0, 0.25, 0.25, 0.25, 0.5],
+            [0.25, 0.25, 0.25, 0.25, 0.0, 0.25, 0.25, 0.25, 0.25, 0.0],
+            [0.25, 0.25, 0.25, 0.0, 0.25, 0.25, 0.25, 0.25, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
+
+        spike_rates = _compute_spike_rates(spike_data=np.array(spike_data),
+                                           window_size=4)
+
+        self.assertListEqual(expected_spike_rates, spike_rates.tolist())
+
+    def test_compute_colored_spike_coordinates(self):
+        spike_data = [
+            [0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0],
+            [0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0],
+            [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]]
+
+        spike_rates = [
+            [0.25, 0.5, 0.75, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.5],
+            [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.75, 1.0],
+            [0.5, 0.75, 0.75, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25, 0.25, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.25, 0.5, 0.5, 0.75, 0.75, 0.5, 0.75, 0.75, 0.75, 1.0],
+            [0.25, 0.25, 0.25, 0.0, 0.25, 0.25, 0.25, 0.25, 0.0, 0.0]]
+
+        expected_x = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 6, 6, 6, 6, 6, 6,
+                      7, 7]
+
+        expected_y = [1, 3, 4, 8, 1, 5, 8, 9, 1, 2, 3, 7, 7, 2, 3, 5, 6, 8, 9,
+                      1, 6]
+
+        expected_colors = [0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.75, 1.0, 0.75,
+                           0.75, 0.5, 0.25, 0.25, 0.5, 0.75, 0.5, 0.75, 0.75,
+                           1.0, 0.25, 0.25]
+
+        x, y, colors = \
+            _compute_colored_spike_coordinates(spike_data=np.array(spike_data),
+                                               spike_rates=np.array(
+                                                   spike_rates))
+
+        self.assertListEqual(expected_x, x)
+        self.assertListEqual(expected_y, y)
+        self.assertListEqual(expected_colors, colors)
+
     @patch("matplotlib.pyplot.show")
     def test_raster_plot_with_default_args(self,
                                            mock_show: MagicMock) -> None:
@@ -23,12 +101,11 @@ class TestRasterPlot(unittest.TestCase):
     def test_raster_plot_with_non_default_args(self,
                                                mock_show: MagicMock) -> None:
         """Tests whether the raster_plot function can be called by also
-        specifying the color and rate_window arguments."""
+        specifying the rate_window argument."""
         mock_show.return_value = None
 
         raster_plot(spike_data=np.zeros((10, 20)),
-                    color="#1f77b4",
-                    rate_window=20)
+                    window_size=20)
 
 
 if __name__ == '__main__':

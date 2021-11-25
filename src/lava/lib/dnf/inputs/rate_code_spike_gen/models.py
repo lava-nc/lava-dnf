@@ -101,12 +101,19 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
         idx_zeros = distances == 0
 
         # Trick to yield a distances array in the right format for rng.integers
+        # Since rng.integers samples a random integer from [low, high[,
+        # we have to add 1 to distances so that high becomes actually
+        # distance + 1, that way, the outcome of sampling can be distance
         distances[~idx_zeros] = distances[~idx_zeros] + 1
 
         # For indices where there should be a first spike ...
         # Pick a random number in [1, distance[
+        # (distance here is actually the true value of distance, +1)
         first_spikes[~idx_zeros] = rng.integers(
             low=np.ones_like(distances[~idx_zeros]), high=distances[~idx_zeros])
+
+        # Reverting distances array to its right format
+        distances[~idx_zeros] = distances[~idx_zeros] - 1
 
         return first_spikes
 

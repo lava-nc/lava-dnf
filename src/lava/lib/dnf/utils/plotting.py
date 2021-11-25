@@ -70,6 +70,6 @@ def raster_plot(spike_data: np.ndarray,
             x.extend(len(spiking_neuron_idx) * [time_step])
 
     # Generate the plot
-    mpl.rcParams['lines.linewidth'] = 0.5
+    mpl.rcParams['lines.linewidth'] = 1.0
     mpl.rcParams['lines.antialiased'] = False
     plt.scatter(x, y, c=c, marker='|', s=5)

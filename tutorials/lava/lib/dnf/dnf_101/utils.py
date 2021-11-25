@@ -32,7 +32,7 @@ def plot_1d(probe_data_dnf: np.ndarray,
     num_neurons = np.size(probe_data_input, axis=1)
     num_time_steps = np.size(probe_data_input, axis=0)
 
-    plt.figure(figsize=(5, 2.5))
+    plt.figure(figsize=(7, 3.5))
     ax0 = plt.subplot(2, 1, 1)
     raster_plot(probe_data_input)
     ax0.set_xlabel(None)

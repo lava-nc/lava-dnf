@@ -36,7 +36,7 @@ class TestConnectingWithOperations(unittest.TestCase):
 
         computed_dst_u = dst.vars.u.get()
         expected_dst_u = np.zeros(shape_dst)
-        expected_dst_u[0, :] = weight * num_steps
+        expected_dst_u[0, :] = 180.
 
         src.stop()
 

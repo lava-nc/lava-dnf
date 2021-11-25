@@ -23,7 +23,7 @@ def _compute_spike_rates(spike_data: np.ndarray,
     ----------
     spike_data : numpy.ndarray
         spike data of dtype=bool (spike: 1, no-spike: 0) and
-        shape (num_neurons, num_time_steps)
+        shape (num_time_steps, num_neurons)
     window_size : int, optional
         size of the time window in number of time steps
 
@@ -34,7 +34,7 @@ def _compute_spike_rates(spike_data: np.ndarray,
         spike rate of every neuron at every time step
     """
     # Compute spike rates for each time window
-    kernel = np.ones((1, window_size)) / window_size
+    kernel = np.ones((window_size, 1)) / window_size
     spike_rates = scipy.ndimage.convolve(spike_data, kernel)
 
     return spike_rates
@@ -51,8 +51,8 @@ def _compute_colored_spike_coordinates(spike_data: np.ndarray,
     Parameters
     ----------
     spike_data : numpy.ndarray
-        spike data of dtype=bool (spike: 1, no-spike: 0) and shape (
-        num_neurons, num_time_steps)
+        spike data of dtype=bool (spike: 1, no-spike: 0) and
+        shape (num_time_steps, num_neurons)
     spike_rates : numpy.ndarray
         array of same shape as spike_data which represents the instantaneous
         spike rate of every neuron at every time step
@@ -108,7 +108,7 @@ def raster_plot(spike_data: np.ndarray,
     ----------
     spike_data : numpy.ndarray
         spike data of dtype=bool (spike: 1, no-spike: 0) and
-        shape (num_neurons, num_time_steps)
+        shape (num_time_steps, num_neurons)
     window_size : int, optional
         size of the time window in number of time steps
     """

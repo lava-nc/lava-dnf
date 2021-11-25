@@ -11,10 +11,9 @@ from lava.lib.dnf.utils.plotting import raster_plot, \
 
 
 class TestRasterPlot(unittest.TestCase):
-    def test_compute_spike_rates(self):
-        """Tests whether the _compute_spike_rates protected function used
-        internally by raster plot computes instantaneous spike rates as
-        expected."""
+    def test_compute_spike_rates(self) -> None:
+        """Tests whether the instantaneous spike rates are computed as
+        expected by the function used within raster_plot()."""
         spike_data = [
             [0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0],
             [1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
@@ -48,9 +47,11 @@ class TestRasterPlot(unittest.TestCase):
         spike_rates = _compute_spike_rates(spike_data=np.array(spike_data),
                                            window_size=4)
 
-        self.assertListEqual(expected_spike_rates, spike_rates.tolist())
+        self.assertEqual(expected_spike_rates, spike_rates.tolist())
 
-    def test_compute_colored_spike_coordinates(self):
+    def test_compute_colored_spike_coordinates(self) -> None:
+        """Tests whether color information and coordinates are computed as
+        expected by the function used within raster_plot()."""
         spike_data = [
             [0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0],
             [0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0],

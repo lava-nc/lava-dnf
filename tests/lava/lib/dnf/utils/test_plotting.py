@@ -7,7 +7,7 @@ from unittest.mock import patch, MagicMock
 import numpy as np
 
 from lava.lib.dnf.utils.plotting import raster_plot, \
-    _compute_spike_rates, _compute_colored_spike_coordinates
+    compute_spike_rates, _compute_colored_spike_coordinates
 
 
 class TestRasterPlot(unittest.TestCase):
@@ -24,8 +24,8 @@ class TestRasterPlot(unittest.TestCase):
                                 [0.25, 0.25, 0.0], [0.5, 0.25, 0.0],
                                 [0.5, 0.0, 0.0]]
 
-        spike_rates = _compute_spike_rates(spike_data=np.array(spike_data),
-                                           window_size=4)
+        spike_rates = compute_spike_rates(spike_data=np.array(spike_data),
+                                          window_size=4)
 
         self.assertEqual(expected_spike_rates, spike_rates.tolist())
 

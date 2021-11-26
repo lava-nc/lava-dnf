@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 
-def _compute_spike_rates(spike_data: np.ndarray,
-                         window_size: ty.Optional[int] = 11) -> np.ndarray:
+def compute_spike_rates(spike_data: np.ndarray,
+                        window_size: ty.Optional[int] = 11) -> np.ndarray:
     """
     Computes instantaneous spike rates for all neurons over time
 
@@ -112,7 +112,7 @@ def raster_plot(spike_data: np.ndarray,
     window_size : int, optional
         size of the time window in number of time steps
     """
-    spike_rates = _compute_spike_rates(spike_data, window_size)
+    spike_rates = compute_spike_rates(spike_data, window_size)
 
     x, y, colors = _compute_colored_spike_coordinates(spike_data, spike_rates)
 

@@ -23,7 +23,6 @@ def plot_1d(probe_data_dnf: np.ndarray,
     probe_data_input2 : numpy.ndarray
         probe data of the second spiking input
     """
-
     probe_data_input = probe_data_input1 + probe_data_input2
     probe_data_input = probe_data_input.astype(np.float)
     probe_data_input = np.transpose(probe_data_input)
@@ -32,7 +31,7 @@ def plot_1d(probe_data_dnf: np.ndarray,
     num_neurons = np.size(probe_data_input, axis=1)
     num_time_steps = np.size(probe_data_input, axis=0)
 
-    plt.figure(figsize=(7, 3.5))
+    plt.figure(figsize=(10, 5))
     ax0 = plt.subplot(2, 1, 1)
     raster_plot(probe_data_input)
     ax0.set_xlabel(None)
@@ -54,5 +53,4 @@ def plot_1d(probe_data_dnf: np.ndarray,
     cax = plt.axes([0.85, 0.1, 0.035, 0.8])
     plt.colorbar(cax=cax, label="Spike rate")
 
-    # plt.tight_layout()
     plt.show()

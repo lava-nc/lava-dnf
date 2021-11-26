@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from IPython import display
+import typing as ty
 
 from lava.lib.dnf.utils.plotting import raster_plot, _compute_spike_rates
 
@@ -39,7 +40,7 @@ def plot_1d(probe_data_dnf: np.ndarray,
     ax0.set_xlabel(None)
     ax0.set_ylabel('Input\nNeuron idx')
     ax0.set_xticklabels([])
-    ax0.set_yticks([0, num_neurons-1])
+    ax0.set_yticks([0, num_neurons - 1])
     ax0.set_xlim(0, num_time_steps)
     ax0.set_ylim(-1, num_neurons)
 
@@ -47,7 +48,7 @@ def plot_1d(probe_data_dnf: np.ndarray,
     raster_plot(probe_data_dnf)
     ax1.set_xlabel('Time steps')
     ax1.set_ylabel('DNF\nNeuron idx')
-    ax1.set_yticks([0, num_neurons-1])
+    ax1.set_yticks([0, num_neurons - 1])
     ax1.set_xlim(0, num_time_steps)
     ax1.set_ylim(-1, num_neurons)
 
@@ -61,7 +62,7 @@ def plot_1d(probe_data_dnf: np.ndarray,
 def animated_1d_plot(probe_data_dnf: np.ndarray,
                      probe_data_input1: np.ndarray,
                      probe_data_input2: np.ndarray,
-                     interval=30) -> None:
+                     interval: ty.Optional[int] = 30) -> None:
     """Generates an animated plot for examples in the DNF regimes tutorial.
 
     Parameters
@@ -128,7 +129,7 @@ def animated_1d_plot(probe_data_dnf: np.ndarray,
 
     plt.tight_layout()
 
-    def animate(i):
+    def animate(i: int) -> None:
         x = range(num_neurons)
         im[0].set_data(x, input_spike_rates[i, :])
         im[1].set_data(x, dnf_spike_rates[i, :])

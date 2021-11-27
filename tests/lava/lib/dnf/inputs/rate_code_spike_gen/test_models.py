@@ -178,26 +178,24 @@ class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
     def test_compute_distances(self) -> None:
         """Tests whether inter spiked distances are computed correctly given
         a certain pattern."""
-        pattern = np.zeros((30,))
-        pattern[9:20] = 100.
+        shape = (3,)
+        pattern = np.zeros(shape)
+        pattern[1] = 100.
 
-        source = SourceProcess(shape=(30,), data=pattern)
-        spike_generator = RateCodeSpikeGen(shape=(30,))
+        source = SourceProcess(shape=shape, data=pattern)
+        spike_gen = RateCodeSpikeGen(shape=shape)
+        source.out_ports.a_out.connect(spike_gen.in_ports.a_in)
 
-        source.out_ports.a_out.connect(spike_generator.in_ports.a_in)
-
-        expected_inter_spike_distances = [
-            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-            61.0, 61.0, 61.0, 61.0, 61.0, 61.0, 61.0, 61.0, 61.0, 61.0, 61.0,
-            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-        ]
+        expected_spike_distances = np.array([0.0, 60.0, 0.0])
 
         try:
-            source.run(condition=RunSteps(num_steps=2), run_cfg=Loihi1SimCfg())
+            source.run(condition=RunSteps(num_steps=2),
+                       run_cfg=Loihi1SimCfg())
 
-            np.testing.assert_array_equal(
-                spike_generator.inter_spike_distances.get(),
-                np.array(expected_inter_spike_distances))
+            received_spike_distances = spike_gen.inter_spike_distances.get()
+
+            np.testing.assert_array_equal(received_spike_distances,
+                                          expected_spike_distances)
         finally:
             source.stop()
 
@@ -228,45 +226,33 @@ class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
     def test_generate_spikes(self) -> None:
         """Tests whether the spike trains are computed correctly"""
         num_steps = 10
+        shape = (5,)
 
-        pattern = np.zeros((20,))
-        pattern[7:14] = 1500.
+        pattern = np.zeros(shape)
+        pattern[2:3] = 1500.
 
-        expected_spike_trains = [
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
-            [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
+        expected_spikes = np.array(
+            [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+             [1, 0, 0, 0, 1, 0, 0, 0, 1, 0],
+             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+        )
 
-        source = SourceProcess(shape=(20,), data=pattern)
-        spike_generator = RateCodeSpikeGen(shape=(20,), seed=42)
-        sink = SinkProcess(shape=(20, num_steps))
+        source = SourceProcess(shape=shape, data=pattern)
+        spike_gen = RateCodeSpikeGen(shape=shape, seed=42)
+        sink = SinkProcess(shape=(shape[0], num_steps))
 
-        source.out_ports.a_out.connect(spike_generator.in_ports.a_in)
-        spike_generator.out_ports.s_out.connect(sink.in_ports.s_in)
+        source.out_ports.a_out.connect(spike_gen.in_ports.a_in)
+        spike_gen.out_ports.s_out.connect(sink.in_ports.s_in)
 
         try:
             source.run(condition=RunSteps(num_steps=num_steps),
                        run_cfg=Loihi1SimCfg())
 
-            np.testing.assert_array_equal(sink.data.get(),
-                                          np.array(expected_spike_trains))
+            received_spikes = sink.data.get()
+
+            np.testing.assert_array_equal(received_spikes, expected_spikes)
         finally:
             source.stop()
 

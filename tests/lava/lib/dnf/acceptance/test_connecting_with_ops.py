@@ -32,7 +32,7 @@ class TestConnectingWithOperations(unittest.TestCase):
         connect(src.s_out, dst.a_in, ops=[Weights(weight),
                                           Reorder(order=(1, 0))])
         src.run(condition=RunSteps(num_steps=num_steps),
-                run_cfg=Loihi1SimCfg())
+                run_cfg=Loihi1SimCfg(select_tag='floating_pt'))
 
         computed_dst_u = dst.vars.u.get()
         expected_dst_u = np.zeros(shape_dst)

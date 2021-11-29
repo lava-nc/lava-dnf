@@ -8,7 +8,7 @@ from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
 from lava.magma.core.model.py.ports import PyOutPort
 from lava.magma.core.model.py.type import LavaPyType
 from lava.magma.core.resources import CPU
-from lava.magma.core.decorator import implements, requires, tag
+from lava.magma.core.decorator import implements, requires
 from lava.magma.core.model.py.model import PyLoihiProcessModel
 
 from lava.lib.dnf.inputs.gauss_pattern.process import GaussPattern
@@ -19,7 +19,6 @@ from lava.lib.dnf.utils.math import gauss
 # TODO: (GK) Change base class to (Sequential)PyProcessModel when supported
 @implements(proc=GaussPattern, protocol=LoihiProtocol)
 @requires(CPU)
-@tag('floating_pt', 'fixed_pt')  # TODO (MR) gated by PR #96
 class GaussPatternProcessModel(PyLoihiProcessModel):
     """
     PyLoihiProcessModel for GaussPatternProcess.

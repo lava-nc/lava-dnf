@@ -8,7 +8,7 @@ from lava.magma.core.model.py.ports import PyInPort, PyOutPort
 from lava.magma.core.model.py.type import LavaPyType
 from lava.magma.core.model.py.model import PyLoihiProcessModel
 from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
-from lava.magma.core.decorator import implements, requires, tag
+from lava.magma.core.decorator import implements, requires
 from lava.magma.core.resources import CPU
 
 from lava.lib.dnf.connect.reshape_int.process import ReshapeInt
@@ -16,7 +16,6 @@ from lava.lib.dnf.connect.reshape_int.process import ReshapeInt
 
 @implements(proc=ReshapeInt, protocol=LoihiProtocol)
 @requires(CPU)
-@tag('floating_pt', 'fixed_pt')  # TODO (MR) gated by PR #96
 class ReshapeIntProcessModel(PyLoihiProcessModel):
     """ProcessModel for the Reshape Process"""
 

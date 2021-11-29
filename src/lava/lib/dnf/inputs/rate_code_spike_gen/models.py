@@ -8,7 +8,7 @@ from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
 from lava.magma.core.model.py.ports import PyInPort, PyOutPort
 from lava.magma.core.model.py.type import LavaPyType
 from lava.magma.core.resources import CPU
-from lava.magma.core.decorator import implements, requires, tag
+from lava.magma.core.decorator import implements, requires
 from lava.magma.core.model.py.model import PyLoihiProcessModel
 
 from lava.lib.dnf.inputs.rate_code_spike_gen.process import \
@@ -22,7 +22,6 @@ TIME_STEPS_PER_MINUTE = 6000.0
 # TODO: (GK) Change base class to (Sequential)PyProcessModel when supported
 @implements(proc=RateCodeSpikeGen, protocol=LoihiProtocol)
 @requires(CPU)
-@tag('floating_pt', 'fixed_pt')  # TODO (MR) gated by PR #96
 class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
     """
     PyLoihiProcessModel for SpikeGeneratorProcess.

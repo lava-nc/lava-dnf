@@ -41,29 +41,21 @@ Examples demonstrating basic DNF regimes and instabilities
 - Detection of input
 - Selection of input
 - Working memory of input
-- Neural oscillator
-
-Infrastructure
-- Sensor and data input/output
-- Plotting
 
 ## Example
 
 ```python
-from lava.lib.dnf.populations import Population
-from lava.lib.dnf.kernels import SelectiveKernel
-from lava.lib.dnf.connect import connect
-from lava.lib.dnf.operations import Instar, OneToOne
+from lava.proc.lif.process import LIF
+from lava.lib.dnf.kernels.kernels import SelectiveKernel
+from lava.lib.dnf.connect.connect import connect
+from lava.lib.dnf.operations.operations import Convolution
 
 # create population of 20x20 spiking neurons
-dnf = Population(shape=(20, 20))
+dnf = LIF(shape=(20, 20))
 
 # create a selective kernel
 kernel = SelectiveKernel(amp_exc=18, width_exc=[4, 4], global_inh=-15)
 
 # apply the kernel to the population to create a DNF with a selective regime
-connect(dnf, dnf, [Instar(kernel)])
+connect(dnf.s_out, dnf.a_in, [Convolution(kernel)])
 ```
-
-
-

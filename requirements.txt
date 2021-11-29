@@ -1,0 +1,3 @@
+lava-nc@git+https://github.com/lava-nc/lava.git
+numpy
+scipy>=1.7.2

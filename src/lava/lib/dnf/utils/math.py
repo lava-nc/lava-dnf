@@ -87,7 +87,7 @@ def gauss(shape: ty.Tuple[int, ...],
     grid = np.meshgrid(*linspaces, copy=False)
     grid = np.array(grid)
 
-    # Swap axes to get around perculiarity of meshgrid
+    # Swap axes to get around peculiarity of meshgrid
     if dimensionality > 1:
         grid = np.swapaxes(grid, 1, 2)
 
@@ -98,6 +98,13 @@ def gauss(shape: ty.Tuple[int, ...],
     mv_normal_pdf = scipy.stats.multivariate_normal.pdf(grid,
                                                         mean=mean,
                                                         cov=stddev)
+
+    # Add singleton axes that were dropped in creating the pdf
+    if mv_normal_pdf.shape != shape:
+        for axis, size in enumerate(shape):
+            if size == 1:
+                mv_normal_pdf = np.expand_dims(mv_normal_pdf, axis=axis)
+
     # Normalize probability density function and apply amplitude
     gaussian = amplitude * mv_normal_pdf / np.max(mv_normal_pdf)
 

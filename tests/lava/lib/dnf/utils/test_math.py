@@ -84,6 +84,19 @@ class TestGauss(unittest.TestCase):
         with self.assertRaises(ValueError):
             gauss(shape, stddev=stddev)
 
+    def test_computed_gaussian_has_specified_shape(self) -> None:
+        """Tests whether the computed weights have the shape that was
+        specified."""
+        shapes = [
+            (2,), (1,),
+            (2, 3), (2, 1), (1, 3),
+            (2, 3, 4), (2, 3, 1), (1, 3, 4), (2, 1, 3)
+        ]
+
+        for shape in shapes:
+            gaussian = gauss(shape)
+            self.assertEqual(gaussian.shape, shape)
+
 
 class TestIsOdd(unittest.TestCase):
     def test_is_odd(self) -> None:

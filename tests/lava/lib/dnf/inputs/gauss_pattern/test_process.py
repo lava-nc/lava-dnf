@@ -87,8 +87,6 @@ class TestGaussPattern(unittest.TestCase):
         finally:
             gauss_pattern.stop()
 
-        self.assertEqual(gauss_pattern.runtime.current_ts, num_steps)
-
     def test_set_parameters(self) -> None:
         """Tests whether setters for amplitude, mean and stddev actually
         set values for the corresponding Vars and whether the changed Var

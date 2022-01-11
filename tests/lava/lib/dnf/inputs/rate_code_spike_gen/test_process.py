@@ -46,8 +46,6 @@ class TestRateCodeSpikeGen(unittest.TestCase):
         finally:
             spike_generator.stop()
 
-        self.assertEqual(spike_generator.runtime.current_ts, num_steps)
-
 
 if __name__ == '__main__':
     unittest.main()

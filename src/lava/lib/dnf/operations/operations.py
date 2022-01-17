@@ -12,7 +12,8 @@ from lava.lib.dnf.operations.shape_handlers import (
     KeepShapeHandler,
     ReduceDimsHandler,
     ExpandDimsHandler,
-    ReorderHandler)
+    ReorderHandler,
+    ReduceDiagonalHandler)
 from lava.lib.dnf.operations.enums import ReduceMethod, BorderType
 from lava.lib.dnf.kernels.kernels import Kernel
 from lava.lib.dnf.utils.convenience import num_dims
@@ -520,3 +521,50 @@ class Convolution(AbstractOperation):
             return shifted_array
         else:
             return array
+
+
+class ReduceDiagonal(AbstractOperation):
+    """
+    Creates connectivity that projects the output of a source population
+    along its diagonal. For instance, if the source population is a grid of
+    neurons of shape (40, 40), the operation will project (sum) the output of
+    that two-dimensional population along its diagonal, yielding a
+    one-dimensional output of shape (79,). The size is the length of the
+    diagonal that the operation does not sum over, in this case
+    79 = 40 * 2 - 1.
+    """
+    def __init__(self) -> None:
+        super().__init__(ReduceDiagonalHandler())
+
+    def _compute_weights(self) -> np.ndarray:
+        weights = np.zeros(self.output_shape + self.input_shape,
+                           dtype=np.int32)
+
+        # Extract the original shape of the populations that are input to the
+        # higher-dimensional population, which is the source of input here.
+        # This assumes that self.input_shape = shape + shape.
+        _num_dims = num_dims(self.input_shape)
+        shape = self.input_shape[0:int(_num_dims/2)]
+
+        shape_array = np.array(shape)
+        shape_doubled = tuple(shape_array * 2)
+
+        # Iterate over all positions within ('shape' * 2).
+        # 'x' will be a tuple of the dimensionality of 'shape'
+        for x in np.ndindex(*shape_doubled):
+            x = np.array(x)
+            # Iterate over all positions within 'shape'.
+            # 'p' will be a tuple of the dimensionality of 'shape'
+            for p in np.ndindex(*shape):
+                p = np.array(p)
+
+                # Set weights[x, x-p, p] = 1, where 0 <= x-p < shape
+                d = x - p
+                if np.all(0 <= d) and np.all(d < shape_array):
+                    idx = tuple(np.concatenate([x, d, p]))
+                    weights[idx] = 1
+
+        # Reshape weights matrix to 2D;
+        # shape: (number of output neurons, number of input neurons)
+        return weights.reshape((np.prod(self.output_shape),) +
+                               (num_neurons(self.input_shape),))

@@ -6,10 +6,9 @@ from abc import ABC, abstractmethod
 import typing as ty
 import numpy as np
 
-from lava.lib.dnf.utils.convenience import num_neurons
+from lava.lib.dnf.utils.convenience import num_neurons, num_dims
+from lava.lib.dnf.utils.math import is_odd
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
-
-from lava.lib.dnf.utils.convenience import num_dims
 
 
 class AbstractShapeHandler(ABC):
@@ -262,3 +261,33 @@ class ReorderHandler(AbstractShapeHandler):
             raise MisconfiguredOpError("the input dimensionality "
                                        "is smaller than 2; there are no "
                                        "dimensions to reorder")
+
+
+class ReduceDiagonalHandler(AbstractShapeHandler):
+    """Shape handler for the ReduceDiagonal operation that projects
+    diagonally from a multi-dimensional population.
+    """
+    def __init__(self) -> None:
+        super().__init__()
+
+    def _compute_output_shape(self) -> None:
+        num_dims_in = num_dims(self._input_shape)
+        shape = np.array(self._input_shape[0:int(num_dims_in/2)])
+        self._output_shape = tuple(shape * 2 - 1)
+
+    def _validate_args(self) -> None:
+        pass
+
+    def _validate_input_shape(self, input_shape: ty.Tuple[int, ...]) -> None:
+        num_dims_in = num_dims(input_shape)
+
+        if is_odd(num_dims_in):
+            raise MisconfiguredOpError("the input dimensionality must be even")
+
+        first_half = input_shape[0:int(num_dims_in/2)]
+        second_half = input_shape[int(num_dims_in/2):]
+
+        if first_half != second_half:
+            raise MisconfiguredOpError(
+                f"the first half of the input shape {first_half} must be "
+                f"identical to the second half {second_half}")

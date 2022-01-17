@@ -13,7 +13,8 @@ from lava.lib.dnf.operations.operations import (
     ReduceMethod,
     ExpandDims,
     Reorder,
-    Convolution)
+    Convolution,
+    ReduceDiagonal)
 from lava.lib.dnf.operations.enums import BorderType
 from lava.lib.dnf.operations.shape_handlers import KeepShapeHandler
 from lava.lib.dnf.kernels.kernels import Kernel
@@ -1137,6 +1138,99 @@ class TestConvolution(unittest.TestCase):
             input_shapes=[(1, 1), (2, 2), (3, 3), (4, 4), (5, 5)],
             expected_weights=expected_weights
         )
+
+
+class TestProjectDiagonal(unittest.TestCase):
+    def test_init(self) -> None:
+        """Tests whether a ReduceDiagonal operation can be instantiated."""
+        diag_op = ReduceDiagonal()
+        self.assertIsInstance(diag_op, ReduceDiagonal)
+
+    def test_compute_weights_directly(self) -> None:
+        """Tests whether computing weights produces the expected result for
+        different shapes. This directly compares against small predetermined
+        weight matrices."""
+        shapes = [(3,), (4,), (2, 2)]
+        expected_weights = [
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 1, 0, 1, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 1, 0, 1, 0, 0],
+                      [0, 0, 0, 0, 0, 1, 0, 1, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 1]]),
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]]),
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]])
+        ]
+
+        for shape, expected in zip(shapes, expected_weights):
+            diag_op = ReduceDiagonal()
+            diag_op.configure(shape + shape)
+
+            computed = diag_op.compute_weights()
+
+            self.assertTrue(np.array_equal(computed, expected))
+
+    def test_compute_weights_indirectly(self) -> None:
+        """Tests computing weights indirectly by multiplying the computed
+        weight matrices with simple matrices. This is to be able to test
+        higher dimensional cases where direct testing of the weight matrices
+        would require pasting very large matrices into the source code."""
+        # go through a 1D, 2D, and 3D case
+        shapes = [(3,), (3, 4), (3, 4, 5)]
+
+        for shape in shapes:
+            # Construct a mock spike-input from a 'transformation DNF'
+            # that is twice the dimensionality of the input shape
+            spike_input_shape = shape + shape
+            spike_input = np.zeros(spike_input_shape,
+                                   dtype=np.int32)
+            # Generate an index such that the second element of the last
+            # dimension is 1:
+            # e.g., a 1D spike input would be: [0, 1, 0, 0],
+            # a 2D spike input would be: [[0, 0, 0], [0, 0, 0], [0, 1, 0]]
+            idx = np.zeros(spike_input.ndim, dtype=np.int32)
+            idx[-1] = 1
+            spike_input[tuple(idx)] = 1
+            # Flatten the input to enable matrix multiplication with the
+            # connectivity weight matrix
+            spike_input = spike_input.ravel()
+
+            # Create and configure the operation
+            diag_op = ReduceDiagonal()
+            diag_op.configure(spike_input_shape)
+
+            # Use the operation to compute the connectivity weight matrix
+            weights = diag_op.compute_weights()
+
+            # Compute the output of the synaptic connections if the
+            # connectivity matrix were applied to the spike input
+            computed = np.matmul(weights, spike_input)
+
+            # Generate the expected output of the synaptic connections;
+            # the shape along every dimension must be twice the input minus 1,
+            # where all elements are zero except for the second entry of the
+            # last dimension
+            expected_shape = tuple(np.array(shape) * 2 - 1)
+            expected = np.zeros(expected_shape, dtype=np.int32)
+            expected_idx = np.zeros(expected.ndim, dtype=np.int32)
+            expected_idx[-1] = 1
+            expected[tuple(expected_idx)] = 1
+            expected = expected.ravel()
+
+            self.assertTrue(np.array_equal(computed, expected))
 
 
 if __name__ == '__main__':

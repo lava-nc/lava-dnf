@@ -12,7 +12,8 @@ from lava.lib.dnf.operations.shape_handlers import (
     ReduceDimsHandler,
     ReshapeHandler,
     ExpandDimsHandler,
-    ReorderHandler)
+    ReorderHandler,
+    ReduceDiagonalHandler)
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 
 
@@ -313,3 +314,35 @@ class TestReorderHandlerShapeHandler(unittest.TestCase):
         sh = ReorderHandler(order=(1, 2, 0))
         sh.configure(input_shape=(0, 1, 2))
         self.assertEqual(sh.output_shape, (1, 2, 0))
+
+
+class TestProjectDiagonalHandler(unittest.TestCase):
+    def test_init(self) -> None:
+        """Tests whether a ReduceDiagonalHandler can be instantiated."""
+        sh = ReduceDiagonalHandler()
+        self.assertIsInstance(sh, ReduceDiagonalHandler)
+
+    def test_odd_input_dimensionality_raises_exception(self) -> None:
+        """Tests whether an exception is raised when the number of input
+        dimensions is not even."""
+        sh = ReduceDiagonalHandler()
+        with self.assertRaises(MisconfiguredOpError):
+            sh.configure(input_shape=(4, 4, 4))
+
+    def test_asymmetric_input_shape_raises_exception(self) -> None:
+        """Tests whether an exception is raised when the shape of the input
+        population is not composed of a combination of two identical shapes.
+        For instance, a valid input shape would be (40, 30, 40, 30)."""
+        sh = ReduceDiagonalHandler()
+        with self.assertRaises(MisconfiguredOpError):
+            sh.configure(input_shape=(4, 3, 4, 2))
+
+    def test_computing_output_shape(self) -> None:
+        """Tests that the output shape is computed correctly."""
+        shapes = [(4,), (4, 3), (4, 3, 2)]
+
+        for shape in shapes:
+            sh = ReduceDiagonalHandler()
+            sh.configure(input_shape=shape + shape)
+            expected_shape = tuple(np.array(shape) * 2 - 1)
+            self.assertEqual(sh.output_shape, expected_shape)

@@ -390,7 +390,7 @@ class Convolution(AbstractOperation):
         # Input shape equals output shape
         shape = self.input_shape
         # Do not use num_dims() here to treat 0D like 1D
-        num_dims = len(shape)
+        _num_dims = len(shape)
         _num_neurons = num_neurons(shape)
 
         # Generate a dense connectivity matrix
@@ -399,13 +399,13 @@ class Convolution(AbstractOperation):
         # Copy the weights of the kernel
         kernel_weights = np.copy(self.kernel.weights)
 
-        for i in range(num_dims):
+        for i in range(_num_dims):
             # Compute the size difference between the population and the
             # kernel in the current dimension
             size_diff = shape[i] - np.size(kernel_weights, axis=i)
 
             if size_diff != 0:
-                pad_width = np.zeros((num_dims, 2), dtype=int)
+                pad_width = np.zeros((_num_dims, 2), dtype=int)
                 pad_width[i, :] = int(np.floor(np.abs(size_diff) / 2.0))
                 # If the padding cannot be distributed evenly...
                 if is_odd(size_diff):
@@ -447,7 +447,7 @@ class Convolution(AbstractOperation):
             conn_weights = kernel_weights
 
             # Shift the weights depending on the border method
-            for i in range(num_dims):
+            for i in range(_num_dims):
                 if self.border_types[i] == BorderType.CIRCULAR:
                     conn_weights = np.roll(conn_weights, -shift[i], axis=i)
                 elif self.border_types[i] == BorderType.PADDED:
@@ -467,7 +467,7 @@ class Convolution(AbstractOperation):
                                                  axis=i)
 
             # Flatten kernel matrix
-            if num_dims > 1:
+            if _num_dims > 1:
                 conn_weights = np.ravel(conn_weights)
 
             # Fill the connectivity matrix

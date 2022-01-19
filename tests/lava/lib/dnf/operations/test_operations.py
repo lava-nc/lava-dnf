@@ -5,6 +5,7 @@
 import unittest
 import numpy as np
 import typing as ty
+import itertools as it
 
 from lava.lib.dnf.operations.operations import (
     AbstractOperation,
@@ -14,7 +15,8 @@ from lava.lib.dnf.operations.operations import (
     ExpandDims,
     Reorder,
     Convolution,
-    ReduceDiagonal)
+    ReduceDiagonal,
+    Flip)
 from lava.lib.dnf.operations.enums import BorderType
 from lava.lib.dnf.operations.shape_handlers import KeepShapeHandler
 from lava.lib.dnf.kernels.kernels import Kernel
@@ -1231,6 +1233,70 @@ class TestProjectDiagonal(unittest.TestCase):
             expected = expected.ravel()
 
             self.assertTrue(np.array_equal(computed, expected))
+
+
+class TestFlip(unittest.TestCase):
+    def test_init(self) -> None:
+        """Tests whether a Flip operation can be instantiated."""
+        flip_op = Flip()
+        self.assertIsInstance(flip_op, Flip)
+
+    def test_operation_defaults_to_flipping_all_dims(self) -> None:
+        """Tests whether the operation flips all dimensions when no
+        'dims' attribute is supplied."""
+        shape = (3, 4, 5)
+        spike_input = np.zeros(shape, dtype=np.int32)
+        spike_input[1, 1, 1] = 1
+
+        flip_op = Flip()
+        flip_op.configure(input_shape=shape)
+        weights = flip_op.compute_weights()
+        computed = np.matmul(spike_input.ravel(), weights)
+        computed = computed.reshape(shape)
+
+        expected = np.flip(spike_input, axis=(0, 1, 2))
+
+        self.assertTrue(np.array_equal(computed, expected))
+
+    def test_flipping_specific_dimensions(self) -> None:
+        """Tests whether the computed weight matrix flips the input along the
+        specified dimensions."""
+
+        def all_sub_sets(_set):
+            """Creates a list of all possible subsets of a given set."""
+            sub_sets = it.chain.from_iterable(
+                it.combinations(_set, length) for length in range(len(_set) + 1)
+            )
+            return sub_sets
+
+        for shape in [(5,), (4, 5), (3, 4, 5)]:
+            # Construct a mock spike-input
+            spike_input = np.zeros(shape, dtype=np.int32)
+            # Generate an index such that the second element of the last
+            # dimension is 1:
+            # e.g., a 1D spike input would be: [0, 1, 0, 0],
+            # a 2D spike input would be: [[0, 0, 0], [0, 0, 0], [0, 1, 0]]
+            idx = np.zeros(spike_input.ndim, dtype=np.int32)
+            idx[-1] = 1
+            spike_input[tuple(idx)] = 1
+
+            # Go through all subsets of all indices of the shape
+            dim_indices = range(len(shape))
+            for dims in all_sub_sets(dim_indices):
+                # Set up a Flip operation
+                flip_op = Flip(dims=dims)
+                flip_op.configure(input_shape=shape)
+                # Compute it's connectivity matrix
+                weights = flip_op.compute_weights()
+                # Apply the connectivity matrix to the mock spike-input
+                computed = np.matmul(spike_input.ravel(), weights)
+                computed = computed.reshape(shape)
+
+                # Compute what we expect the Flip operation to do
+                expected = np.flip(spike_input, axis=dims)
+
+                # Compare the computed with the expected output
+                self.assertTrue(np.array_equal(computed, expected))
 
 
 if __name__ == '__main__':

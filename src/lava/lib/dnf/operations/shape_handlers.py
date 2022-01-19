@@ -127,13 +127,7 @@ class ReduceDimsHandler(AbstractShapeHandler):
                              f"more entries than the shape of the input "
                              f"{self._input_shape}")
 
-        for idx in self.reduce_dims:
-            # Compute the positive index irrespective of the sign of 'idx'
-            idx_positive = len(self._input_shape) + idx if idx < 0 else idx
-            # Make sure the positive index is not out of bounds
-            if idx_positive < 0 or idx_positive >= len(self._input_shape):
-                raise IndexError(f"<reduce_dims> value {idx} is out of bounds "
-                                 f"for array of size {len(self._input_shape)}")
+        _check_index_bounds(self.reduce_dims, self._input_shape)
 
 
 class ExpandDimsHandler(AbstractShapeHandler):
@@ -246,13 +240,7 @@ class ReorderHandler(AbstractShapeHandler):
                                        f"len({self._order}) != len("
                                        f"{self._input_shape})")
 
-        for idx in self._order:
-            # Compute the positive index irrespective of the sign of 'idx'
-            idx_positive = len(self._input_shape) + idx if idx < 0 else idx
-            # Make sure the positive index is not out of bounds
-            if idx_positive < 0 or idx_positive >= len(self._input_shape):
-                raise IndexError(f"<order> value {idx} is out of bounds "
-                                 f"for array of size {len(self._input_shape)}")
+        _check_index_bounds(self._order, self._input_shape)
 
     def _validate_input_shape(self, input_shape: ty.Tuple[int, ...]) -> None:
         num_dims_in = num_dims(input_shape)
@@ -291,3 +279,62 @@ class ReduceDiagonalHandler(AbstractShapeHandler):
             raise MisconfiguredOpError(
                 f"the first half of the input shape {first_half} must be "
                 f"identical to the second half {second_half}")
+
+
+class FlipHandler(KeepShapeHandler):
+    """Shape handler for the Flip operation that flips specified dimensions.
+
+    Parameters
+    ----------
+    dims : tuple(int) or int
+        indices of the dimensions that are to be flipped
+    """
+    def __init__(
+        self,
+        dims: ty.Optional[ty.Union[int, ty.Tuple[int, ...]]] = None
+    ) -> None:
+        super().__init__()
+        self._dims = dims
+
+    @property
+    def dims(self) -> ty.Tuple[int, ...]:
+        """Return the <dims> that are to be flipped"""
+        return self._dims
+
+    def _validate_args(self) -> None:
+        """Validate the <dims> argument"""
+        num_dims_in = num_dims(self._input_shape)
+
+        if self._dims is None:
+            self._dims = tuple(range(num_dims_in))
+
+        if len(self._dims) > num_dims_in:
+            raise MisconfiguredOpError("<dims> may only have as many entries "
+                                       "as the input shape: "
+                                       f"len({self._dims}) > len("
+                                       f"{self._input_shape})")
+
+        _check_index_bounds(self._dims, self._input_shape)
+
+
+def _check_index_bounds(indices: ty.Tuple[int, ...],
+                        shape: ty.Tuple[int, ...]) -> None:
+    """Checks whether all of the given indices are not out of bounds for the
+    given shape. Throws an IndexError if violated.
+
+    Parameters
+    ----------
+    indices : tuple(int)
+        indices of the dimensions that are to be checked
+    shape : tuple(int)
+        shape of the array that the indices will address and that will be
+        checked against
+
+    """
+    for idx in indices:
+        # Compute the positive index irrespective of the sign of 'idx'
+        idx_positive = len(shape) + idx if idx < 0 else idx
+        # Make sure the positive index is not out of bounds
+        if idx_positive < 0 or idx_positive >= len(shape):
+            raise IndexError(f"index value {idx} is out of bounds "
+                             f"for array of size {len(shape)}")

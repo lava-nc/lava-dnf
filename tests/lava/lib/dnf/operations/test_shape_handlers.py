@@ -13,7 +13,8 @@ from lava.lib.dnf.operations.shape_handlers import (
     ReshapeHandler,
     ExpandDimsHandler,
     ReorderHandler,
-    ReduceDiagonalHandler)
+    ReduceDiagonalHandler,
+    FlipHandler)
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 
 
@@ -249,7 +250,7 @@ class TestReshapeHandler(unittest.TestCase):
             sh.configure(input_shape=(2, 4))
 
 
-class TestReorderHandlerShapeHandler(unittest.TestCase):
+class TestReorderHandler(unittest.TestCase):
     def test_init(self) -> None:
         """Tests whether a ReorderHandler can be instantiated."""
         sh = ReorderHandler(order=(1, 0))
@@ -316,7 +317,7 @@ class TestReorderHandlerShapeHandler(unittest.TestCase):
         self.assertEqual(sh.output_shape, (1, 2, 0))
 
 
-class TestProjectDiagonalHandler(unittest.TestCase):
+class TestReduceDiagonalHandler(unittest.TestCase):
     def test_init(self) -> None:
         """Tests whether a ReduceDiagonalHandler can be instantiated."""
         sh = ReduceDiagonalHandler()
@@ -346,3 +347,31 @@ class TestProjectDiagonalHandler(unittest.TestCase):
             sh.configure(input_shape=shape + shape)
             expected_shape = tuple(np.array(shape) * 2 - 1)
             self.assertEqual(sh.output_shape, expected_shape)
+
+
+class TestFlipHandler(unittest.TestCase):
+    def test_init(self) -> None:
+        """Tests whether a FlipHandler can be instantiated."""
+        sh = FlipHandler()
+        self.assertIsInstance(sh, FlipHandler)
+
+    def test_too_many_dims_raises_exception(self) -> None:
+        """Tests whether a <dims> argument with too many entries
+        raises an exception."""
+        sh = FlipHandler(dims=(0, 1, 1))
+        with self.assertRaises(MisconfiguredOpError):
+            sh.configure(input_shape=(3, 4))
+
+    def test_dims_out_of_bounds_raises_exception(self) -> None:
+        """Tests whether an exception is raised when a specified dimension
+        does not exist."""
+        sh = FlipHandler(dims=(0, 2))
+        with self.assertRaises(IndexError):
+            sh.configure(input_shape=(3, 4))
+
+    def test_dims_defaults_to_all_dims(self) -> None:
+        """Tests whether all dims are selected for flipping if no <dims>
+        attribute is specified."""
+        sh = FlipHandler(dims=None)
+        sh.configure(input_shape=(3, 4, 5))
+        self.assertEqual(sh.dims, (0, 1, 2))

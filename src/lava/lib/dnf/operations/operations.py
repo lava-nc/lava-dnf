@@ -13,7 +13,8 @@ from lava.lib.dnf.operations.shape_handlers import (
     ReduceDimsHandler,
     ExpandDimsHandler,
     ReorderHandler,
-    ReduceDiagonalHandler)
+    ReduceDiagonalHandler,
+    FlipHandler)
 from lava.lib.dnf.operations.enums import ReduceMethod, BorderType
 from lava.lib.dnf.kernels.kernels import Kernel
 from lava.lib.dnf.utils.convenience import num_dims
@@ -568,3 +569,37 @@ class ReduceDiagonal(AbstractOperation):
         # shape: (number of output neurons, number of input neurons)
         return weights.reshape((np.prod(self.output_shape),) +
                                (num_neurons(self.input_shape),))
+
+
+class Flip(AbstractOperation):
+    """
+    Creates connectivity that flips all specified dimensions.
+
+    Parameters
+    ----------
+    dims : tuple(int) or int
+        indices of the dimensions that are to be flipped
+    """
+    def __init__(
+        self,
+        dims: ty.Optional[ty.Union[int, ty.Tuple[int, ...]]] = None
+    ) -> None:
+        super().__init__(FlipHandler(dims=dims))
+
+    def _compute_weights(self) -> np.ndarray:
+        shape = (num_neurons(self.output_shape), num_neurons(self.input_shape))
+        # Set up connectivity weights that project input to output one-to-one
+        weights = np.eye(*shape, dtype=np.int32)
+        # Reshape the connectivity matrix to explicitly represent the input
+        # dimensions
+        weights = weights.reshape((num_neurons(self.output_shape),) +
+                                  self.input_shape)
+        # Get the indices of the dimensions that are to be flipped from the
+        # shape handler and increase them all by one
+        sh = ty.cast(FlipHandler, self._shape_handler)
+        dims = np.array(sh.dims) + 1
+        # Flip those dimensions
+        weights = np.flip(weights, axis=tuple(dims))
+
+        # Reshape the connectivity matrix back to 2D
+        return weights.reshape(shape)

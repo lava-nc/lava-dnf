@@ -69,7 +69,7 @@ class AbstractShapeHandler(ABC):
         pass
 
 
-class KeepShapeHandler(AbstractShapeHandler):
+class KeepShapeShapeHandler(AbstractShapeHandler):
     """Shape handler for operations that do not change the shape of the
      input."""
     def _compute_output_shape(self) -> None:
@@ -83,7 +83,7 @@ class KeepShapeHandler(AbstractShapeHandler):
         pass
 
 
-class ReduceDimsHandler(AbstractShapeHandler):
+class ReduceDimsShapeHandler(AbstractShapeHandler):
     """
     Shape handler for operations that reduce the dimensionality of the
     input.
@@ -130,7 +130,7 @@ class ReduceDimsHandler(AbstractShapeHandler):
         _check_index_bounds(self.reduce_dims, self._input_shape)
 
 
-class ExpandDimsHandler(AbstractShapeHandler):
+class ExpandDimsShapeHandler(AbstractShapeHandler):
     """Shape handler for operations that expand the dimensionality. New
     dimensions (axes) will be appended to the already existing ones of the
     input. Their sizes must be specified using the <new_dims_shape> argument.
@@ -180,7 +180,7 @@ class ExpandDimsHandler(AbstractShapeHandler):
         pass
 
 
-class ReshapeHandler(AbstractShapeHandler):
+class ReshapeShapeHandler(AbstractShapeHandler):
     """Shape handler for operations that reshape the input, changing
     the shape but keeping the number of elements constant.
 
@@ -206,7 +206,7 @@ class ReshapeHandler(AbstractShapeHandler):
         pass
 
 
-class ReorderHandler(AbstractShapeHandler):
+class ReorderShapeHandler(AbstractShapeHandler):
     """Shape handler for operations that reorder the input shape.
 
     Parameters
@@ -251,7 +251,7 @@ class ReorderHandler(AbstractShapeHandler):
                                        "dimensions to reorder")
 
 
-class ReduceDiagonalHandler(AbstractShapeHandler):
+class ReduceDiagonalShapeHandler(AbstractShapeHandler):
     """Shape handler for the ReduceDiagonal operation that projects
     diagonally from a multi-dimensional population.
     """
@@ -281,7 +281,7 @@ class ReduceDiagonalHandler(AbstractShapeHandler):
                 f"identical to the second half {second_half}")
 
 
-class FlipHandler(KeepShapeHandler):
+class FlipShapeHandler(KeepShapeShapeHandler):
     """Shape handler for the Flip operation that flips specified dimensions.
 
     Parameters

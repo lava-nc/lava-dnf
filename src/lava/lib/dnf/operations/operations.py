@@ -9,12 +9,12 @@ import numpy as np
 from lava.lib.dnf.utils.convenience import num_neurons
 from lava.lib.dnf.operations.shape_handlers import (
     AbstractShapeHandler,
-    KeepShapeHandler,
-    ReduceDimsHandler,
-    ExpandDimsHandler,
-    ReorderHandler,
-    ReduceDiagonalHandler,
-    FlipHandler)
+    KeepShapeShapeHandler,
+    ReduceDimsShapeHandler,
+    ExpandDimsShapeHandler,
+    ReorderShapeHandler,
+    ReduceDiagonalShapeHandler,
+    FlipShapeHandler)
 from lava.lib.dnf.operations.enums import ReduceMethod, BorderType
 from lava.lib.dnf.kernels.kernels import Kernel
 from lava.lib.dnf.utils.convenience import num_dims
@@ -112,7 +112,7 @@ class Weights(AbstractOperation):
 
     """
     def __init__(self, weight: float) -> None:
-        super().__init__(KeepShapeHandler())
+        super().__init__(KeepShapeShapeHandler())
         self.weight = weight
 
     def _compute_weights(self) -> np.ndarray:
@@ -138,7 +138,7 @@ class ReduceDims(AbstractOperation):
                  reduce_dims: ty.Union[int, ty.Tuple[int, ...]],
                  reduce_method: ty.Optional[ReduceMethod] = ReduceMethod.SUM
                  ) -> None:
-        super().__init__(ReduceDimsHandler(reduce_dims))
+        super().__init__(ReduceDimsShapeHandler(reduce_dims))
         ReduceMethod.validate(reduce_method)
         self.reduce_method = reduce_method
 
@@ -147,7 +147,7 @@ class ReduceDims(AbstractOperation):
         # that will not be removed
         in_axes_all = np.arange(num_dims(self.input_shape))
 
-        sh = ty.cast(ReduceDimsHandler, self._shape_handler)
+        sh = ty.cast(ReduceDimsShapeHandler, self._shape_handler)
         in_axes_kept = tuple(np.delete(in_axes_all, sh.reduce_dims))
 
         # Generate the weight matrix
@@ -170,7 +170,7 @@ class ExpandDims(AbstractOperation):
     """
     def __init__(self,
                  new_dims_shape: ty.Union[int, ty.Tuple[int, ...]]) -> None:
-        super().__init__(ExpandDimsHandler(new_dims_shape))
+        super().__init__(ExpandDimsShapeHandler(new_dims_shape))
 
     def _compute_weights(self) -> np.ndarray:
         # Indices of the output dimensions in the weight matrix that will
@@ -193,14 +193,14 @@ class Reorder(AbstractOperation):
     Parameters
     ----------
     order : tuple(int)
-        new order of the dimensions (see ReorderHandler)
+        new order of the dimensions (see ReorderShapeHandler)
 
     """
     def __init__(self, order: ty.Tuple[int, ...]) -> None:
-        super().__init__(ReorderHandler(order))
+        super().__init__(ReorderShapeHandler(order))
 
     def _compute_weights(self) -> np.ndarray:
-        sh = ty.cast(ReorderHandler,
+        sh = ty.cast(ReorderShapeHandler,
                      self._shape_handler)
         weights = _project_dims(self.input_shape,
                                 self.output_shape,
@@ -332,7 +332,7 @@ class Convolution(AbstractOperation):
                                            ty.List[BorderType]]]
             = BorderType.PADDED
     ) -> None:
-        super().__init__(KeepShapeHandler())
+        super().__init__(KeepShapeShapeHandler())
 
         self._kernel = self._validate_kernel(kernel)
         self._border_types = self._validate_border_types(border_types)
@@ -535,7 +535,7 @@ class ReduceDiagonal(AbstractOperation):
     79 = 40 * 2 - 1.
     """
     def __init__(self) -> None:
-        super().__init__(ReduceDiagonalHandler())
+        super().__init__(ReduceDiagonalShapeHandler())
 
     def _compute_weights(self) -> np.ndarray:
         weights = np.zeros(self.output_shape + self.input_shape,
@@ -584,7 +584,7 @@ class Flip(AbstractOperation):
         self,
         dims: ty.Optional[ty.Union[int, ty.Tuple[int, ...]]] = None
     ) -> None:
-        super().__init__(FlipHandler(dims=dims))
+        super().__init__(FlipShapeHandler(dims=dims))
 
     def _compute_weights(self) -> np.ndarray:
         shape = (num_neurons(self.output_shape), num_neurons(self.input_shape))
@@ -596,7 +596,7 @@ class Flip(AbstractOperation):
                                   self.input_shape)
         # Get the indices of the dimensions that are to be flipped from the
         # shape handler and increase them all by one
-        sh = ty.cast(FlipHandler, self._shape_handler)
+        sh = ty.cast(FlipShapeHandler, self._shape_handler)
         dims = np.array(sh.dims) + 1
         # Flip those dimensions
         weights = np.flip(weights, axis=tuple(dims))

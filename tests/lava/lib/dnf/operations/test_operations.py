@@ -18,7 +18,7 @@ from lava.lib.dnf.operations.operations import (
     ReduceDiagonal,
     Flip)
 from lava.lib.dnf.operations.enums import BorderType
-from lava.lib.dnf.operations.shape_handlers import KeepShapeHandler
+from lava.lib.dnf.operations.shape_handlers import KeepShapeShapeHandler
 from lava.lib.dnf.kernels.kernels import Kernel
 from lava.lib.dnf.utils.convenience import num_neurons
 
@@ -26,7 +26,7 @@ from lava.lib.dnf.utils.convenience import num_neurons
 class MockOperation(AbstractOperation):
     """Generic mock Operation"""
     def __init__(self) -> None:
-        super().__init__(shape_handler=KeepShapeHandler())
+        super().__init__(shape_handler=KeepShapeShapeHandler())
 
     def _compute_weights(self) -> np.ndarray:
         return np.ones((1, 1), dtype=np.int32)

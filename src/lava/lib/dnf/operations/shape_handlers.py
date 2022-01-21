@@ -206,7 +206,7 @@ class ReshapeShapeHandler(AbstractShapeHandler):
         pass
 
 
-class ReorderShapeHandler(AbstractShapeHandler):
+class ReorderDimsShapeHandler(AbstractShapeHandler):
     """Shape handler for operations that reorder the input shape.
 
     Parameters

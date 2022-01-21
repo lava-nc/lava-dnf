@@ -12,7 +12,7 @@ from lava.lib.dnf.operations.shape_handlers import (
     KeepShapeShapeHandler,
     ReduceDimsShapeHandler,
     ExpandDimsShapeHandler,
-    ReorderShapeHandler,
+    ReorderDimsShapeHandler,
     ReduceAlongDiagonalShapeHandler,
     ExpandAlongDiagonalShapeHandler,
     FlipShapeHandler)
@@ -186,7 +186,7 @@ class ExpandDims(AbstractOperation):
         return weights
 
 
-class Reorder(AbstractOperation):
+class ReorderDims(AbstractOperation):
     """
     Operation that reorders the dimensions in the input to a specified new
     order.
@@ -194,14 +194,14 @@ class Reorder(AbstractOperation):
     Parameters
     ----------
     order : tuple(int)
-        new order of the dimensions (see ReorderShapeHandler)
+        new order of the dimensions (see ReorderDimsShapeHandler)
 
     """
     def __init__(self, order: ty.Tuple[int, ...]) -> None:
-        super().__init__(ReorderShapeHandler(order))
+        super().__init__(ReorderDimsShapeHandler(order))
 
     def _compute_weights(self) -> np.ndarray:
-        sh = ty.cast(ReorderShapeHandler,
+        sh = ty.cast(ReorderDimsShapeHandler,
                      self._shape_handler)
         weights = _project_dims(self.input_shape,
                                 self.output_shape,

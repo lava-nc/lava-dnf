@@ -12,7 +12,7 @@ from lava.lib.dnf.operations.shape_handlers import (
     ReduceDimsShapeHandler,
     ReshapeShapeHandler,
     ExpandDimsShapeHandler,
-    ReorderShapeHandler,
+    ReorderDimsShapeHandler,
     ReduceAlongDiagonalShapeHandler,
     ExpandAlongDiagonalShapeHandler,
     FlipShapeHandler)
@@ -253,67 +253,67 @@ class TestReshapeShapeHandler(unittest.TestCase):
 
 class TestReorderShapeHandler(unittest.TestCase):
     def test_init(self) -> None:
-        """Tests whether a ReorderShapeHandler can be instantiated."""
-        sh = ReorderShapeHandler(order=(1, 0))
-        self.assertIsInstance(sh, ReorderShapeHandler)
+        """Tests whether a ReorderDimsShapeHandler can be instantiated."""
+        sh = ReorderDimsShapeHandler(order=(1, 0))
+        self.assertIsInstance(sh, ReorderDimsShapeHandler)
 
     def test_order_with_more_elements_than_input_raises_error(self) -> None:
         """Tests whether an error is raised when the specified new <order>
         has more elements than the number of input dimensions."""
-        sh = ReorderShapeHandler(order=(1, 0, 2))
+        sh = ReorderDimsShapeHandler(order=(1, 0, 2))
         with self.assertRaises(MisconfiguredOpError):
             sh.configure(input_shape=(2, 2))
 
     def test_order_with_less_elements_than_input_raises_error(self) -> None:
         """Tests whether an error is raised when the specified new <order>
         has less elements than the number of input dimensions."""
-        sh = ReorderShapeHandler(order=(1,))
+        sh = ReorderDimsShapeHandler(order=(1,))
         with self.assertRaises(MisconfiguredOpError):
             sh.configure(input_shape=(2, 2))
 
     def test_negative_order_index_within_bounds_works(self) -> None:
         """Tests whether indices in <order> can be specified with negative
         numbers."""
-        sh = ReorderShapeHandler(order=(0, -2))
+        sh = ReorderDimsShapeHandler(order=(0, -2))
         sh.configure(input_shape=(2, 2))
 
     def test_order_index_out_of_bounds_raises_error(self) -> None:
         """Tests whether an error is raised when an index in <order> is
         larger than the dimensionality of the input."""
-        sh = ReorderShapeHandler(order=(0, 2))
+        sh = ReorderDimsShapeHandler(order=(0, 2))
         with self.assertRaises(IndexError):
             sh.configure(input_shape=(2, 2))
 
     def test_negative_order_index_out_of_bounds_raises_error(self) -> None:
         """Tests whether an error is raised when an index in <order> is
         negative and out of bounds."""
-        sh = ReorderShapeHandler(order=(0, -3))
+        sh = ReorderDimsShapeHandler(order=(0, -3))
         with self.assertRaises(IndexError):
             sh.configure(input_shape=(2, 2))
 
     def test_input_dimensionality_0_raises_error(self) -> None:
         """Tests whether an error is raised when the input dimensionality is
         0, in which case reordering does not make sense."""
-        sh = ReorderShapeHandler(order=(0,))
+        sh = ReorderDimsShapeHandler(order=(0,))
         with self.assertRaises(MisconfiguredOpError):
             sh.configure(input_shape=(1,))
 
     def test_input_dimensionality_1_raises_error(self) -> None:
         """Tests whether an error is raised when the input dimensionality is
         1, in which case reordering does not make sense."""
-        sh = ReorderShapeHandler(order=(0,))
+        sh = ReorderDimsShapeHandler(order=(0,))
         with self.assertRaises(MisconfiguredOpError):
             sh.configure(input_shape=(5,))
 
     def test_reordering_2d(self) -> None:
         """Tests whether reordering a two-dimensional input works."""
-        sh = ReorderShapeHandler(order=(1, 0))
+        sh = ReorderDimsShapeHandler(order=(1, 0))
         sh.configure(input_shape=(0, 1))
         self.assertEqual(sh.output_shape, (1, 0))
 
     def test_reordering_3d(self) -> None:
         """Tests whether reordering a three-dimensional input works."""
-        sh = ReorderShapeHandler(order=(1, 2, 0))
+        sh = ReorderDimsShapeHandler(order=(1, 2, 0))
         sh.configure(input_shape=(0, 1, 2))
         self.assertEqual(sh.output_shape, (1, 2, 0))
 

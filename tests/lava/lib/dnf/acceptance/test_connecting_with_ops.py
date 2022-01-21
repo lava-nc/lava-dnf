@@ -11,7 +11,7 @@ from lava.proc.lif.process import LIF
 
 from lava.lib.dnf.connect.connect import connect
 from lava.lib.dnf.kernels.kernels import SelectiveKernel, MultiPeakKernel
-from lava.lib.dnf.operations.operations import Weights, ReduceDims, Reorder, \
+from lava.lib.dnf.operations.operations import Weights, ReduceDims, ReorderDims, \
     ExpandDims, Convolution
 
 
@@ -30,7 +30,7 @@ class TestConnectingWithOperations(unittest.TestCase):
 
         weight = 20
         connect(src.s_out, dst.a_in, ops=[Weights(weight),
-                                          Reorder(order=(1, 0))])
+                                          ReorderDims(order=(1, 0))])
         src.run(condition=RunSteps(num_steps=num_steps),
                 run_cfg=Loihi1SimCfg(select_tag='floating_pt'))
 
@@ -87,7 +87,7 @@ class TestConnectingWithOperations(unittest.TestCase):
         for dims, order, expected in zip(reduce_dims, orders, matrices):
             source = LIF(shape=(2, 2, 2))
             destination = LIF(shape=(2, 2))
-            reorder_op = Reorder(order=order)
+            reorder_op = ReorderDims(order=order)
             reduce_op = ReduceDims(reduce_dims=dims)
             computed = connect(source.s_out,
                                destination.a_in,
@@ -158,7 +158,7 @@ class TestConnectingWithOperations(unittest.TestCase):
         for order, expected in zip(orders, matrices):
             source = LIF(shape=(2, 2))
             destination = LIF(shape=(2, 2, 2))
-            reorder_op = Reorder(order=order)
+            reorder_op = ReorderDims(order=order)
             expand_op = ExpandDims(new_dims_shape=(2,))
             computed = connect(source.s_out,
                                destination.a_in,
@@ -229,7 +229,7 @@ class TestConnectingWithOperations(unittest.TestCase):
         for order, expected in zip(orders, matrices):
             source = LIF(shape=(2,))
             destination = LIF(shape=(2, 2, 2))
-            reorder_op = Reorder(order=order)
+            reorder_op = ReorderDims(order=order)
             expand_op = ExpandDims(new_dims_shape=(2, 2))
             computed = connect(source.s_out,
                                destination.a_in,

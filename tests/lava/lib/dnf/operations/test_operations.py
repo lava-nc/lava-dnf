@@ -13,7 +13,7 @@ from lava.lib.dnf.operations.operations import (
     ReduceDims,
     ReduceMethod,
     ExpandDims,
-    Reorder,
+    ReorderDims,
     Convolution,
     ReduceAlongDiagonal,
     ExpandAlongDiagonal,
@@ -337,13 +337,13 @@ class TestExpandDims(unittest.TestCase):
 
 class TestReorder(unittest.TestCase):
     def test_init(self) -> None:
-        """Tests whether a Reorder operation can be instantiated."""
-        op = Reorder(order=(1, 0, 2))
-        self.assertIsInstance(op, Reorder)
+        """Tests whether a ReorderDims operation can be instantiated."""
+        op = ReorderDims(order=(1, 0, 2))
+        self.assertIsInstance(op, ReorderDims)
 
     def test_compute_weights_no_change_2d(self) -> None:
         """Tests 'reordering' a 2D input to the same order."""
-        op = Reorder(order=(0, 1))
+        op = ReorderDims(order=(0, 1))
         op.configure(input_shape=(3, 3))
         computed_weights = op.compute_weights()
         expected_weights = np.eye(9)
@@ -352,7 +352,7 @@ class TestReorder(unittest.TestCase):
 
     def test_compute_weights_reordered_2d(self) -> None:
         """Tests reordering a 2D input by switching the dimensions."""
-        op = Reorder(order=(1, 0))
+        op = ReorderDims(order=(1, 0))
         op.configure(input_shape=(3, 3))
         computed_weights = op.compute_weights()
         expected_weights = np.array([[1, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -428,7 +428,7 @@ class TestReorder(unittest.TestCase):
                       [0, 0, 0, 0, 0, 0, 0, 1]])]
 
         for order, expected in zip(orders, expected_weights):
-            op = Reorder(order=order)
+            op = ReorderDims(order=order)
             op.configure(input_shape=(2, 2, 2))
             computed = op.compute_weights()
 

@@ -1277,7 +1277,7 @@ class TestExpandAlongDiagonal(unittest.TestCase):
                       [0, 0, 0, 0, 0, 1, 0, 0, 0],
                       [0, 0, 0, 0, 0, 0, 0, 1, 0],
                       [0, 0, 0, 0, 0, 0, 0, 0, 1]])
-            ]
+        ]
 
         for shape, expected in zip(shapes, expected_weights):
             diag_op = ExpandAlongDiagonal()
@@ -1367,7 +1367,7 @@ class TestFlip(unittest.TestCase):
         """Tests whether the computed weight matrix flips the input along the
         specified dimensions."""
 
-        def all_sub_sets(_set):
+        def all_sub_sets(_set: ty.List) -> ty.Iterator:
             """Creates a list of all possible subsets of a given set."""
             sub_sets = it.chain.from_iterable(
                 it.combinations(_set, length) for length in range(len(_set) + 1)

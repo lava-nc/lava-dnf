@@ -260,7 +260,7 @@ class ReduceAlongDiagonalShapeHandler(AbstractShapeHandler):
 
     def _compute_output_shape(self) -> None:
         num_dims_in = num_dims(self._input_shape)
-        shape = np.array(self._input_shape[0:int(num_dims_in/2)])
+        shape = np.array(self._input_shape[0:int(num_dims_in / 2)])
         self._output_shape = tuple(shape * 2 - 1)
 
     def _validate_args(self) -> None:
@@ -272,8 +272,8 @@ class ReduceAlongDiagonalShapeHandler(AbstractShapeHandler):
         if is_odd(num_dims_in):
             raise MisconfiguredOpError("the input dimensionality must be even")
 
-        first_half = input_shape[0:int(num_dims_in/2)]
-        second_half = input_shape[int(num_dims_in/2):]
+        first_half = input_shape[0:int(num_dims_in / 2)]
+        second_half = input_shape[int(num_dims_in / 2):]
 
         if first_half != second_half:
             raise MisconfiguredOpError(

@@ -631,8 +631,8 @@ class Flip(AbstractOperation):
         weights = np.eye(*shape, dtype=np.int32)
         # Reshape the connectivity matrix to explicitly represent the input
         # dimensions
-        weights = weights.reshape((num_neurons(self.output_shape),) +
-                                  self.input_shape)
+        weights = weights.reshape((num_neurons(self.output_shape),)
+                                  + self.input_shape)
         # Get the indices of the dimensions that are to be flipped from the
         # shape handler and increase them all by one
         sh = ty.cast(FlipShapeHandler, self._shape_handler)

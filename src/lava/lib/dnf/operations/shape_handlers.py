@@ -251,8 +251,8 @@ class ReorderShapeHandler(AbstractShapeHandler):
                                        "dimensions to reorder")
 
 
-class ReduceDiagonalShapeHandler(AbstractShapeHandler):
-    """Shape handler for the ReduceDiagonal operation that projects
+class ReduceAlongDiagonalShapeHandler(AbstractShapeHandler):
+    """Shape handler for the ReduceAlongDiagonal operation, which projects
     diagonally from a multi-dimensional population.
     """
     def __init__(self) -> None:
@@ -279,6 +279,29 @@ class ReduceDiagonalShapeHandler(AbstractShapeHandler):
             raise MisconfiguredOpError(
                 f"the first half of the input shape {first_half} must be "
                 f"identical to the second half {second_half}")
+
+
+class ExpandAlongDiagonalShapeHandler(AbstractShapeHandler):
+    """Shape handler for the ExpandAlongDiagonal operation, which projects
+    diagonally onto a multi-dimensional population.
+    """
+    def __init__(self) -> None:
+        super().__init__()
+
+    def _compute_output_shape(self) -> None:
+        half_shape = (np.array(self._input_shape) + 1) / 2
+        half_shape = tuple(half_shape.astype(int))
+        self._output_shape = half_shape + half_shape
+
+    def _validate_args(self) -> None:
+        pass
+
+    def _validate_input_shape(self, input_shape: ty.Tuple[int, ...]) -> None:
+        for size in input_shape:
+            if not is_odd(size):
+                raise MisconfiguredOpError("all dimensions of the input must "
+                                           f"have an odd size; {size} is not "
+                                           "odd")
 
 
 class FlipShapeHandler(KeepShapeShapeHandler):

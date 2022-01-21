@@ -15,7 +15,8 @@ from lava.lib.dnf.operations.operations import (
     ExpandDims,
     Reorder,
     Convolution,
-    ReduceDiagonal,
+    ReduceAlongDiagonal,
+    ExpandAlongDiagonal,
     Flip)
 from lava.lib.dnf.operations.enums import BorderType
 from lava.lib.dnf.operations.shape_handlers import KeepShapeShapeHandler
@@ -1142,11 +1143,11 @@ class TestConvolution(unittest.TestCase):
         )
 
 
-class TestProjectDiagonal(unittest.TestCase):
+class TestReduceAlongDiagonal(unittest.TestCase):
     def test_init(self) -> None:
-        """Tests whether a ReduceDiagonal operation can be instantiated."""
-        diag_op = ReduceDiagonal()
-        self.assertIsInstance(diag_op, ReduceDiagonal)
+        """Tests whether a ReduceAlongDiagonal operation can be instantiated."""
+        diag_op = ReduceAlongDiagonal()
+        self.assertIsInstance(diag_op, ReduceAlongDiagonal)
 
     def test_compute_weights_directly(self) -> None:
         """Tests whether computing weights produces the expected result for
@@ -1178,7 +1179,7 @@ class TestProjectDiagonal(unittest.TestCase):
         ]
 
         for shape, expected in zip(shapes, expected_weights):
-            diag_op = ReduceDiagonal()
+            diag_op = ReduceAlongDiagonal()
             diag_op.configure(shape + shape)
 
             computed = diag_op.compute_weights()
@@ -1211,7 +1212,7 @@ class TestProjectDiagonal(unittest.TestCase):
             spike_input = spike_input.ravel()
 
             # Create and configure the operation
-            diag_op = ReduceDiagonal()
+            diag_op = ReduceAlongDiagonal()
             diag_op.configure(spike_input_shape)
 
             # Use the operation to compute the connectivity weight matrix
@@ -1230,6 +1231,110 @@ class TestProjectDiagonal(unittest.TestCase):
             expected_idx = np.zeros(expected.ndim, dtype=np.int32)
             expected_idx[-1] = 1
             expected[tuple(expected_idx)] = 1
+            expected = expected.ravel()
+
+            self.assertTrue(np.array_equal(computed, expected))
+
+
+class TestExpandAlongDiagonal(unittest.TestCase):
+    def test_init(self) -> None:
+        """Tests whether a ExpandAlongDiagonal operation can be instantiated."""
+        diag_op = ExpandAlongDiagonal()
+        self.assertIsInstance(diag_op, ExpandAlongDiagonal)
+
+    def test_compute_weights_directly(self) -> None:
+        """Tests whether computing weights produces the expected result for
+        different shapes. This directly compares against small predetermined
+        weight matrices."""
+        shapes = [(3,), (5,), (3, 3)]
+        expected_weights = [
+            np.array([[1, 0, 0],
+                      [0, 1, 0],
+                      [0, 1, 0],
+                      [0, 0, 1]]),
+            np.array([[1, 0, 0, 0, 0],
+                      [0, 1, 0, 0, 0],
+                      [0, 0, 1, 0, 0],
+                      [0, 1, 0, 0, 0],
+                      [0, 0, 1, 0, 0],
+                      [0, 0, 0, 1, 0],
+                      [0, 0, 1, 0, 0],
+                      [0, 0, 0, 1, 0],
+                      [0, 0, 0, 0, 1]]),
+            np.array([[1, 0, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 1, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 1, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 1, 0, 0, 0, 0],
+                      [0, 1, 0, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 1, 0, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 1, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 1, 0, 0, 0],
+                      [0, 0, 0, 1, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 1, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 1, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 1, 0],
+                      [0, 0, 0, 0, 1, 0, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 1, 0, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 1, 0],
+                      [0, 0, 0, 0, 0, 0, 0, 0, 1]])
+            ]
+
+        for shape, expected in zip(shapes, expected_weights):
+            diag_op = ExpandAlongDiagonal()
+            diag_op.configure(shape)
+
+            computed = diag_op.compute_weights()
+
+            self.assertTrue(np.array_equal(computed, expected))
+
+    def test_compute_weights_indirectly(self) -> None:
+        """Tests computing weights indirectly by multiplying the computed
+        weight matrices with simple matrices. This is to be able to test
+        higher dimensional cases where direct testing of the weight matrices
+        would require pasting very large matrices into the source code."""
+        # Go through a 1D, 2D, and 3D case
+        shapes = [(5,), (5, 7), (5, 7, 9)]
+
+        for shape in shapes:
+            # Construct a mock spike-input from a 'relational DNF'
+            spike_input = np.zeros(shape, dtype=np.int32)
+            # Generate an index such that the second element of the last
+            # dimension is 1:
+            # e.g., a 1D spike input would be: [0, 1, 0, 0],
+            # a 2D spike input would be: [[0, 0, 0], [0, 0, 0], [0, 1, 0]]
+            idx = np.zeros(spike_input.ndim, dtype=np.int32)
+            idx[-1] = 1
+            spike_input[tuple(idx)] = 1
+
+            # Create and configure the operation
+            diag_op = ExpandAlongDiagonal()
+            diag_op.configure(shape)
+
+            # Use the operation to compute the connectivity weight matrix
+            weights = diag_op.compute_weights()
+
+            # Compute the output of the synaptic connections if the
+            # connectivity matrix were applied to the spike input
+            computed = np.matmul(weights, spike_input.ravel())
+
+            # Generate the expected output of the synaptic connections;
+            # the shape along every dimension must be (input+1)*2,
+            # where all elements are zero except for the "line" projected
+            # diagonally through the matrix
+            half_shape = (np.array(shape) + 1) / 2
+            half_shape = tuple(half_shape.astype(int))
+            expected_shape = half_shape + half_shape
+            expected = np.zeros(expected_shape, dtype=np.int32)
+            # Get the position of the spike input
+            x = np.argwhere(spike_input)[0]
+            for p in np.ndindex(*half_shape):
+                p = np.array(p)
+
+                # Set expected[x-p, p] = 1, where 0 <= x-p < half_shape
+                d = x - p
+                if np.all(0 <= d) and np.all(d < np.array(half_shape)):
+                    i = tuple(np.concatenate([d, p]))
+                    expected[i] = 1
             expected = expected.ravel()
 
             self.assertTrue(np.array_equal(computed, expected))

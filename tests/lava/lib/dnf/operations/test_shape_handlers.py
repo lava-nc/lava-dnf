@@ -13,7 +13,8 @@ from lava.lib.dnf.operations.shape_handlers import (
     ReshapeShapeHandler,
     ExpandDimsShapeHandler,
     ReorderShapeHandler,
-    ReduceDiagonalShapeHandler,
+    ReduceAlongDiagonalShapeHandler,
+    ExpandAlongDiagonalShapeHandler,
     FlipShapeHandler)
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 
@@ -319,14 +320,14 @@ class TestReorderShapeHandler(unittest.TestCase):
 
 class TestReduceDiagonalShapeHandler(unittest.TestCase):
     def test_init(self) -> None:
-        """Tests whether a ReduceDiagonalShapeHandler can be instantiated."""
-        sh = ReduceDiagonalShapeHandler()
-        self.assertIsInstance(sh, ReduceDiagonalShapeHandler)
+        """Tests whether a ReduceAlongDiagonalShapeHandler can be instantiated."""
+        sh = ReduceAlongDiagonalShapeHandler()
+        self.assertIsInstance(sh, ReduceAlongDiagonalShapeHandler)
 
     def test_odd_input_dimensionality_raises_exception(self) -> None:
         """Tests whether an exception is raised when the number of input
         dimensions is not even."""
-        sh = ReduceDiagonalShapeHandler()
+        sh = ReduceAlongDiagonalShapeHandler()
         with self.assertRaises(MisconfiguredOpError):
             sh.configure(input_shape=(4, 4, 4))
 
@@ -334,7 +335,7 @@ class TestReduceDiagonalShapeHandler(unittest.TestCase):
         """Tests whether an exception is raised when the shape of the input
         population is not composed of a combination of two identical shapes.
         For instance, a valid input shape would be (40, 30, 40, 30)."""
-        sh = ReduceDiagonalShapeHandler()
+        sh = ReduceAlongDiagonalShapeHandler()
         with self.assertRaises(MisconfiguredOpError):
             sh.configure(input_shape=(4, 3, 4, 2))
 
@@ -343,9 +344,36 @@ class TestReduceDiagonalShapeHandler(unittest.TestCase):
         shapes = [(4,), (4, 3), (4, 3, 2)]
 
         for shape in shapes:
-            sh = ReduceDiagonalShapeHandler()
+            sh = ReduceAlongDiagonalShapeHandler()
             sh.configure(input_shape=shape + shape)
             expected_shape = tuple(np.array(shape) * 2 - 1)
+            self.assertEqual(sh.output_shape, expected_shape)
+
+
+class TestExpandDiagonalShapeHandler(unittest.TestCase):
+    def test_init(self) -> None:
+        """Tests whether a ExpandAlongDiagonalShapeHandler can be instantiated."""
+        sh = ExpandAlongDiagonalShapeHandler()
+        self.assertIsInstance(sh, ExpandAlongDiagonalShapeHandler)
+
+    def test_even_dimensionality_size_raises_exception(self) -> None:
+        """Tests whether an exception is raised when a dimension has an even
+        size."""
+        sh = ExpandAlongDiagonalShapeHandler()
+        with self.assertRaises(MisconfiguredOpError):
+            sh.configure(input_shape=(4, 3))
+
+    def test_computing_output_shape(self) -> None:
+        """Tests that the output shape is computed correctly. For example,
+        for an input shape (7, 5), the expected output shape is (4, 3, 4, 3)."""
+        shapes = [(7,), (7, 5), (7, 5, 3)]
+
+        for shape in shapes:
+            sh = ExpandAlongDiagonalShapeHandler()
+            sh.configure(input_shape=shape)
+            half_shape = (np.array(shape) + 1) / 2
+            half_shape = tuple(half_shape.astype(int))
+            expected_shape = half_shape + half_shape
             self.assertEqual(sh.output_shape, expected_shape)
 
 

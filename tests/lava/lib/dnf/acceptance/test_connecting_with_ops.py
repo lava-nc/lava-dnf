@@ -11,8 +11,13 @@ from lava.proc.lif.process import LIF
 
 from lava.lib.dnf.connect.connect import connect
 from lava.lib.dnf.kernels.kernels import SelectiveKernel, MultiPeakKernel
-from lava.lib.dnf.operations.operations import Weights, ReduceDims, ReorderDims, \
-    ExpandDims, Convolution
+from lava.lib.dnf.operations.operations import (
+    Weights,
+    ReduceDims,
+    ReorderDims,
+    ExpandDims,
+    Convolution
+)
 
 
 class TestConnectingWithOperations(unittest.TestCase):

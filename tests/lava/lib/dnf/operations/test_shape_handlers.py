@@ -320,7 +320,8 @@ class TestReorderShapeHandler(unittest.TestCase):
 
 class TestReduceDiagonalShapeHandler(unittest.TestCase):
     def test_init(self) -> None:
-        """Tests whether a ReduceAlongDiagonalShapeHandler can be instantiated."""
+        """Tests whether a ReduceAlongDiagonalShapeHandler can be
+        instantiated."""
         sh = ReduceAlongDiagonalShapeHandler()
         self.assertIsInstance(sh, ReduceAlongDiagonalShapeHandler)
 
@@ -352,7 +353,8 @@ class TestReduceDiagonalShapeHandler(unittest.TestCase):
 
 class TestExpandDiagonalShapeHandler(unittest.TestCase):
     def test_init(self) -> None:
-        """Tests whether a ExpandAlongDiagonalShapeHandler can be instantiated."""
+        """Tests whether a ExpandAlongDiagonalShapeHandler can be
+        instantiated."""
         sh = ExpandAlongDiagonalShapeHandler()
         self.assertIsInstance(sh, ExpandAlongDiagonalShapeHandler)
 

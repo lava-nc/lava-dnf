@@ -6,10 +6,9 @@ from abc import ABC, abstractmethod
 import typing as ty
 import numpy as np
 
-from lava.lib.dnf.utils.convenience import num_neurons
+from lava.lib.dnf.utils.convenience import num_neurons, num_dims
+from lava.lib.dnf.utils.math import is_odd
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
-
-from lava.lib.dnf.utils.convenience import num_dims
 
 
 class AbstractShapeHandler(ABC):
@@ -70,7 +69,7 @@ class AbstractShapeHandler(ABC):
         pass
 
 
-class KeepShapeHandler(AbstractShapeHandler):
+class KeepShapeShapeHandler(AbstractShapeHandler):
     """Shape handler for operations that do not change the shape of the
      input."""
     def _compute_output_shape(self) -> None:
@@ -84,7 +83,7 @@ class KeepShapeHandler(AbstractShapeHandler):
         pass
 
 
-class ReduceDimsHandler(AbstractShapeHandler):
+class ReduceDimsShapeHandler(AbstractShapeHandler):
     """
     Shape handler for operations that reduce the dimensionality of the
     input.
@@ -128,16 +127,10 @@ class ReduceDimsHandler(AbstractShapeHandler):
                              f"more entries than the shape of the input "
                              f"{self._input_shape}")
 
-        for idx in self.reduce_dims:
-            # Compute the positive index irrespective of the sign of 'idx'
-            idx_positive = len(self._input_shape) + idx if idx < 0 else idx
-            # Make sure the positive index is not out of bounds
-            if idx_positive < 0 or idx_positive >= len(self._input_shape):
-                raise IndexError(f"<reduce_dims> value {idx} is out of bounds "
-                                 f"for array of size {len(self._input_shape)}")
+        _check_index_bounds(self.reduce_dims, self._input_shape)
 
 
-class ExpandDimsHandler(AbstractShapeHandler):
+class ExpandDimsShapeHandler(AbstractShapeHandler):
     """Shape handler for operations that expand the dimensionality. New
     dimensions (axes) will be appended to the already existing ones of the
     input. Their sizes must be specified using the <new_dims_shape> argument.
@@ -187,7 +180,7 @@ class ExpandDimsHandler(AbstractShapeHandler):
         pass
 
 
-class ReshapeHandler(AbstractShapeHandler):
+class ReshapeShapeHandler(AbstractShapeHandler):
     """Shape handler for operations that reshape the input, changing
     the shape but keeping the number of elements constant.
 
@@ -213,7 +206,7 @@ class ReshapeHandler(AbstractShapeHandler):
         pass
 
 
-class ReorderHandler(AbstractShapeHandler):
+class ReorderDimsShapeHandler(AbstractShapeHandler):
     """Shape handler for operations that reorder the input shape.
 
     Parameters
@@ -247,13 +240,7 @@ class ReorderHandler(AbstractShapeHandler):
                                        f"len({self._order}) != len("
                                        f"{self._input_shape})")
 
-        for idx in self._order:
-            # Compute the positive index irrespective of the sign of 'idx'
-            idx_positive = len(self._input_shape) + idx if idx < 0 else idx
-            # Make sure the positive index is not out of bounds
-            if idx_positive < 0 or idx_positive >= len(self._input_shape):
-                raise IndexError(f"<order> value {idx} is out of bounds "
-                                 f"for array of size {len(self._input_shape)}")
+        _check_index_bounds(self._order, self._input_shape)
 
     def _validate_input_shape(self, input_shape: ty.Tuple[int, ...]) -> None:
         num_dims_in = num_dims(input_shape)
@@ -262,3 +249,115 @@ class ReorderHandler(AbstractShapeHandler):
             raise MisconfiguredOpError("the input dimensionality "
                                        "is smaller than 2; there are no "
                                        "dimensions to reorder")
+
+
+class ReduceAlongDiagonalShapeHandler(AbstractShapeHandler):
+    """Shape handler for the ReduceAlongDiagonal operation, which projects
+    diagonally from a multi-dimensional population.
+    """
+    def __init__(self) -> None:
+        super().__init__()
+
+    def _compute_output_shape(self) -> None:
+        num_dims_in = num_dims(self._input_shape)
+        shape = np.array(self._input_shape[0:int(num_dims_in / 2)])
+        self._output_shape = tuple(shape * 2 - 1)
+
+    def _validate_args(self) -> None:
+        pass
+
+    def _validate_input_shape(self, input_shape: ty.Tuple[int, ...]) -> None:
+        num_dims_in = num_dims(input_shape)
+
+        if is_odd(num_dims_in):
+            raise MisconfiguredOpError("the input dimensionality must be even")
+
+        first_half = input_shape[0:int(num_dims_in / 2)]
+        second_half = input_shape[int(num_dims_in / 2):]
+
+        if first_half != second_half:
+            raise MisconfiguredOpError(
+                f"the first half of the input shape {first_half} must be "
+                f"identical to the second half {second_half}")
+
+
+class ExpandAlongDiagonalShapeHandler(AbstractShapeHandler):
+    """Shape handler for the ExpandAlongDiagonal operation, which projects
+    diagonally onto a multi-dimensional population.
+    """
+    def __init__(self) -> None:
+        super().__init__()
+
+    def _compute_output_shape(self) -> None:
+        half_shape = (np.array(self._input_shape) + 1) / 2
+        half_shape = tuple(half_shape.astype(int))
+        self._output_shape = half_shape + half_shape
+
+    def _validate_args(self) -> None:
+        pass
+
+    def _validate_input_shape(self, input_shape: ty.Tuple[int, ...]) -> None:
+        for size in input_shape:
+            if not is_odd(size):
+                raise MisconfiguredOpError("all dimensions of the input must "
+                                           f"have an odd size; {size} is not "
+                                           "odd")
+
+
+class FlipShapeHandler(KeepShapeShapeHandler):
+    """Shape handler for the Flip operation that flips specified dimensions.
+
+    Parameters
+    ----------
+    dims : tuple(int) or int
+        indices of the dimensions that are to be flipped
+    """
+    def __init__(
+        self,
+        dims: ty.Optional[ty.Union[int, ty.Tuple[int, ...]]] = None
+    ) -> None:
+        super().__init__()
+        self._dims = dims
+
+    @property
+    def dims(self) -> ty.Tuple[int, ...]:
+        """Return the <dims> that are to be flipped"""
+        return self._dims
+
+    def _validate_args(self) -> None:
+        """Validate the <dims> argument"""
+        num_dims_in = num_dims(self._input_shape)
+
+        if self._dims is None:
+            self._dims = tuple(range(num_dims_in))
+
+        if len(self._dims) > num_dims_in:
+            raise MisconfiguredOpError("<dims> may only have as many entries "
+                                       "as the input shape: "
+                                       f"len({self._dims}) > len("
+                                       f"{self._input_shape})")
+
+        _check_index_bounds(self._dims, self._input_shape)
+
+
+def _check_index_bounds(indices: ty.Tuple[int, ...],
+                        shape: ty.Tuple[int, ...]) -> None:
+    """Checks whether all of the given indices are not out of bounds for the
+    given shape. Throws an IndexError if violated.
+
+    Parameters
+    ----------
+    indices : tuple(int)
+        indices of the dimensions that are to be checked
+    shape : tuple(int)
+        shape of the array that the indices will address and that will be
+        checked against
+
+    """
+    for idx in indices:
+        # Compute the positive index irrespective of the sign of 'idx'
+        idx_positive = len(shape) + idx if idx < 0 else idx
+        # Make sure the positive index is not out of bounds
+        if idx_positive < 0 or idx_positive >= len(shape):
+            raise IndexError(f"index value {idx} is out of bounds "
+                             f"for array of size {len(shape)}")

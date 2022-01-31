@@ -13,7 +13,7 @@ from lava.lib.dnf.connect.connect import connect
 from lava.lib.dnf.connect.exceptions import MisconfiguredConnectError
 from lava.lib.dnf.operations.operations import AbstractOperation
 from lava.lib.dnf.operations.shape_handlers import AbstractShapeHandler,\
-    KeepShapeHandler
+    KeepShapeShapeHandler
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 from lava.lib.dnf.utils.convenience import num_neurons
 
@@ -29,7 +29,7 @@ class MockProcess(AbstractProcess):
 class MockNoChangeOperation(AbstractOperation):
     """Mock Operation that does not change shape"""
     def __init__(self) -> None:
-        super().__init__(shape_handler=KeepShapeHandler())
+        super().__init__(shape_handler=KeepShapeShapeHandler())
 
     def _compute_weights(self) -> np.ndarray:
         return np.eye(num_neurons(self.output_shape),

@@ -42,6 +42,44 @@ Examples demonstrating basic DNF regimes and instabilities
 - Selection of input
 - Working memory of input
 
+## Installation
+### Cloning lava-dnf and Running from Source
+We highly recommend cloning the repository and using pybuilder to setup lava. You will need to install pybuilder for the same.
+
+Note: We assume you have already setup Lava with virtual environment. Test your PYTHONPATH using `echo $PYTHONPATH` and
+ensure 'lava/src' is the first entry that precedes any additional Lava library src paths. 
+
+#### [Linux/MacOS]
+```bash
+$ git clone git@github.com:lava-nc/lava-dnf.git
+$ cd lava-dnf
+$ pip install -r requirements.txt
+$ export PYTHONPATH=$PYTHONPATH:$(pwd)/src
+$ pyb -E unit
+```
+
+You should expect the following output after running the unit tests:
+```bash
+PyBuilder version 0.13.4
+Build started at 2022-03-01 06:36:09
+------------------------------------------------------------
+[INFO] Installing or updating plugin "pypi:pybuilder_bandit, module name 'pybuilder_bandit'"
+[...]
+[INFO] Running Twine check for generated artifacts
+------------------------------------------------------------
+BUILD SUCCESSFUL
+------------------------------------------------------------
+Build Summary
+Project: lava-dnf
+Version: 0.1.0
+Base directory: /home/user/lava-dnf
+Environments: unit
+Tasks: prepare [130648 ms] compile_sources [0 ms] run_unit_tests [17550 ms] analyze [837 ms] package [115 ms] run_integration_tests [0 ms] verify [0 ms] coverage [22552 ms] publish [6177 ms]
+Build finished at 2022-03-01 06:39:16
+Build took 186 seconds (186983 ms)
+
+```
+
 ## Example
 
 ```python

@@ -27,9 +27,9 @@ def plot_1d(probe_data_dnf: np.ndarray,
         probe data of the second spiking input
     """
     probe_data_input = probe_data_input1 + probe_data_input2
-    probe_data_input = probe_data_input.astype(np.float)
+    probe_data_input = probe_data_input.astype(float)
     probe_data_input = np.transpose(probe_data_input)
-    probe_data_dnf = np.transpose(probe_data_dnf.astype(np.float))
+    probe_data_dnf = np.transpose(probe_data_dnf.astype(float))
 
     num_neurons = np.size(probe_data_input, axis=1)
     num_time_steps = np.size(probe_data_input, axis=0)
@@ -77,8 +77,8 @@ def animated_1d_plot(probe_data_dnf: np.ndarray,
         interval to use in matplotlib.animation.FuncAnimation
     """
     probe_data_input = probe_data_input1 + probe_data_input2
-    probe_data_input = probe_data_input.astype(np.float)
-    probe_data_dnf = probe_data_dnf.astype(np.float)
+    probe_data_input = probe_data_input.astype(float)
+    probe_data_dnf = probe_data_dnf.astype(float)
     probe_data_input = np.transpose(probe_data_input)
     probe_data_dnf = np.transpose(probe_data_dnf)
 

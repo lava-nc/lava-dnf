@@ -70,6 +70,10 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
             np.rint(TIME_STEPS_PER_MINUTE / pattern[idx_non_negligible])\
             .astype(int)
 
+        idx_saturated = np.all([idx_non_negligible, distances == 0.], axis=0)
+
+        distances[idx_saturated] = 1
+
         return distances
 
     def _compute_first_spike_times(self,

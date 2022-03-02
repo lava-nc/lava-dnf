@@ -256,6 +256,41 @@ class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
         finally:
             source.stop()
 
+    def test_spike_rate_saturation(self) -> None:
+        """Tests whether the spike rate is saturated when high pattern
+        amplitude is given (i.e that neuron spikes every time step when its
+        corresponding incoming pattern is high)"""
+        num_steps = 10
+        shape = (5,)
+
+        pattern = np.zeros(shape)
+        pattern[2:3] = 20000.
+
+        expected_spikes = np.array(
+            [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+        )
+
+        source = SourceProcess(shape=shape, data=pattern)
+        spike_gen = RateCodeSpikeGen(shape=shape, seed=42)
+        sink = SinkProcess(shape=(shape[0], num_steps))
+
+        source.out_ports.a_out.connect(spike_gen.in_ports.a_in)
+        spike_gen.out_ports.s_out.connect(sink.in_ports.s_in)
+
+        try:
+            source.run(condition=RunSteps(num_steps=num_steps),
+                       run_cfg=Loihi1SimCfg())
+
+            received_spikes = sink.data.get()
+
+            np.testing.assert_array_equal(received_spikes, expected_spikes)
+        finally:
+            source.stop()
+
 
 if __name__ == '__main__':
     unittest.main()

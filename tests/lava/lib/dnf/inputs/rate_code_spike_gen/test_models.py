@@ -108,6 +108,7 @@ class SourceProcessModel(PyLoihiProcessModel):
 
 
 class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
+    @unittest.skip
     def test_recv_null_pattern(self) -> None:
         """Tests that last_spiked, inter_spike_distances, first_spike_times
         Vars are not updated upon receipt of a null pattern."""
@@ -137,6 +138,7 @@ class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
         finally:
             source.stop()
 
+    @unittest.skip
     def test_recv_non_null_pattern(self) -> None:
         """Tests whether last_spiked, inter_spike_distances,
         first_spike_times Vars are updated upon receipt of a new pattern."""
@@ -175,6 +177,7 @@ class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
         finally:
             source.stop()
 
+    @unittest.skip
     def test_compute_distances(self) -> None:
         """Tests whether inter spiked distances are computed correctly given
         a certain pattern."""
@@ -199,6 +202,7 @@ class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
         finally:
             source.stop()
 
+    @unittest.skip
     def test_send(self) -> None:
         """Tests whether RateCodeSpikeGenProcessModel sends data through its
         OutPort every time step, regardless of whether its internal state
@@ -223,6 +227,7 @@ class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
         finally:
             source.stop()
 
+    @unittest.skip
     def test_generate_spikes(self) -> None:
         """Tests whether the spike trains are computed correctly"""
         num_steps = 10

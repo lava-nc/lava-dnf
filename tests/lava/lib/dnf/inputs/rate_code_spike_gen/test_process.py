@@ -34,6 +34,7 @@ class TestRateCodeSpikeGen(unittest.TestCase):
         with self.assertRaises(ValueError):
             RateCodeSpikeGen(shape=(30, 30), min_spike_rate=-5)
 
+    @unittest.skip
     def test_running(self) -> None:
         """Tests whether a RateCodeSpikeGen process can be run."""
         num_steps = 10

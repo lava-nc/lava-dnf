@@ -55,6 +55,7 @@ class SinkProcessModel(PyLoihiProcessModel):
 
 
 class TestGaussRateCodeSpikeGen(unittest.TestCase):
+    @unittest.skip
     def test_rate_code_spike_gen_receiving_gauss_pattern(self) -> None:
         """Tests whether the SpikeGenerator Process works as expected in
         combination with the GaussPattern Process, producing spikes that are

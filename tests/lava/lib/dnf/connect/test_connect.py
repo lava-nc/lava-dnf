@@ -85,18 +85,14 @@ class TestConnect(unittest.TestCase):
         # check whether 'source' is connected to 'connections'
         src_op = source.out_ports.s_out
         con_ip = connections.in_ports.s_in
-        # TODO (MR): remove this after switching to Reshape ports
-        rs1_op = src_op.get_dst_ports()[0].process.out_ports.s_out
-        self.assertEqual(rs1_op.get_dst_ports(), [con_ip])
-        self.assertEqual(con_ip.get_src_ports(), [rs1_op])
+        self.assertEqual(src_op.get_dst_ports(), [con_ip])
+        self.assertEqual(con_ip.get_src_ports(), [src_op])
 
         # check whether 'connections' is connected to 'target'
         con_op = connections.out_ports.a_out
         dst_op = destination.in_ports.a_in
-        # TODO (MR): remove this after switching to Reshape ports
-        rs2_op = con_op.get_dst_ports()[0].process.out_ports.s_out
-        self.assertEqual(rs2_op.get_dst_ports(), [dst_op])
-        self.assertEqual(dst_op.get_src_ports(), [rs2_op])
+        self.assertEqual(con_op.get_dst_ports(), [dst_op])
+        self.assertEqual(dst_op.get_src_ports(), [con_op])
 
     def test_connecting_with_op_that_does_not_change_shape(self) -> None:
         """Tests connecting a source Process to a destination Process."""

@@ -1,3 +1,3 @@
-lava-nc@https://github.com/lava-nc/lava/releases/download/v0.2.0/lava-nc-0.2.0.tar.gz
+lava-nc@https://github.com/lava-nc/lava/releases/download/v0.2.0/lava-nc-0.3.0.tar.gz
 numpy
 scipy>=1.7.2

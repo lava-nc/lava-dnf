@@ -4,7 +4,7 @@ on: [push, pull_request]
 jobs:
   lint:
     name: Lint Code
-    runs-on: linux-X64-ubuntu
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
@@ -22,15 +22,15 @@ jobs:
         virtualenvs-create: true
         virtualenvs-in-project: true
     
-#    - name: Load cached venv
-#      id: cached-poetry-dependencies
-#      uses: actions/cache@v2
-#      with:
-#        path: ~/.cache
-#        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-02-${{ hashFiles('**/poetry.lock') }}
+    - name: Load cached venv
+      id: cached-poetry-dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-02-${{ hashFiles('**/poetry.lock') }}
 
     - name: Install dependencies
- #     if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: poetry install --no-interaction --no-root
 
     - name: Install Lava DNF
@@ -50,7 +50,7 @@ jobs:
 
   security-lint:
     name: Security Lint Code
-    runs-on: linux-X64-ubuntu
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
@@ -68,15 +68,15 @@ jobs:
         virtualenvs-create: true
         virtualenvs-in-project: true
     
- #   - name: Load cached venv
- #     id: cached-poetry-dependencies
- #     uses: actions/cache@v2
- #     with:
- #       path: ~/.cache
- #       key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-02-${{ hashFiles('**/poetry.lock') }}
+    - name: Load cached venv
+      id: cached-poetry-dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-02-${{ hashFiles('**/poetry.lock') }}
 
     - name: Install dependencies
- #     if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: poetry install --no-interaction --no-root
 
     - name: Install Lava DNF
@@ -94,7 +94,7 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [linux-X64-ubuntu]
+        operating-system: [ubuntu-latest, macos-latest]
 
     steps:
     - uses: actions/checkout@v2
@@ -112,15 +112,15 @@ jobs:
         virtualenvs-create: true
         virtualenvs-in-project: true
     
-#    - name: Load cached venv
-#      id: cached-poetry-dependencies
-#      uses: actions/cache@v2
-#      with:
-#        path: ~/.cache
-#        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-02-${{ hashFiles('**/poetry.lock') }}
+    - name: Load cached venv
+      id: cached-poetry-dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-02-${{ hashFiles('**/poetry.lock') }}
 
     - name: Install dependencies
-#      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: poetry install --no-interaction --no-root
 
     - name: Install Lava DNF

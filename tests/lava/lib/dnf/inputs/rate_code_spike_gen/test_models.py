@@ -48,7 +48,7 @@ class SinkProcessModel(PyLoihiProcessModel):
     def run_spk(self) -> None:
         """Receive data and store in an internal variable"""
         s_in = self.s_in.recv()
-        self.data[:, self.current_ts - 1] = s_in
+        self.data[:, self.time_step - 1] = s_in
 
 
 class SourceProcess(AbstractProcess):

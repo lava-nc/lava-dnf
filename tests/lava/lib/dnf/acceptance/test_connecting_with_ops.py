@@ -45,7 +45,7 @@ class TestConnectingWithOperations(unittest.TestCase):
 
         src.stop()
 
-        self.assertEqual(src.runtime.current_ts, num_steps)
+        self.assertEqual(src.runtime.num_steps, num_steps)
         self.assertTrue(np.array_equal(computed_dst_u, expected_dst_u))
 
     def test_connect_population_with_weights_op(self) -> None:

@@ -175,7 +175,7 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
         # If the received pattern is not the null_pattern ...
         if not np.isnan(pattern).any():
             # Save the current time step
-            self.ts_last_changed = self.current_ts
+            self.ts_last_changed = self.time_step
             # Reset last spike times
             self.last_spiked = np.full_like(self.last_spiked, -np.inf)
 
@@ -186,6 +186,6 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
                 self.inter_spike_distances)
 
         # Generate spike at every time step ...
-        self.spikes = self._generate_spikes(time_step=self.current_ts)
+        self.spikes = self._generate_spikes(time_step=self.time_step)
         # ... and send them through the PyOutPort
         self.s_out.send(self.spikes)

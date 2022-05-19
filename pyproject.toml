@@ -44,7 +44,7 @@ python = ">=3.8,<3.11"
 lava-nc = { url = "https://github.com/lava-nc/lava/releases/download/v0.3.0/lava_nc-0.3.0-py3-none-any.whl" }
 
 numpy = "^1.22.3"
-scipy = "^1.8.1"
+scipy = "^1.8.0"
 ipykernel = "^6.13.0"
 
 

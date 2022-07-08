@@ -218,8 +218,7 @@ def _make_connections(src_op: OutPort,
     """
 
     # Create the connections process
-    connections = Dense(shape=weights.shape,
-                        weights=weights)
+    connections = Dense(weights=weights)
 
     con_ip = connections.s_in
     src_op.reshape(new_shape=con_ip.shape).connect(con_ip)

@@ -28,9 +28,11 @@ class TestConnectingWithOperations(unittest.TestCase):
         shape_src = (5, 3)
         shape_dst = (3, 5)
 
-        bias = np.zeros(shape_src)
-        bias[:, 0] = 5000
-        src = LIF(shape=shape_src, bias=bias, bias_exp=np.ones(shape_src))
+        bias_mant = np.zeros(shape_src)
+        bias_mant[:, 0] = 5000
+        src = LIF(shape=shape_src,
+                  bias_mant=bias_mant,
+                  bias_exp=np.ones(shape_src))
         dst = LIF(shape=shape_dst)
 
         weight = 20

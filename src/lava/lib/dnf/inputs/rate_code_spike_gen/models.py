@@ -40,7 +40,10 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
     a_in: PyInPort = LavaPyType(PyInPort.VEC_DENSE, float)
     s_out: PyOutPort = LavaPyType(PyOutPort.VEC_DENSE, bool)
 
-    ts_last_changed: int = 1
+    def __init__(self, proc_params):
+        super().__init__(proc_params)
+        self.ts_last_changed: int = 1
+        self.time_step: int = 0
 
     def _compute_distances(self, pattern: np.ndarray) -> np.ndarray:
         """Converts pattern representing spike rates in Hz to
@@ -169,13 +172,15 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
         return spikes
 
     def run_spk(self) -> None:
+        self.time_step += 1
+
         # Receive pattern from PyInPort
         pattern = self.a_in.recv()
 
         # If the received pattern is not the null_pattern ...
         if not np.isnan(pattern).any():
             # Save the current time step
-            self.ts_last_changed = self.current_ts
+            self.ts_last_changed = self.time_step
             # Reset last spike times
             self.last_spiked = np.full_like(self.last_spiked, -np.inf)
 
@@ -186,6 +191,6 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
                 self.inter_spike_distances)
 
         # Generate spike at every time step ...
-        self.spikes = self._generate_spikes(time_step=self.current_ts)
+        self.spikes = self._generate_spikes(time_step=self.time_step)
         # ... and send them through the PyOutPort
         self.s_out.send(self.spikes)

@@ -47,10 +47,6 @@ class TestGaussRateCodeSpikeGen(unittest.TestCase):
             spike_gen.run(condition=run_condition, run_cfg=run_cfg)
 
             received_spikes = sink_process.data.get()
-            import sys
-            np.set_printoptions(threshold=sys.maxsize)
-            print(f"expected: {expected_spikes}")
-            print(f"received: {received_spikes}")
             np.testing.assert_array_equal(received_spikes,
                                           expected_spikes)
         finally:

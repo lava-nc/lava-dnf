@@ -212,5 +212,6 @@ class TestTutorials(unittest.TestCase):
             "tutorial_relational_networks.ipynb"
         )
 
+
 if __name__ == '__main__':
     support.run_unittest(TestTutorials)

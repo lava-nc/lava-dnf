@@ -2,7 +2,7 @@
 
 - Before submitting an issue please refer to https://lava-nc.org/developer_guide.html#how-to-contribute-to-lava
 
-- Please make sure you are posting an issue pertaining to the github.com/lava-nc/lava-dnf, for issues with lava please file in lava-nc/lava repository, for example github.com/lava-nc/lava/issues
+- Please make sure you are posting an issue pertaining to github.com/lava-nc/lava-dnf, for issues with Lava please file in lava-nc/lava repository, for example github.com/lava-nc/lava/issues
 
 - Please do not submit support requests or "How to" questions here, use discussions Q&A https://github.com/lava-nc/lava-dnf/discussions/categories/q-a 
 
@@ -13,13 +13,20 @@
 <!-- Insert one sentence issue objective here, can be copied to PR. -->
 Objective of issue:
 
+<!-- Lava-DNF Version bug found in or Lava Version feature is targeting, remove unused versions from Lava Version below-->
+
+**Lava-DNF version:**
+- [ ] **0.2.0** (feature release)
+- [ ] **0.1.1** (bug fixes)
+- [x] **0.1.0** (current version)
+
 <!-- Lava Version bug found in or Lava Version feature is targeting, remove unused versions from Lava Version below-->
 
 **Lava version:**
-- [ ] **0.3.0** (feature release)
-- [ ] **0.2.1** (bug fixes)
-- [x] **0.2.0** (current version)
-- [ ] **0.1.2**
+- [ ] **0.5.0** (feature release)
+- [ ] **0.4.1** (bug fixes)
+- [x] **0.4.0** (current version)
+- [ ] **0.3.0**
 
 **I'm submitting a ...** 
 <!--  (check one with "x") -->

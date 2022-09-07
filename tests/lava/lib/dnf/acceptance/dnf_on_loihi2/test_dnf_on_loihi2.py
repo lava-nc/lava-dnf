@@ -4,13 +4,16 @@
 
 import unittest
 import numpy as np
+from lava.lib.dnf.inputs.gauss_pattern.models import GaussPatternProcessModel
+from lava.lib.dnf.inputs.rate_code_spike_gen.models import \
+    RateCodeSpikeGenProcessModel
 
 from lava.magma.core.run_configs import Loihi1SimCfg
 from lava.lib.dnf.inputs.gauss_pattern.process import GaussPattern
 from lava.lib.dnf.inputs.rate_code_spike_gen.process import RateCodeSpikeGen
 from lava.lib.dnf.kernels.kernels import SelectiveKernel
 from lava.lib.dnf.operations.operations import Convolution, Weights
-from lava.lib.dnf.connect.connect import connect, _compute_weights
+from lava.lib.dnf.connect.connect import connect
 from lava.proc.dense.models import PyDenseModelBitAcc
 from lava.proc.lif.models import PyLifModelBitAcc
 from lava.proc.lif.ncmodels import NcModelLifHC
@@ -53,31 +56,47 @@ class InjectorModel(CLoihiProcessModel):
 class TestDNFOnLoihi2(unittest.TestCase):
     def test_1d_dnf_on_loihi2(self) -> None:
         num_steps = 10
-        shape = (20,)
+        num_neurons = 10
 
-        dnf = LIF(shape=shape)
+        shape = (num_neurons,)
 
-        kernel = SelectiveKernel(amp_exc=18,
-                                 width_exc=3,
-                                 global_inh=-15)
-        connect(dnf.s_out, dnf.a_in, ops=[Convolution(kernel)])
+        bias_mant = np.zeros((num_neurons,), dtype=np.int32)
+        bias_mant[3:6] = 10
 
-        # GaussPattern produces a pattern of spike rates
-        gauss_pattern = GaussPattern(shape=shape, amplitude=1000, mean=7,
-                                     stddev=5)
+        dnf_params = {"shape": shape,
+                      "bias_mant": bias_mant,
+                      "bias_exp": 6,
+                      "du": 4095,
+                      "dv": 0,
+                      "vth": 20}
+        kernel_params = {"amp_exc": 18,
+                         "width_exc": 3,
+                         "global_inh": -15}
 
-        # The spike generator produces spikes based on the spike rates given
-        # by the Gaussian pattern
-        spike_generator = RateCodeSpikeGen(shape=shape)
-        gauss_pattern.a_out.connect(spike_generator.a_in)
+        ### Python ###
 
-        # Connect the spike generator to a population
-        connect(spike_generator.s_out, dnf.a_in, ops=[Weights(20)])
+        dnf = LIF(**dnf_params)
+        kernel = SelectiveKernel(**kernel_params)
+        dense = connect(dnf.s_out, dnf.a_in, ops=[Convolution(kernel)])
+
+        # # GaussPattern produces a pattern of spike rates
+        # gauss_pattern = GaussPattern(shape=shape, amplitude=1000, mean=7,
+        #                              stddev=5)
+        #
+        # # The spike generator produces spikes based on the spike rates given
+        # # by the Gaussian pattern
+        # spike_generator = RateCodeSpikeGen(shape=shape)
+        # gauss_pattern.a_out.connect(spike_generator.a_in)
+        #
+        # # Connect the spike generator to a population
+        # connect(spike_generator.s_out, dnf.a_in, ops=[Weights(20)])
 
         pmm = {LIF: PyLifModelBitAcc,
-               Dense: PyDenseModelBitAcc}
+               Dense: PyDenseModelBitAcc}#,
+               # GaussPattern: GaussPatternProcessModel,
+               # RateCodeSpikeGen: RateCodeSpikeGenProcessModel}
 
-        voltages_py = np.zeros((shape[0], num_steps), dtype=int)
+        voltages_py = np.zeros((num_neurons, num_steps), dtype=int)
         try:
             # Start running the network (explained below)
             for i in range(num_steps):
@@ -92,49 +111,39 @@ class TestDNFOnLoihi2(unittest.TestCase):
 
         ### LOIHI 2 ###
 
-        dnf = LIF(shape=shape)
+        dnf = LIF(**dnf_params)
+        kernel = SelectiveKernel(**kernel_params)
+        dense = connect(dnf.s_out, dnf.a_in, ops=[Convolution(kernel)])
 
-        kernel = SelectiveKernel(amp_exc=18,
-                                 width_exc=3,
-                                 global_inh=-15)
+        # # GaussPattern produces a pattern of spike rates
+        # gauss_pattern = GaussPattern(shape=shape, amplitude=1000, mean=7,
+        #                              stddev=5)
+        #
+        # # The spike generator produces spikes based on the spike rates given
+        # # by the Gaussian pattern
+        # spike_generator = RateCodeSpikeGen(shape=shape)
+        # gauss_pattern.a_out.connect(spike_generator.a_in)
+        #
+        # # Connect the spike generator to a population
+        # injector = Injector(shape=shape)
+        # spike_generator.s_out.connect(injector.in_port)
+        # connect(injector.out_port, dnf.a_in, ops=[Weights(20)])
 
-        # Instead of this, which may be problematic (?) ...
-        #dense = connect(dnf.s_out, dnf.a_in, ops=[Convolution(kernel)])
-
-        # ... let's do the connection manually for now and just use
-        # 1:1 weights.
-        dense = Dense(weights=np.eye(shape[0]))
-        dnf.s_out.connect(dense.s_in)
-        dnf2 = LIF(shape=shape)
-        dense.a_out.connect(dnf2.a_in)
-
-        # GaussPattern produces a pattern of spike rates
-        gauss_pattern = GaussPattern(shape=shape, amplitude=1000, mean=7,
-                                     stddev=5)
-
-        # The spike generator produces spikes based on the spike rates given
-        # by the Gaussian pattern
-        spike_generator = RateCodeSpikeGen(shape=shape)
-        gauss_pattern.a_out.connect(spike_generator.a_in)
-
-        # Connect the spike generator to a population
-        injector = Injector(shape=shape)
-        spike_generator.s_out.connect(injector.in_port)
-        connect(injector.out_port, dnf.a_in, ops=[Weights(20)])
+        #injector.out_port.connect(dense2.s_in)
+        #dense2.a_out.connect(dnf.a_in)
 
         pmm = {LIF: NcModelLifHC,
-               Dense: NcModelDense}
+               Dense: NcModelDense}#,
+               # GaussPattern: GaussPatternProcessModel,
+               # RateCodeSpikeGen: RateCodeSpikeGenProcessModel}
 
-        nc_domain = SyncDomain("nc", LoihiProtocol(), [injector, dense, dnf,
-                                                       dnf2])
-
-        voltages_nc = np.zeros((shape[0], num_steps), dtype=int)
+        voltages_nc = np.zeros((num_neurons, num_steps), dtype=int)
         try:
             # Start running the network (explained below)
             for i in range(num_steps):
+                print(f"{i=}")
                 dnf.run(condition=RunSteps(num_steps=1),
-                        run_cfg=Loihi2HwCfg(exception_proc_model_map=pmm,
-                                            custom_sync_domains=[nc_domain]))
+                        run_cfg=Loihi2HwCfg(exception_proc_model_map=pmm))
                 voltages_nc[:, i] = dnf.v.get()
         finally:
             # Stop the run to free resources
@@ -142,6 +151,7 @@ class TestDNFOnLoihi2(unittest.TestCase):
 
         print(voltages_nc)
 
+        voltages_py = np.where(voltages_py == 0, 128, voltages_py)
         np.testing.assert_array_equal(voltages_py, voltages_nc)
 
 

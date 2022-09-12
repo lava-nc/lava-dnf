@@ -45,8 +45,10 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
         self.ts_last_changed: int = 1
 
     def run_spk(self) -> None:
+        print(f"Spike generator beginning")
         # Receive pattern from PyInPort
         pattern = self.a_in.recv()
+        print(f"Spike generator after recv")
 
         # If the received pattern is not the null_pattern ...
         if not np.isnan(pattern).any():

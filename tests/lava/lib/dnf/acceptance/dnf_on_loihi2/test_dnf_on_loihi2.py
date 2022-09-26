@@ -11,7 +11,7 @@ from lava.lib.dnf.inputs.rate_code_spike_gen.models import \
 from lava.magma.core.run_configs import Loihi1SimCfg
 from lava.lib.dnf.inputs.gauss_pattern.process import GaussPattern
 from lava.lib.dnf.inputs.rate_code_spike_gen.process import RateCodeSpikeGen
-from lava.lib.dnf.kernels.kernels import SelectiveKernel
+from lava.lib.dnf.kernels.kernels import SelectiveKernel, MultiPeakKernel
 from lava.lib.dnf.operations.operations import Convolution, Weights
 from lava.lib.dnf.connect.connect import connect
 from lava.proc.dense.models import PyDenseModelBitAcc
@@ -60,24 +60,41 @@ class TestDNFOnLoihi2(unittest.TestCase):
 
         shape = (num_neurons,)
 
-        bias_mant = np.zeros((num_neurons,), dtype=np.int32)
-        bias_mant[3:6] = 10
-
         dnf_params = {"shape": shape,
-                      "bias_mant": bias_mant,
-                      "bias_exp": 6,
-                      "du": 4095,
-                      "dv": 0,
-                      "vth": 20}
-        kernel_params = {"amp_exc": 18,
-                         "width_exc": 3,
-                         "global_inh": -15}
+                      "du": 409,
+                      "dv": 2047,
+                      "vth": 200}
+        # kernel_params = {"amp_exc": 18,
+        #                  "width_exc": 3,
+        #                  "global_inh": -15}
+        kernel_params = {"amp_exc": 83,
+                         "width_exc": 3.75,
+                         "amp_inh": -70,
+                         "width_inh": 7.5}
+
+        bias_mant = np.zeros((num_neurons,), dtype=np.int32)
+        bias_mant[3:6] = 100
+        input_lif_params = {"shape": shape,
+                            "bias_mant": bias_mant,
+                            "bias_exp": 6,
+                            "du": 0,
+                            "dv": 0,
+                            "vth": 20}
+        input_dense_params = {"weights": np.eye(shape[0], dtype=int) * 25}
 
         ### Python ###
 
         dnf = LIF(**dnf_params)
-        kernel = SelectiveKernel(**kernel_params)
+        #kernel = SelectiveKernel(**kernel_params)
+        kernel = MultiPeakKernel(**kernel_params)
         dense = connect(dnf.s_out, dnf.a_in, ops=[Convolution(kernel)])
+
+        # LIF providing input to the recurrent LIF via symmetric Dense.
+        input_lif = LIF(**input_lif_params)
+        input_dense = Dense(**input_dense_params)
+        input_lif.s_out.connect(input_dense.s_in)
+        input_dense.a_out.connect(dnf.a_in)
+
 
         # # GaussPattern produces a pattern of spike rates
         # gauss_pattern = GaussPattern(shape=shape, amplitude=1000, mean=7,
@@ -107,13 +124,19 @@ class TestDNFOnLoihi2(unittest.TestCase):
             # Stop the run to free resources
             dnf.stop()
 
-        print(voltages_py)
+        print(f"{voltages_py}")
 
         ### LOIHI 2 ###
 
         dnf = LIF(**dnf_params)
-        kernel = SelectiveKernel(**kernel_params)
+        #kernel = SelectiveKernel(**kernel_params)
+        kernel = MultiPeakKernel(**kernel_params)
         dense = connect(dnf.s_out, dnf.a_in, ops=[Convolution(kernel)])
+
+        input_lif = LIF(**input_lif_params)
+        input_dense = Dense(**input_dense_params)
+        input_lif.s_out.connect(input_dense.s_in)
+        input_dense.a_out.connect(dnf.a_in)
 
         # # GaussPattern produces a pattern of spike rates
         # gauss_pattern = GaussPattern(shape=shape, amplitude=1000, mean=7,
@@ -149,9 +172,11 @@ class TestDNFOnLoihi2(unittest.TestCase):
             # Stop the run to free resources
             dnf.stop()
 
-        print(voltages_nc)
+        voltages_nc = np.where(voltages_nc == 128, 0, voltages_nc)
 
-        voltages_py = np.where(voltages_py == 0, 128, voltages_py)
+        print(f"{voltages_py}")
+        print(f"{voltages_nc}")
+
         np.testing.assert_array_equal(voltages_py, voltages_nc)
 
 

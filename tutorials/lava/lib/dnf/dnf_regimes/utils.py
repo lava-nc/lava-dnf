@@ -28,11 +28,10 @@ def plot_1d(probe_data_dnf: np.ndarray,
     """
     probe_data_input = probe_data_input1 + probe_data_input2
     probe_data_input = probe_data_input.astype(float)
-    probe_data_input = np.transpose(probe_data_input)
-    probe_data_dnf = np.transpose(probe_data_dnf.astype(float))
+    probe_data_dnf = probe_data_dnf.astype(float)
 
     num_neurons = np.size(probe_data_input, axis=1)
-    num_time_steps = np.size(probe_data_input, axis=0)
+    num_time_steps = np.size(probe_data_dnf, axis=0)
 
     plt.figure(figsize=(10, 5))
     ax0 = plt.subplot(2, 1, 1)

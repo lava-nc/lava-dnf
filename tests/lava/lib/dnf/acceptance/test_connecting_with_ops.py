@@ -22,7 +22,7 @@ from lava.lib.dnf.operations.operations import (
 
 class TestConnectingWithOperations(unittest.TestCase):
     def test_running_reorder(self) -> None:
-        """Tests executing a architecture with multi-dimensional input that
+        """Tests executing an architecture with multi-dimensional input that
         gets reshaped (here, reordered)."""
         num_steps = 10
         shape_src = (5, 3)

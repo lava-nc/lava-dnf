@@ -143,7 +143,7 @@ class GaussianMixin(ABC):
 
     def _compute_shape(self, width: np.ndarray) -> ty.Tuple[int, ...]:
         """
-        Computes the shape of a kernel from the a width-parameter of the
+        Computes the shape of a kernel from the width-parameter of the
         kernel and a limit factor.
 
         Parameters

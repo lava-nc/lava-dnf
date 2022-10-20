@@ -179,4 +179,3 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
         self.last_spiked[spikes] = self.ts_last_changed
 
         return spikes
-

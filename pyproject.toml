@@ -41,21 +41,12 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
 
-lava-nc = { url = "https://github.com/lava-nc/lava/releases/download/v0.3.0/lava_nc-0.3.0-py3-none-any.whl" }
+lava-nc = { git = "https://github.com/lava-nc/lava.git", branch = "main", develop = true}
 
-numpy = "^1.22.3"
-scipy = "^1.8.0"
-ipykernel = "^6.13.0"
-
+numpy = "^1.23.0"
+scipy = "^1.8.1"
 
 [tool.poetry.dev-dependencies]
-poetry = "^1.1.13"
-pytest = "^7.0.1"
-pytest-cov = "^3.0.0"
-unittest2 = "^1.1.0"
-networkx = "^2.7.1"
-nbformat = "^5.3.0"
-nbconvert = "^6.5.1"
 bandit = "1.7.2"
 coverage = "^6.3.2"
 darglint = "^1.8.1"
@@ -71,7 +62,16 @@ flake8-mutable = "^1.2.0"
 flake8-pytest-style = "^1.6.0"
 flake8-spellcheck = "^0.25.0"
 flakeheaven = "^0.11.1"
+ipykernel = "^6.15.0"
+matplotlib = "^3.5.1"
+networkx = "^2.7.1"
+nbformat = "^5.3.0"
+nbconvert = "^6.5.1"
 pep8-naming = "^0.12.1"
+poetry = "^1.1.13"
+pytest = "^7.0.1"
+pytest-cov = "^3.0.0"
+unittest2 = "^1.1.0"
 
 [tool.black]
 line-length = 80

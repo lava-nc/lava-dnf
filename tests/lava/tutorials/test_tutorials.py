@@ -198,7 +198,7 @@ class TestTutorials(unittest.TestCase):
         )
 
     @unittest.skipIf(system_name != "linux", "Tests work on linux")
-    def test_dnf_regimesa(self):
+    def test_dnf_regimes(self):
         """Test tutorial dnf regimes."""
         self._run_notebook(
             "tutorial_dnf_regimes.ipynb",

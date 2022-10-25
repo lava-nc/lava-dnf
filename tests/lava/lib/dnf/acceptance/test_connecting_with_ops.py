@@ -22,15 +22,17 @@ from lava.lib.dnf.operations.operations import (
 
 class TestConnectingWithOperations(unittest.TestCase):
     def test_running_reorder(self) -> None:
-        """Tests executing a architecture with multi-dimensional input that
+        """Tests executing an architecture with multi-dimensional input that
         gets reshaped (here, reordered)."""
         num_steps = 10
         shape_src = (5, 3)
         shape_dst = (3, 5)
 
-        bias = np.zeros(shape_src)
-        bias[:, 0] = 5000
-        src = LIF(shape=shape_src, bias=bias, bias_exp=np.ones(shape_src))
+        bias_mant = np.zeros(shape_src)
+        bias_mant[:, 0] = 5000
+        src = LIF(shape=shape_src,
+                  bias_mant=bias_mant,
+                  bias_exp=np.ones(shape_src))
         dst = LIF(shape=shape_dst)
 
         weight = 20
@@ -45,7 +47,6 @@ class TestConnectingWithOperations(unittest.TestCase):
 
         src.stop()
 
-        self.assertEqual(src.runtime.num_steps, num_steps)
         self.assertTrue(np.array_equal(computed_dst_u, expected_dst_u))
 
     def test_connect_population_with_weights_op(self) -> None:

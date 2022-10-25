@@ -19,36 +19,7 @@ from lava.magma.core.run_conditions import RunSteps
 from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
 
 from lava.lib.dnf.inputs.rate_code_spike_gen.process import RateCodeSpikeGen
-
-
-class SinkProcess(AbstractProcess):
-    """
-    Process that receives spike (bool) vectors
-
-    Parameters
-    ----------
-    shape: tuple, shape of the process
-    """
-
-    def __init__(self, **kwargs: ty.Tuple[int, ...]) -> None:
-        super().__init__(**kwargs)
-        shape = kwargs.get("shape")
-
-        self.data = Var(shape=shape, init=np.nan)
-        self.s_in = InPort(shape=(shape[0],))
-
-
-@implements(proc=SinkProcess, protocol=LoihiProtocol)
-@requires(CPU)
-@tag('floating_pt')
-class SinkProcessModel(PyLoihiProcessModel):
-    data: np.ndarray = LavaPyType(np.ndarray, float)
-    s_in: PyInPort = LavaPyType(PyInPort.VEC_DENSE, bool)
-
-    def run_spk(self) -> None:
-        """Receive data and store in an internal variable"""
-        s_in = self.s_in.recv()
-        self.data[:, self.time_step - 1] = s_in
+from lava.proc.io.sink import RingBuffer
 
 
 class SourceProcess(AbstractProcess):
@@ -210,10 +181,10 @@ class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
 
         source = SourceProcess(shape=(30,), data=pattern)
         spike_generator = RateCodeSpikeGen(shape=(30,))
-        sink = SinkProcess(shape=(30, num_steps))
+        sink = RingBuffer(shape=(30,), buffer=num_steps)
 
         source.out_ports.a_out.connect(spike_generator.in_ports.a_in)
-        spike_generator.out_ports.s_out.connect(sink.in_ports.s_in)
+        spike_generator.out_ports.s_out.connect(sink.in_ports.a_in)
 
         try:
             source.run(condition=RunSteps(num_steps=num_steps),
@@ -241,10 +212,10 @@ class TestRateCodeSpikeGenProcessModel(unittest.TestCase):
 
         source = SourceProcess(shape=shape, data=pattern)
         spike_gen = RateCodeSpikeGen(shape=shape, seed=42)
-        sink = SinkProcess(shape=(shape[0], num_steps))
+        sink = RingBuffer(shape=(shape[0],), buffer=num_steps)
 
         source.out_ports.a_out.connect(spike_gen.in_ports.a_in)
-        spike_gen.out_ports.s_out.connect(sink.in_ports.s_in)
+        spike_gen.out_ports.s_out.connect(sink.in_ports.a_in)
 
         try:
             source.run(condition=RunSteps(num_steps=num_steps),

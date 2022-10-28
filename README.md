@@ -18,8 +18,8 @@ a closed behavioral loop.
 lava-dnf is a library within the Lava software framework. The main building 
 blocks in Lava are processes. lava-dnf provides
 processes and other software infrastructure to build architectures composed of
-DNFs. It also provides tools to direct sensory input to
-neural architectures and to read output, for instance for motor control.
+DNFs. In particular, it provides functions that generate connectivity patterns
+common to DNF architectures.
 
 The primary focus of lava-dnf today is on robotic applications: sensing and
 perception, motion control, behavioral organization, map formation, and
@@ -37,19 +37,23 @@ Building DNF architectures
 - Forward connectivity to connect multiple DNFs
 - Structured input from spike generators
 
+Running DNF architectures
+- On CPU (Python simulation)
+- On Loihi 2
+
 Examples demonstrating basic DNF regimes and instabilities
 - Detection of input
 - Selection of input
 - Working memory of input
+- Relational networks
 
 ## Installation
 ### Cloning lava-dnf and Running from Source
-We highly recommend cloning the repository and using poetry to set up lava-dnf provided you only want to run lava-dnf 
+We highly recommend cloning the repository and using poetry to set up lava-dnf, provided you only want to run lava-dnf 
 in simulation. This will automatically also install lava. 
 
-Note: For INRC members that want to run lava-dnf on Loihi 2 hardware, we recommend following the 
-installation instructions 
-described [here](https://intel-ncl.atlassian.net/wiki/spaces/NAP/pages/1785856001/Setup+Lava+extension+for+Loihi).
+Note: For INRC members who want to run lava-dnf on Loihi 2 hardware, we recommend following the 
+[install instructions for the Lava-on-Loihi extension](https://intel-ncl.atlassian.net/wiki/spaces/NAP/pages/1785856001/Setup+Lava+extension+for+Loihi).
 
 #### [Linux/MacOS]
 ```bash

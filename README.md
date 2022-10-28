@@ -18,8 +18,8 @@ a closed behavioral loop.
 lava-dnf is a library within the Lava software framework. The main building 
 blocks in Lava are processes. lava-dnf provides
 processes and other software infrastructure to build architectures composed of
-DNFs. It also provides tools to direct sensory input to
-neural architectures and to read output, for instance for motor control.
+DNFs. In particular, it provides functions that generate connectivity patterns
+common to DNF architectures.
 
 The primary focus of lava-dnf today is on robotic applications: sensing and
 perception, motion control, behavioral organization, map formation, and
@@ -37,47 +37,34 @@ Building DNF architectures
 - Forward connectivity to connect multiple DNFs
 - Structured input from spike generators
 
+Running DNF architectures
+- On CPU (Python simulation)
+- On Loihi 2
+
 Examples demonstrating basic DNF regimes and instabilities
 - Detection of input
 - Selection of input
 - Working memory of input
+- Relational networks
 
 ## Installation
 ### Cloning lava-dnf and Running from Source
-We highly recommend cloning the repository and using pybuilder to setup lava. You will need to install pybuilder for the same.
+We highly recommend cloning the repository and using poetry to set up lava-dnf, provided you only want to run lava-dnf 
+in simulation. This will automatically also install lava. 
 
-Note: We assume you have already setup Lava with virtual environment. Test your PYTHONPATH using `echo $PYTHONPATH` and
-ensure 'lava/src' is the first entry that precedes any additional Lava library src paths. 
+Note: For INRC members who want to run lava-dnf on Loihi 2 hardware, we recommend following the 
+[install instructions for the Lava-on-Loihi extension](https://intel-ncl.atlassian.net/wiki/spaces/NAP/pages/1785856001/Setup+Lava+extension+for+Loihi).
 
 #### [Linux/MacOS]
 ```bash
+$ cd $HOME
 $ git clone git@github.com:lava-nc/lava-dnf.git
 $ cd lava-dnf
-$ pip install -r requirements.txt
-$ export PYTHONPATH=$PYTHONPATH:$(pwd)/src
-$ pyb -E unit
-```
-
-You should expect the following output after running the unit tests:
-```bash
-PyBuilder version 0.13.4
-Build started at 2022-03-01 06:36:09
-------------------------------------------------------------
-[INFO] Installing or updating plugin "pypi:pybuilder_bandit, module name 'pybuilder_bandit'"
-[...]
-[INFO] Running Twine check for generated artifacts
-------------------------------------------------------------
-BUILD SUCCESSFUL
-------------------------------------------------------------
-Build Summary
-Project: lava-dnf
-Version: 0.1.0
-Base directory: /home/user/lava-dnf
-Environments: unit
-Tasks: prepare [130648 ms] compile_sources [0 ms] run_unit_tests [17550 ms] analyze [837 ms] package [115 ms] run_integration_tests [0 ms] verify [0 ms] coverage [22552 ms] publish [6177 ms]
-Build finished at 2022-03-01 06:39:16
-Build took 186 seconds (186983 ms)
-
+$ curl -sSL https://install.python-poetry.org | python3
+$ poetry config virtualenvs.in-project true
+$ poetry install
+$ source .venv/bin/activate
+$ pytest
 ```
 
 ## Example

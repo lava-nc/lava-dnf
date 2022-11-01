@@ -17,7 +17,6 @@ from test import support
 import nbformat
 
 import lava.lib.dnf
-import tutorials.lava.lib.dnf
 
 
 class TestTutorials(unittest.TestCase):

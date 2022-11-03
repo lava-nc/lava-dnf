@@ -8,12 +8,13 @@ from process_out.process import ProcessOut, \
 from dvs_file_input.process import DVSFileInput, \
     PyDVSFileInputPM
 from rate_reader.process import RateReader
-from experiments.motion_tracking_app.sparse.process import Sparse
+from lava.lib.dnf.demos.motion_tracking.sparse.process import \
+    Sparse
 from lava.lib.dnf.connect.connect import _configure_ops, \
     _compute_weights
 from lava.lib.dnf.kernels.kernels import MultiPeakKernel, SelectiveKernel
 from lava.lib.dnf.operations.operations import Convolution
-from miscellaneous.c_injector.process import CInjector, CInjectorPMVecDense
+from lava.lib.dnf.demos.motion_tracking.c_injector.process import CInjector
 from lava.proc.embedded_io.spike import NxToPyAdapter
 from bokeh.plotting import figure, curdoc
 from bokeh.layouts import row, column, gridplot, Spacer
@@ -41,7 +42,7 @@ num_steps = 4800
 # DVSFileInput Params
 true_height = 180
 true_width = 240
-file_path = "/home/gkarray/dev/dvs_processes/experiments/bokeh_experiment/dvSave-2022_10_20_12_12_18.aedat4"
+file_path = "dvs_recording.aedat4"
 flatten = True
 down_sample_factor = 8
 down_sample_mode = "max_pooling"  # max_pooling, down_sampling, convolution
@@ -180,8 +181,6 @@ rate_reader_selective.out_port.connect(data_relayer.dnf_selective_rates_port)
 # ==========================================================================
 exception_pm_map = {
     DVSFileInput: PyDVSFileInputPM,
-    CInjector: CInjectorPMVecDense,
-  #  CSpikeReader: CSpikeReaderPMVecDense,
     ProcessOut: DataRelayerPM
 }
 run_cfg = Loihi2HwCfg(exception_proc_model_map=exception_pm_map)

@@ -87,6 +87,8 @@ class ProcessOutPM(PyLoihiProcessModel):
         super().__init__(proc_params)
         self._dnf_shape = proc_params["dnf_shape"]
         self._node_shape = proc_params["node_shape"]
+
+        # Pipe to send data coming from Lava to the outside
         self._send_pipe = proc_params["send_pipe"]
 
     def post_guard(self):
@@ -141,4 +143,5 @@ class ProcessOutPM(PyLoihiProcessModel):
             "cod_node_data": cod_node
         }
 
+        # Send data from Lava to the outside to update the bokeh plots
         self._send_pipe.send(data_dict)

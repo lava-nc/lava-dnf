@@ -14,8 +14,7 @@ from lava.lib.dnf.connect.connect import _configure_ops, \
 from lava.lib.dnf.kernels.kernels import MultiPeakKernel, SelectiveKernel
 from lava.lib.dnf.operations.operations import Convolution
 from miscellaneous.c_injector.process import CInjector, CInjectorPMVecDense
-from miscellaneous.c_spike_reader.process import CSpikeReader, \
-    CSpikeReaderPMVecDense
+from lava.proc.embedded_io.spike import NxToPyAdapter
 from bokeh.plotting import figure, curdoc
 from bokeh.layouts import row, column, gridplot, Spacer
 from bokeh.models import LinearColorMapper, ColorBar, Title, Button, Plot, Text, ColumnDataSource
@@ -122,8 +121,8 @@ data_relayer = ProcessOut(shape_dvs_frame=down_sampled_shape,
 # Instantiate C-Processes Running on LMT
 # ==========================================================================
 c_injector = CInjector(shape=down_sampled_flat_shape)
-c_spike_reader_multi_peak = CSpikeReader(shape=down_sampled_shape)
-c_spike_reader_selective = CSpikeReader(shape=down_sampled_shape)
+c_spike_reader_multi_peak = NxToPyAdapter(shape=down_sampled_shape)
+c_spike_reader_selective = NxToPyAdapter(shape=down_sampled_shape)
 
 # ==========================================================================
 # Instantiate Processes Running on Loihi 2
@@ -163,12 +162,12 @@ con_op.reshape(new_shape=dnf_selective.a_in.shape).connect(
     dnf_selective.a_in)
 
 # Connect C Reader Processes
-dnf_multi_peak.s_out.connect(c_spike_reader_multi_peak.in_port)
-dnf_selective.s_out.connect(c_spike_reader_selective.in_port)
+dnf_multi_peak.s_out.connect(c_spike_reader_multi_peak.inp)
+dnf_selective.s_out.connect(c_spike_reader_selective.inp)
 
 # Connecting RateReaders
-c_spike_reader_multi_peak.out_port.connect(rate_reader_multi_peak.in_port)
-c_spike_reader_selective.out_port.connect(rate_reader_selective.in_port)
+c_spike_reader_multi_peak.out.connect(rate_reader_multi_peak.in_port)
+c_spike_reader_selective.out.connect(rate_reader_selective.in_port)
 
 # Connecting ProcessOut (data relayer)
 dvs_file_input.event_frame_out.reshape(
@@ -182,7 +181,7 @@ rate_reader_selective.out_port.connect(data_relayer.dnf_selective_rates_port)
 exception_pm_map = {
     DVSFileInput: PyDVSFileInputPM,
     CInjector: CInjectorPMVecDense,
-    CSpikeReader: CSpikeReaderPMVecDense,
+  #  CSpikeReader: CSpikeReaderPMVecDense,
     ProcessOut: DataRelayerPM
 }
 run_cfg = Loihi2HwCfg(exception_proc_model_map=exception_pm_map)

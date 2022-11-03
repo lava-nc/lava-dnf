@@ -3,6 +3,7 @@
 # See: https://spdx.org/licenses/
 
 import numpy as np
+
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.magma.core.process.variable import Var
@@ -20,7 +21,9 @@ class RateReader(AbstractProcess):
     at each timestep.
     """
     def __init__(self, shape, buffer_size, num_steps=1):
-        super().__init__(shape=shape, buffer_size=buffer_size, num_steps=num_steps)
+        super().__init__(shape=shape,
+                         buffer_size=buffer_size,
+                         num_steps=num_steps)
         self.in_port = InPort(shape)
         self.buffer = Var(shape=shape + (buffer_size,))
         self.rate = Var(shape=shape, init=0)
@@ -40,13 +43,13 @@ class PyRateReaderPMDense(PyLoihiProcessModel):
         self._buffer_size = proc_params["buffer_size"]
 
     def post_guard(self):
-        # ensured that run_post_mgmt runs after run_spk at every
-        # time step
+        # Ensures that run_post_mgmt runs after run_spk at every
+        # time step.
         return True
 
     def run_post_mgmt(self):
-        # called after run_spk in every time step and computes
-        # spike rate from buffer
+        # Runs after run_spk in every time step and computes the
+        # spike rate from the buffer.
         spikes = self.in_port.recv()
         self.buffer[..., (self.time_step - 1) % self._buffer_size] = spikes
         self.rate = np.mean(self.buffer, axis=-1)

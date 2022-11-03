@@ -6,6 +6,7 @@ import numpy as np
 from numpy.lib.stride_tricks import as_strided
 from scipy import signal
 from dv import AedatFile
+
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import OutPort
 from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
@@ -17,9 +18,9 @@ from lava.magma.core.model.py.model import PyLoihiProcessModel
 
 
 class DVSFileInput(AbstractProcess):
-    """Process to read from .aedat4 file, downsample the frame in different modes
-    (max pooling, convolution, normal downsampling) and sends out the down sampled
-    event frame"""
+    """Process to read from .aedat4 file, downsample the frame in different
+    modes (max pooling, convolution, normal downsampling) and sends out the
+    down sampled event frame."""
     def __init__(self,
                  true_height: int,
                  true_width: int,
@@ -49,7 +50,6 @@ class DVSFileInput(AbstractProcess):
 @implements(proc=DVSFileInput, protocol=LoihiProtocol)
 @requires(CPU)
 class PyDVSFileInputPM(PyLoihiProcessModel):
-    # Declare port implementation
     event_frame_out: PyOutPort = LavaPyType(PyOutPort.VEC_DENSE, int)
 
     def __init__(self, proc_params):
@@ -73,24 +73,24 @@ class PyDVSFileInputPM(PyLoihiProcessModel):
         self._num_steps = proc_params["num_steps"]
 
     def run_spk(self):
-        # get next events from .aedat4 file
+        # Get next events from .aedat4 file.
         events = self._event_stream.__next__()
         xs, ys, ps = events['x'], events['y'], events['polarity']
 
-        # write events to event frame
+        # Write events to event frame.
         event_frame = np.zeros(self._true_shape)
         event_frame[xs[ps == 0], ys[ps == 0]] = 1
         event_frame[xs[ps == 1], ys[ps == 1]] = 1
 
-        # downsample event frame
+        # Downsample event frame.
         if self._down_sample_mode == "down_sampling":
             event_frame_small = \
                 event_frame[::self._down_sample_factor,
-                ::self._down_sample_factor]
+                            ::self._down_sample_factor]
 
             event_frame_small = \
                 event_frame_small[:self._down_sampled_height,
-                :self._down_sampled_width]
+                                  :self._down_sampled_width]
         elif self._down_sample_mode == "max_pooling":
             event_frame_small = \
                 self._pool_2d(event_frame, kernel_size=self._down_sample_factor,
@@ -134,10 +134,10 @@ class PyDVSFileInputPM(PyLoihiProcessModel):
 
         event_frame_small = \
             event_frame_convolved[::self._down_sample_factor,
-            ::self._down_sample_factor]
+                                  ::self._down_sample_factor]
 
         event_frame_small = \
             event_frame_small[:self._down_sampled_width,
-            :self._down_sampled_height]
+                              :self._down_sampled_height]
 
         return event_frame_small

@@ -26,9 +26,9 @@ from lava.lib.dnf.kernels.kernels import SelectiveKernel
 from lava.lib.dnf.operations.operations import Weights, ExpandDims, \
     ReduceDims, Convolution
 
-from experiments.dnf_state_machine_app.process_in.process import ProcessIn
-from experiments.dnf_state_machine_app.process_out.process import ProcessOut
-from experiments.dnf_state_machine_app.c_spike_reader.process import \
+from process_in.process import ProcessIn
+from process_out.process import ProcessOut
+from lava.lib.dnf.demos.state_machine.c_spike_reader.process import \
     CSpikeReader
 
 

@@ -20,11 +20,9 @@ from bokeh.plotting import figure, curdoc
 from bokeh.layouts import row, column, gridplot, Spacer
 from bokeh.models import LinearColorMapper, ColorBar, Title, Button, Plot, Text, ColumnDataSource
 from bokeh.models.ranges import DataRange1d
-
 from threading import Thread
 from multiprocessing import Pipe
 from functools import partial
-
 from lava.magma.compiler.compiler import Compiler
 from lava.magma.core.run_configs import Loihi2HwCfg
 from lava.magma.core.process.message_interface_enum import ActorType
@@ -34,7 +32,7 @@ from lava.magma.core.run_conditions import RunSteps
 print("Hello from APP")
 
 # ==========================================================================
-# Params
+# Parameters
 # ==========================================================================
 # number of time steps to be run in demo
 num_steps = 4800

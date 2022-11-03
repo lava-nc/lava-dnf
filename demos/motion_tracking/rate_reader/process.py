@@ -15,6 +15,10 @@ from lava.magma.core.model.py.model import PyLoihiProcessModel
 
 
 class RateReader(AbstractProcess):
+    """
+    Process that stores recent spikes in a buffer and computes the spike rate
+    at each timestep.
+    """
     def __init__(self, shape, buffer_size, num_steps=1):
         super().__init__(shape=shape, buffer_size=buffer_size, num_steps=num_steps)
         self.in_port = InPort(shape)
@@ -36,9 +40,13 @@ class PyRateReaderPMDense(PyLoihiProcessModel):
         self._buffer_size = proc_params["buffer_size"]
 
     def post_guard(self):
+        # ensured that run_post_mgmt runs after run_spk at every
+        # time step
         return True
 
     def run_post_mgmt(self):
+        # called after run_spk in every time step and computes
+        # spike rate from buffer
         spikes = self.in_port.recv()
         self.buffer[..., (self.time_step - 1) % self._buffer_size] = spikes
         self.rate = np.mean(self.buffer, axis=-1)

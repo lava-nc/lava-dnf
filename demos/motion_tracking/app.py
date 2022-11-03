@@ -143,8 +143,8 @@ connections_selective = Sparse(weights=weights_selective)
 # Connecting Processes
 # ==========================================================================
 # Connecting Input Processes
-dvs_file_input.event_frame_out.connect(c_injector.in_port)
-c_injector.out_port.connect(sparse_1.s_in)
+dvs_file_input.event_frame_out.connect(c_injector.inp)
+c_injector.out.connect(sparse_1.s_in)
 sparse_1.a_out.reshape(new_shape=down_sampled_shape).connect(
     dnf_multi_peak.a_in)
 dnf_multi_peak.s_out.reshape(new_shape=down_sampled_flat_shape).connect(

@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # See: https://spdx.org/licenses/
 
-import cv2
-
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import InPort
 from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
@@ -12,7 +10,7 @@ from lava.magma.core.model.py.type import LavaPyType
 from lava.magma.core.resources import CPU
 from lava.magma.core.decorator import implements, requires
 from lava.magma.core.model.py.model import PyLoihiProcessModel
-
+import numpy as np
 
 class ProcessOut(AbstractProcess):
     """Process that receives (1) the raw DVS events, (2) the spike rates
@@ -48,12 +46,9 @@ class DataRelayerPM(PyLoihiProcessModel):
         dnf_multipeak_rates = self.dnf_multipeak_rates_port.recv()
         dnf_selective_rates = self.dnf_selective_rates_port.recv()
 
-        dvs_frame_ds_image = cv2.rotate(
-            dvs_frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        dnf_multipeak_rates_ds_image = cv2.rotate(
-            dnf_multipeak_rates, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        dnf_selective_rates_ds_image = cv2.rotate(
-            dnf_selective_rates, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        dvs_frame_ds_image = np.rot90(dvs_frame)
+        dnf_multipeak_rates_ds_image = np.rot90(dnf_multipeak_rates)
+        dnf_selective_rates_ds_image = np.rot90(dnf_selective_rates)
 
         data_dict = {
             "dvs_frame_ds_image": dvs_frame_ds_image,

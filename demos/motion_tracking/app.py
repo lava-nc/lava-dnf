@@ -1,35 +1,35 @@
 # Copyright (C) 2022 Intel Corporation
 # SPDX-License-Identifier: BSD-3-Clause
 # See: https://spdx.org/licenses/
+
 import numpy as np
-from lava.proc.lif.process import LIF
-from process_out.process import ProcessOut, \
-    DataRelayerPM
-from dvs_file_input.process import DVSFileInput, \
-    PyDVSFileInputPM
-from rate_reader.process import RateReader
-from lava.lib.dnf.demos.motion_tracking.sparse.process import \
-    Sparse
-from lava.lib.dnf.connect.connect import _configure_ops, \
-    _compute_weights
-from lava.lib.dnf.kernels.kernels import MultiPeakKernel, SelectiveKernel
-from lava.lib.dnf.operations.operations import Convolution
-from lava.lib.dnf.demos.motion_tracking.c_injector.process import CInjector
-from lava.proc.embedded_io.spike import NxToPyAdapter
-from bokeh.plotting import figure, curdoc
-from bokeh.layouts import row, column, gridplot, Spacer
-from bokeh.models import LinearColorMapper, ColorBar, Title, Button, Plot, Text, ColumnDataSource
-from bokeh.models.ranges import DataRange1d
 from threading import Thread
 from multiprocessing import Pipe
 from functools import partial
+
+from bokeh.plotting import figure, curdoc
+from bokeh.layouts import gridplot, Spacer
+from bokeh.models import LinearColorMapper, ColorBar, Title, Button
+from bokeh.models.ranges import DataRange1d
+
+from lava.proc.lif.process import LIF
+from lava.proc.embedded_io.spike import NxToPyAdapter, PyToNxAdapter
 from lava.magma.compiler.compiler import Compiler
 from lava.magma.core.run_configs import Loihi2HwCfg
 from lava.magma.core.process.message_interface_enum import ActorType
 from lava.magma.runtime.runtime import Runtime
 from lava.magma.core.run_conditions import RunSteps
 
-print("Hello from APP")
+
+from lava.lib.dnf.connect.connect import _configure_ops, _compute_weights
+from lava.lib.dnf.kernels.kernels import MultiPeakKernel, SelectiveKernel
+from lava.lib.dnf.operations.operations import Convolution
+from lava.lib.dnf.demos.motion_tracking.sparse.process import Sparse
+
+from process_out.process import ProcessOut, DataRelayerPM
+from dvs_file_input.process import DVSFileInput, PyDVSFileInputPM
+from rate_reader.process import RateReader
+
 
 # ==========================================================================
 # Parameters
@@ -43,7 +43,7 @@ true_width = 240
 file_path = "dvs_recording.aedat4"
 flatten = True
 down_sample_factor = 8
-down_sample_mode = "max_pooling"  # max_pooling, down_sampling, convolution
+down_sample_mode = "max_pooling"
 
 down_sampled_shape = (true_width // down_sample_factor,
                       true_height // down_sample_factor)
@@ -119,7 +119,7 @@ data_relayer = ProcessOut(shape_dvs_frame=down_sampled_shape,
 # ==========================================================================
 # Instantiate C-Processes Running on LMT
 # ==========================================================================
-c_injector = CInjector(shape=down_sampled_flat_shape)
+c_injector = PyToNxAdapter(shape=down_sampled_flat_shape)
 c_spike_reader_multi_peak = NxToPyAdapter(shape=down_sampled_shape)
 c_spike_reader_selective = NxToPyAdapter(shape=down_sampled_shape)
 
@@ -127,10 +127,16 @@ c_spike_reader_selective = NxToPyAdapter(shape=down_sampled_shape)
 # Instantiate Processes Running on Loihi 2
 # ==========================================================================
 sparse_1 = Sparse(weights=np.eye(num_neurons) * sparse1_weights)
-dnf_multi_peak = LIF(shape=down_sampled_shape, du=du_multipeak, dv=dv_multipeak, vth=multipeak_threshold)
+dnf_multi_peak = LIF(shape=down_sampled_shape,
+                     du=du_multipeak,
+                     dv=dv_multipeak,
+                     vth=multipeak_threshold)
 connections_multi_peak = Sparse(weights=weights_multi_peak)
 sparse_2 = Sparse(weights=np.eye(num_neurons) * sparse2_weights)
-dnf_selective = LIF(shape=down_sampled_shape, du=du_selective, dv=dv_selective, vth=selective_threshold)
+dnf_selective = LIF(shape=down_sampled_shape,
+                    du=du_selective,
+                    dv=dv_selective,
+                    vth=selective_threshold)
 connections_selective = Sparse(weights=weights_selective)
 
 # ==========================================================================
@@ -185,31 +191,24 @@ run_cfg = Loihi2HwCfg(exception_proc_model_map=exception_pm_map)
 run_cnd = RunSteps(num_steps=num_steps, blocking=False)
 
 # Compilation
-print("Compiling : BEGIN")
 compiler = Compiler()
 executable = compiler.compile(dvs_file_input, run_cfg=run_cfg)
-print("Compiling : END")
 
 # Initializing runtime
-print("Initializing Runtime : BEGIN")
 mp = ActorType.MultiProcessing
 runtime = Runtime(exe=executable,
                   message_infrastructure_type=mp)
 runtime.initialize()
-print("Initializing Runtime : END")
 
 
 # ==========================================================================
 # Bokeh Helpers
 # ==========================================================================
 def callback_run():
-    print("Running : BEGIN")
     runtime.start(run_condition=run_cnd)
-    print("Running : END")
 
 
-def create_plot(plot_base_width, data_shape,
-                title):
+def create_plot(plot_base_width, data_shape, title):
     x_range = DataRange1d(start=0,
                           end=data_shape[0],
                           bounds=(0, data_shape[0]),
@@ -257,9 +256,12 @@ def create_plot(plot_base_width, data_shape,
 bokeh_document = curdoc()
 
 # create plots
-dvs_frame_p, dvs_frame_im = create_plot(400, down_sampled_shape, "DVS file input (events)")
-dnf_multipeak_rates_p, dnf_multipeak_rates_im = create_plot(400, down_sampled_shape, "DNF multi-peak (spike rates)")
-dnf_selective_rates_p, dnf_selective_rates_im = create_plot(400, down_sampled_shape, "DNF selective (spike rates)")
+dvs_frame_p, dvs_frame_im = create_plot(
+    400, down_sampled_shape, "DVS file input (events)")
+dnf_multipeak_rates_p, dnf_multipeak_rates_im = create_plot(
+    400, down_sampled_shape, "DNF multi-peak (spike rates)")
+dnf_selective_rates_p, dnf_selective_rates_im = create_plot(
+    400, down_sampled_shape, "DNF selective (spike rates)")
 
 # add a button widget and configure with the call back
 button_run = Button(label="Run")
@@ -267,29 +269,35 @@ button_run.on_click(callback_run)
 
 # finalize layout (with spacer as placeholder)
 spacer = Spacer(height=40)
-bokeh_document.add_root(gridplot([[button_run, None, None],
-                                  [None, spacer, None],
-                                  [dvs_frame_p, dnf_multipeak_rates_p, dnf_selective_rates_p]],
-                                 toolbar_options=dict(logo=None)))
+bokeh_document.add_root(
+    gridplot([[button_run, None, None],
+              [None, spacer, None],
+              [dvs_frame_p, dnf_multipeak_rates_p, dnf_selective_rates_p]],
+             toolbar_options=dict(logo=None)))
 
 
 # ==========================================================================
 # Bokeh Update
 # ==========================================================================
-def update(dvs_frame_ds_image, dnf_multipeak_rates_ds_image, dnf_selective_rates_ds_image):
+def update(dvs_frame_ds_image,
+           dnf_multipeak_rates_ds_image,
+           dnf_selective_rates_ds_image):
     dvs_frame_im.data_source.data["image"] = [dvs_frame_ds_image]
-    dnf_multipeak_rates_im.data_source.data["image"] = [dnf_multipeak_rates_ds_image]
-    dnf_selective_rates_im.data_source.data["image"] = [dnf_selective_rates_ds_image]
+    dnf_multipeak_rates_im.data_source.data["image"] = \
+        [dnf_multipeak_rates_ds_image]
+    dnf_selective_rates_im.data_source.data["image"] = \
+        [dnf_selective_rates_ds_image]
 
 
 # ==========================================================================
 # Bokeh Main loop
 # ==========================================================================
 def main_loop():
-    print("Hello from MAIN_LOOP")
     while True:
         data_for_plot_dict = recv_pipe.recv()
-        bokeh_document.add_next_tick_callback(partial(update, **data_for_plot_dict))
+        bokeh_document.add_next_tick_callback(
+            partial(update, **data_for_plot_dict)
+        )
 
 
 thread = Thread(target=main_loop)

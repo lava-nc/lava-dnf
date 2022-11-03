@@ -7,7 +7,6 @@ import typing as ty
 from threading import Thread
 from multiprocessing import Pipe
 from functools import partial
-
 from PIL import Image
 
 from bokeh.plotting import curdoc
@@ -16,7 +15,6 @@ from bokeh.models import ImageRGBA, Title, Button, Plot, ColumnDataSource, \
     Circle, Label, Arrow, NormalHead
 
 from lava.proc.lif.process import LIF
-
 from lava.proc.embedded_io.spike import PyToNxAdapter
 from lava.magma.core.run_configs import Loihi2HwCfg
 from lava.magma.core.run_conditions import RunContinuous
@@ -26,8 +24,8 @@ from lava.lib.dnf.kernels.kernels import SelectiveKernel
 from lava.lib.dnf.operations.operations import Weights, ExpandDims, \
     ReduceDims, Convolution
 
-from process_in.process import ProcessIn
-from process_out.process import ProcessOut
+from lava.lib.dnf.demos.state_machine.process_in.process import ProcessIn
+from lava.lib.dnf.demos.state_machine.process_out.process import ProcessOut
 from lava.lib.dnf.demos.state_machine.c_spike_reader.process import \
     CSpikeReader
 
@@ -54,7 +52,7 @@ def convert_digits_to_bias(
 
 
 # ==========================================================================
-# Params
+# Parameters
 # ==========================================================================
 correct_combination = (1, 2, 3)
 
@@ -71,8 +69,6 @@ wm0_bias, wm1_bias, wm2_bias = convert_digits_to_bias(
     correct_combination)
 cod_bias = [10] * 10
 
-# inp_log_config = LogConfig(level=20, level_console=20)
-
 input_kernel = SelectiveKernel(amp_exc=full_weight,
                                width_exc=0.1,
                                global_inh=0)
@@ -85,16 +81,13 @@ recv_pipe_process_in, send_pipe_process_in = Pipe()
 recv_pipe_process_out, send_pipe_process_out = Pipe()
 
 # ==========================================================================
-# Instantiating ProcessIn and ProcessOut
+# Instantiating IO Processes
 # ==========================================================================
 process_in = ProcessIn(user_input_shape=dnf_shape,
                        recv_pipe=recv_pipe_process_in)
 process_out = ProcessOut(dnf_shape=dnf_shape, node_shape=node_shape,
                          send_pipe=send_pipe_process_out)
 
-# ==========================================================================
-# Connecting Network
-# ==========================================================================
 injector = PyToNxAdapter(shape=dnf_shape)
 c_spike_reader = CSpikeReader(dnf_shape=dnf_shape, node_shape=node_shape)
 
@@ -205,7 +198,7 @@ c_spike_reader.cod_out.connect(process_out.cod_in)
 c_spike_reader.cod_node_out.connect(process_out.cod_node_in)
 
 # ==========================================================================
-# Connecting Network
+# Connecting SNN
 # ==========================================================================
 connect(inp.s_out, inp.a_in, ops=[Convolution(input_kernel)])
 
@@ -308,9 +301,9 @@ def callback_run():
 #         print("Nothing is running.")
 
 
-def button_callback(button_number):
+def callback_numpad_button(button_number):
     # When a button is pressed, send the button number to Lava's ProcessIn
-    # through the Pipe
+    # through the Pipe.
     send_pipe_process_in.send(button_number)
 
 
@@ -335,25 +328,25 @@ grid_control = gridplot([[button_run, None]],
 # Bokeh: Numpad Buttons
 # ==========================================================================
 button_0 = Button(label="0", width=70, height=70, button_type="primary")
-button_0.on_click(partial(button_callback, 0))
+button_0.on_click(partial(callback_numpad_button, 0))
 button_1 = Button(label="1", width=70, height=70, button_type="primary")
-button_1.on_click(partial(button_callback, 1))
+button_1.on_click(partial(callback_numpad_button, 1))
 button_2 = Button(label="2", width=70, height=70, button_type="primary")
-button_2.on_click(partial(button_callback, 2))
+button_2.on_click(partial(callback_numpad_button, 2))
 button_3 = Button(label="3", width=70, height=70, button_type="primary")
-button_3.on_click(partial(button_callback, 3))
+button_3.on_click(partial(callback_numpad_button, 3))
 button_4 = Button(label="4", width=70, height=70, button_type="primary")
-button_4.on_click(partial(button_callback, 4))
+button_4.on_click(partial(callback_numpad_button, 4))
 button_5 = Button(label="5", width=70, height=70, button_type="primary")
-button_5.on_click(partial(button_callback, 5))
+button_5.on_click(partial(callback_numpad_button, 5))
 button_6 = Button(label="6", width=70, height=70, button_type="primary")
-button_6.on_click(partial(button_callback, 6))
+button_6.on_click(partial(callback_numpad_button, 6))
 button_7 = Button(label="7", width=70, height=70, button_type="primary")
-button_7.on_click(partial(button_callback, 7))
+button_7.on_click(partial(callback_numpad_button, 7))
 button_8 = Button(label="8", width=70, height=70, button_type="primary")
-button_8.on_click(partial(button_callback, 8))
+button_8.on_click(partial(callback_numpad_button, 8))
 button_9 = Button(label="9", width=70, height=70, button_type="primary")
-button_9.on_click(partial(button_callback, 9))
+button_9.on_click(partial(callback_numpad_button, 9))
 
 grid_buttons = gridplot([[button_1, button_2, button_3],
                          [button_4, button_5, button_6],
@@ -682,9 +675,9 @@ def update(inp_data,
 
 def main_loop():
     while True:
-        # Receive data from Lava's ProcessOut through the Pipe
+        # Receive data from Lava's ProcessOut through the Pipe.
         data_dict = recv_pipe_process_out.recv()
-        # Use received data from Lava to update the Plots
+        # Use received data from Lava to update the Plots.
         bokeh_document.add_next_tick_callback(partial(update, **data_dict))
 
 

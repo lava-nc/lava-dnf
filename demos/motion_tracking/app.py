@@ -8,14 +8,14 @@ from process_out.process import ProcessOut, \
 from dvs_file_input.process import DVSFileInput, \
     PyDVSFileInputPM
 from rate_reader.process import RateReader
-from experiments.motion_tracking_app.sparse.process import Sparse
+from lava.lib.dnf.demos.motion_tracking.sparse.process import \
+    Sparse
 from lava.lib.dnf.connect.connect import _configure_ops, \
     _compute_weights
 from lava.lib.dnf.kernels.kernels import MultiPeakKernel, SelectiveKernel
 from lava.lib.dnf.operations.operations import Convolution
-from miscellaneous.c_injector.process import CInjector, CInjectorPMVecDense
-from miscellaneous.c_spike_reader.process import CSpikeReader, \
-    CSpikeReaderPMVecDense
+from lava.lib.dnf.demos.motion_tracking.c_injector.process import CInjector
+from lava.proc.embedded_io.spike import NxToPyAdapter
 from bokeh.plotting import figure, curdoc
 from bokeh.layouts import row, column, gridplot, Spacer
 from bokeh.models import LinearColorMapper, ColorBar, Title, Button, Plot, Text, ColumnDataSource
@@ -42,7 +42,7 @@ num_steps = 4800
 # DVSFileInput Params
 true_height = 180
 true_width = 240
-file_path = "/home/gkarray/dev/dvs_processes/experiments/bokeh_experiment/dvSave-2022_10_20_12_12_18.aedat4"
+file_path = "dvs_recording.aedat4"
 flatten = True
 down_sample_factor = 8
 down_sample_mode = "max_pooling"  # max_pooling, down_sampling, convolution
@@ -122,8 +122,8 @@ data_relayer = ProcessOut(shape_dvs_frame=down_sampled_shape,
 # Instantiate C-Processes Running on LMT
 # ==========================================================================
 c_injector = CInjector(shape=down_sampled_flat_shape)
-c_spike_reader_multi_peak = CSpikeReader(shape=down_sampled_shape)
-c_spike_reader_selective = CSpikeReader(shape=down_sampled_shape)
+c_spike_reader_multi_peak = NxToPyAdapter(shape=down_sampled_shape)
+c_spike_reader_selective = NxToPyAdapter(shape=down_sampled_shape)
 
 # ==========================================================================
 # Instantiate Processes Running on Loihi 2
@@ -163,12 +163,12 @@ con_op.reshape(new_shape=dnf_selective.a_in.shape).connect(
     dnf_selective.a_in)
 
 # Connect C Reader Processes
-dnf_multi_peak.s_out.connect(c_spike_reader_multi_peak.in_port)
-dnf_selective.s_out.connect(c_spike_reader_selective.in_port)
+dnf_multi_peak.s_out.connect(c_spike_reader_multi_peak.inp)
+dnf_selective.s_out.connect(c_spike_reader_selective.inp)
 
 # Connecting RateReaders
-c_spike_reader_multi_peak.out_port.connect(rate_reader_multi_peak.in_port)
-c_spike_reader_selective.out_port.connect(rate_reader_selective.in_port)
+c_spike_reader_multi_peak.out.connect(rate_reader_multi_peak.in_port)
+c_spike_reader_selective.out.connect(rate_reader_selective.in_port)
 
 # Connecting ProcessOut (data relayer)
 dvs_file_input.event_frame_out.reshape(
@@ -181,8 +181,6 @@ rate_reader_selective.out_port.connect(data_relayer.dnf_selective_rates_port)
 # ==========================================================================
 exception_pm_map = {
     DVSFileInput: PyDVSFileInputPM,
-    CInjector: CInjectorPMVecDense,
-    CSpikeReader: CSpikeReaderPMVecDense,
     ProcessOut: DataRelayerPM
 }
 run_cfg = Loihi2HwCfg(exception_proc_model_map=exception_pm_map)

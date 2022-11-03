@@ -33,12 +33,17 @@ class ProcessInPM(PyLoihiProcessModel):
     def __init__(self, proc_params):
         super().__init__(proc_params)
         self._user_input_shape = proc_params["user_input_shape"]
+
+        # Pipe to receive data coming from the outside to Lava
         self._recv_pipe = proc_params["recv_pipe"]
 
     def run_spk(self):
         data = np.zeros(self._user_input_shape, dtype=np.int32)
 
+        # If the recv_pipe contains data
         if self._recv_pipe.poll():
+            # Receive data from the outside coming from Button-pressing of
+            # the Bokeh Numpad to feed to other Lava Processes
             idx = self._recv_pipe.recv()
             data[idx] = 1
 

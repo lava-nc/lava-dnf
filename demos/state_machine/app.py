@@ -80,6 +80,7 @@ input_kernel = SelectiveKernel(amp_exc=full_weight,
 # ==========================================================================
 # Instantiating Pipes
 # ==========================================================================
+# Creating Pipes to use for communication with Lava
 recv_pipe_process_in, send_pipe_process_in = Pipe()
 recv_pipe_process_out, send_pipe_process_out = Pipe()
 
@@ -308,6 +309,8 @@ def callback_run():
 
 
 def button_callback(button_number):
+    # When a button is pressed, send the button number to Lava's ProcessIn
+    # through the Pipe
     send_pipe_process_in.send(button_number)
 
 
@@ -679,7 +682,9 @@ def update(inp_data,
 
 def main_loop():
     while True:
+        # Receive data from Lava's ProcessOut through the Pipe
         data_dict = recv_pipe_process_out.recv()
+        # Use received data from Lava to update the Plots
         bokeh_document.add_next_tick_callback(partial(update, **data_dict))
 
 

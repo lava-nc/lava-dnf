@@ -4,8 +4,8 @@ In order to run a demo, you'll need to follow these steps:
 #### 2. Execute the following commands: 
 ```bash
 $ port_num=$(python <<< 'import random; print(random.randint(5006, 5106))')
-$ echo $port_num
-Copy & use to replace <port_num> when running the Bokeh server at the end 
+$ echo $port_num # Copy & use to replace <port_num> when running the Bokeh server at the end 
+
 $ ssh <my-vm>.research.intel-research.net -L 127.0.0.1:$port_num:127.0.0.1:$port_num 
 ```
 #### 3. Activate your virtual environment that has lava, lava-loihi and lava-dnf installed 
@@ -28,4 +28,4 @@ http://localhost:<port_num>/app
 
 You should see the demo component static. 
 
-7. Enjoy!
+#### 8. Enjoy!

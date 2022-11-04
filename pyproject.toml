@@ -44,7 +44,6 @@ classifiers = [
 python = ">=3.8,<3.11"
 
 lava-nc = { git = "https://github.com/lava-nc/lava.git", branch = "dnf_demos", develop = true }
-lava-loihi = { git = "https://github.com/intel-collab/frameworks.ai.lava.lava-loihi", branch = "dnf_demos", develop = true }
 
 numpy = "^1.23.0"
 scipy = "^1.8.1"

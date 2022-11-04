@@ -48,6 +48,7 @@ lava-nc = { git = "https://github.com/lava-nc/lava.git", branch = "dnf_demos", d
 numpy = "^1.23.0"
 scipy = "^1.8.1"
 bokeh = "^2.4.3"
+dv = "^1.0.10"
 
 [tool.poetry.dev-dependencies]
 bandit = "1.7.2"

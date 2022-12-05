@@ -1,5 +1,77 @@
-# Dynamic Neural Fields
+# Dynamic Neural Fields - Demos
+These setup instructions cover how to setup and run the dnf-demos presented at the INRC Workshop
+### Setup (only needs to be done once)
+#### Connect to external vlab 
+```bash
+ssh <my-vm>.research.intel-research.net
+```
 
+#### Create a directory for your demos
+```bash
+mkdir demos
+cd demos
+```
+
+#### Copy and unpack the tarball for the dnf-demos
+```bash
+cp /nfs/ncl/lava/demos/dnf_demos.tar.gz .
+tar –xvzf dnf_demos.tar.gz
+```
+
+#### Go into the demo directoy and create a venv with all requirements
+```bash
+cd dnf_demos
+pip install -U pip
+python -m venv venv
+source venv/bin/activate
+pip install -e lava
+pip install -e frameworks.ai.lava.lava-loihi
+pip install -e lava-dnf
+```
+
+### Running the demos
+The demo will run in your browser via port-forwarding. Choose a random port_num between 10000 and 20000.
+(This is to avoid that multiple users try to use the same port)
+
+#### Connect to external vlab with port-forwarding
+```bash
+ssh <my-vm>.research.intel-research.net -L 127.0.0.1:<port_num>:127.0.0.1:<port_num>
+```
+
+####a) to run the motion_tracking demo:
+```bash
+cd demos/dnf_demos/lava-dnf/demos/motion_tracking
+```
+####start the bokeh app
+```bash
+SLURM=1 LOIHI_GEN=N3B3 PARTITION=kp bokeh serve app.py --port <port_num>
+```
+
+open your browser and type:
+http://localhost:<port_num>/app
+
+Once the compilation is done, the demo will appear and you can click on a "run" button to start the demo.
+!IMPORTANT! For now the demo does not terminate gracefully. To ensure that the board gets freed press 'Ctrl + c' to kill all related processes.
+
+####b) state machine demo
+```bash
+cd demos/dnf_demos/lava-dnf/demos/state_machine
+```
+####start the bokeh app
+```bash
+SLURM=1 LOIHI_GEN=N3B3 PARTITION=kp bokeh serve app.py --port <port_num>
+```
+
+open your browser and type:
+http://localhost:<port_num>/app
+
+Once the compilation is done, the demo will appear and you can click on a "run" button to start the demo.
+Once the state nodes on the right are filled with color you can can click on the digits and see the state machine evolve.
+!IMPORTANT! For now the demo does not terminate gracefully. To ensure that the board gets freed press 'Ctrl + c' to kill all related processes.
+
+
+
+# Dynamic Neural Fields - General Read Me
 ## Introduction
 
 Dynamic Neural Fields (DNF) are neural attractor networks that generate

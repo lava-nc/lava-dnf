@@ -91,13 +91,13 @@ multipeak_threshold = 30
 # MultiPeak DNF Params
 kernel_multi_peak = MultiPeakKernel(**multipeak_params)
 ops_multi_peak = [Convolution(kernel_multi_peak)]
-_configure_ops(ops_multi_peak, down_sampled_shape, down_sampled_shape)
+_configure_ops(ops_multi_peak, down_sampled_shape[:-1], down_sampled_shape[:-1])
 weights_multi_peak = _compute_weights(ops_multi_peak)
 
 # Selective DNF Params
 kernel_selective = SelectiveKernel(**selective_kernel_params)
 ops_selective = [Convolution(kernel_selective)]
-_configure_ops(ops_selective, down_sampled_shape, down_sampled_shape)
+_configure_ops(ops_selective, down_sampled_shape[:-1], down_sampled_shape[:-1])
 weights_selective = _compute_weights(ops_selective)
 
 # ==========================================================================
@@ -287,11 +287,11 @@ bokeh_document = curdoc()
 
 # create plots
 dvs_frame_p, dvs_frame_im = create_plot(
-    400, down_sampled_shape, "DVS file input (events)")
+    400, down_sampled_shape[:-1], "DVS file input (events)")
 dnf_multipeak_rates_p, dnf_multipeak_rates_im = create_plot(
-    400, down_sampled_shape, "DNF multi-peak (spike rates)")
+    400, down_sampled_shape[:-1], "DNF multi-peak (spike rates)")
 dnf_selective_rates_p, dnf_selective_rates_im = create_plot(
-    400, down_sampled_shape, "DNF selective (spike rates)")
+    400, down_sampled_shape[:-1], "DNF selective (spike rates)")
 
 # add a button widget and configure with the call back
 button_run = Button(label="Run")
@@ -312,11 +312,11 @@ bokeh_document.add_root(
 def update(dvs_frame_ds_image,
            dnf_multipeak_rates_ds_image,
            dnf_selective_rates_ds_image):
-    dvs_frame_im.data_source.data["image"] = [dvs_frame_ds_image]
+    dvs_frame_im.data_source.data["image"] = [dvs_frame_ds_image[:, :, 0]]
     dnf_multipeak_rates_im.data_source.data["image"] = \
-        [dnf_multipeak_rates_ds_image]
+        [dnf_multipeak_rates_ds_image[:, :, 0]]
     dnf_selective_rates_im.data_source.data["image"] = \
-        [dnf_selective_rates_ds_image]
+        [dnf_selective_rates_ds_image[:, :, 0]]
 
 
 # ==========================================================================

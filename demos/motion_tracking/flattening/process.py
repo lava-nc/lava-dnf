@@ -33,9 +33,15 @@ class Flattening(AbstractProcess):
 
     @staticmethod
     def _validate_shape_in(shape_in: ty.Union[ty.Tuple[int, int], ty.Tuple[int, int, int]]) -> None:
-        if not (len(shape_in) == 3):
+        if not (len(shape_in) == 2 or len(shape_in) == 3):
             raise ValueError(f"shape_in should be 2 or 3 dimensional. "
                              f"{shape_in} was given.")
+
+        if len(shape_in) == 3:
+            if shape_in[2] != 2:
+                raise ValueError(f"Third dimension of shape_in should be "
+                                 f"equal to 2."
+                                 f"{shape_in} was given.")
 
         if shape_in[0] <= 0 or shape_in[1] <= 0:
             raise ValueError(f"Width and height of shape_in should be positive."

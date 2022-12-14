@@ -43,7 +43,7 @@ true_width = 240
 file_path = "dvs_recording.aedat4"
 flatten = True
 down_sample_factor = 8
-down_sample_mode = "max_pooling"
+down_sample_mode = "convolution"
 
 down_sampled_shape = (true_width // down_sample_factor,
                       true_height // down_sample_factor)
@@ -119,14 +119,14 @@ data_relayer = ProcessOut(shape_dvs_frame=down_sampled_shape,
 # ==========================================================================
 # Instantiate C-Processes Running on LMT
 # ==========================================================================
-c_injector = PyToNxAdapter(shape=down_sampled_flat_shape)
+c_injector = PyToNxAdapter(shape=down_sampled_flat_shape, num_message_bits=8)
 c_spike_reader_multi_peak = NxToPyAdapter(shape=down_sampled_shape)
 c_spike_reader_selective = NxToPyAdapter(shape=down_sampled_shape)
 
 # ==========================================================================
 # Instantiate Processes Running on Loihi 2
 # ==========================================================================
-sparse_1 = Sparse(weights=np.eye(num_neurons) * sparse1_weights)
+sparse_1 = Sparse(weights=np.eye(num_neurons) * sparse1_weights, num_message_bits=8)
 dnf_multi_peak = LIF(shape=down_sampled_shape,
                      du=du_multipeak,
                      dv=dv_multipeak,
@@ -208,7 +208,7 @@ def callback_run():
     runtime.start(run_condition=run_cnd)
 
 
-def create_plot(plot_base_width, data_shape, title):
+def create_plot(plot_base_width, data_shape, title, max_value=1):
     x_range = DataRange1d(start=0,
                           end=data_shape[0],
                           bounds=(0, data_shape[0]),
@@ -242,7 +242,7 @@ def create_plot(plot_base_width, data_shape, title):
     plot.xgrid.grid_line_color = None
     plot.ygrid.grid_line_color = None
 
-    color = LinearColorMapper(palette="Viridis256", low=0, high=1)
+    color = LinearColorMapper(palette="Viridis256", low=0, high=max_value)
     image.glyph.color_mapper = color
 
     cb = ColorBar(color_mapper=color)
@@ -257,7 +257,7 @@ bokeh_document = curdoc()
 
 # create plots
 dvs_frame_p, dvs_frame_im = create_plot(
-    400, down_sampled_shape, "DVS file input (events)")
+    400, down_sampled_shape, "DVS file input (convolved events)", max_value=10)
 dnf_multipeak_rates_p, dnf_multipeak_rates_im = create_plot(
     400, down_sampled_shape, "DNF multi-peak (spike rates)")
 dnf_selective_rates_p, dnf_selective_rates_im = create_plot(

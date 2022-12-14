@@ -14,7 +14,6 @@ from bokeh.models.ranges import DataRange1d
 
 from lava.proc.lif.process import LIF
 from lava.proc.embedded_io.spike import NxToPyAdapter, PyToNxAdapter
-from lava.proc import io
 from lava.magma.compiler.compiler import Compiler
 from lava.magma.core.run_configs import Loihi2HwCfg
 from lava.magma.core.process.message_interface_enum import ActorType
@@ -31,15 +30,6 @@ from process_out.process import ProcessOut, DataRelayerPM
 from dvs_file_input.process import DVSFileInput, PyDVSFileInputPM
 from rate_reader.process import RateReader
 
-from lava.proc.event_data.io.aedat_stream import AedatStream
-from lava.proc.event_data.binary_to_unary_polarity.models import BinaryToUnaryPolarity, \
-    PyBinaryToUnaryPolarityPM
-from lava.proc.event_data.events_to_frame.models import EventsToFrame, PyEventsToFramePM
-from lava.proc.conv.models import Conv
-from lava.proc.max_pooling.models import MaxPooling, PyMaxPoolingPM
-from demos.motion_tracking.flattening.process import Flattening, FlatteningPM
-
-from lava.utils.system import Loihi2
 
 # ==========================================================================
 # Parameters
@@ -48,24 +38,21 @@ from lava.utils.system import Loihi2
 num_steps = 4800
 
 # DVSFileInput Params
-flatten = True
-down_sample_mode = "max_pooling"
-
-# Input pipeline params
-file_path = "dvs_recording.aedat4"
-max_num_events = 5000
-sparse_shape = (max_num_events,)
 true_height = 180
 true_width = 240
-dense_shape = (true_width, true_height, 1)
+file_path = "dvs_recording.aedat4"
+flatten = True
 down_sample_factor = 8
+down_sample_mode = "max_pooling"
 
 down_sampled_shape = (true_width // down_sample_factor,
-                      true_height // down_sample_factor, 1)
+                      true_height // down_sample_factor)
 
 num_neurons = (true_height // down_sample_factor) * \
               (true_width // down_sample_factor)
 down_sampled_flat_shape = (num_neurons,)
+
+true_shape = (true_width, true_height)
 
 # RateReader Params
 buffer_size_rate_reader = 10
@@ -108,31 +95,21 @@ recv_pipe, send_pipe = Pipe()
 # ==========================================================================
 # Instantiate Processes Running on CPU
 # ==========================================================================
-# dvs_file_input = DVSFileInput(true_height=true_height,
-#                               true_width=true_width,
-#                               file_path=file_path,
-#                               flatten=flatten,
-#                               down_sample_factor=down_sample_factor,
-#                               down_sample_mode=down_sample_mode,
-#                               num_steps=num_steps)
-
-aedat_stream = AedatStream(file_path=file_path,
-                           shape_out=sparse_shape,
-                           seed_sub_sampling=0)
-binary_to_unary = BinaryToUnaryPolarity(shape=sparse_shape)
-events_to_frame = EventsToFrame(shape_in=sparse_shape,
-                                shape_out=dense_shape)
-max_pooling = MaxPooling(shape_in=dense_shape,
-                         kernel_size=down_sample_factor,
-                         stride=down_sample_factor,
-                         padding=0)
-flattening = Flattening(shape_in=down_sampled_shape)
+dvs_file_input = DVSFileInput(true_height=true_height,
+                              true_width=true_width,
+                              file_path=file_path,
+                              flatten=flatten,
+                              down_sample_factor=down_sample_factor,
+                              down_sample_mode=down_sample_mode,
+                              num_steps=num_steps)
 
 rate_reader_multi_peak = RateReader(shape=down_sampled_shape,
-                                    buffer_size=buffer_size_rate_reader)
+                                    buffer_size=buffer_size_rate_reader,
+                                    num_steps=num_steps)
 
 rate_reader_selective = RateReader(shape=down_sampled_shape,
-                                   buffer_size=buffer_size_rate_reader)
+                                   buffer_size=buffer_size_rate_reader,
+                                   num_steps=num_steps)
 
 # sends data to pipe for plotting
 data_relayer = ProcessOut(shape_dvs_frame=down_sampled_shape,
@@ -165,15 +142,8 @@ connections_selective = Sparse(weights=weights_selective)
 # ==========================================================================
 # Connecting Processes
 # ==========================================================================
-# Connecting Input Python Processes
-# dvs_file_input.event_frame_out.connect(c_injector.inp)
-aedat_stream.out_port.connect(binary_to_unary.in_port)
-binary_to_unary.out_port.connect(events_to_frame.in_port)
-events_to_frame.out_port.connect(max_pooling.in_port)
-max_pooling.out_port.connect(flattening.in_port)
-flattening.out_port.connect(c_injector.inp)
-
-# Connecting input C processes
+# Connecting Input Processes
+dvs_file_input.event_frame_out.connect(c_injector.inp)
 c_injector.out.connect(sparse_1.s_in)
 sparse_1.a_out.reshape(new_shape=down_sampled_shape).connect(
     dnf_multi_peak.a_in)
@@ -205,7 +175,7 @@ c_spike_reader_multi_peak.out.connect(rate_reader_multi_peak.in_port)
 c_spike_reader_selective.out.connect(rate_reader_selective.in_port)
 
 # Connecting ProcessOut (data relayer)
-flattening.out_port.reshape(
+dvs_file_input.event_frame_out.reshape(
     new_shape=down_sampled_shape).connect(data_relayer.dvs_frame_port)
 rate_reader_multi_peak.out_port.connect(data_relayer.dnf_multipeak_rates_port)
 rate_reader_selective.out_port.connect(data_relayer.dnf_selective_rates_port)
@@ -222,7 +192,7 @@ run_cnd = RunSteps(num_steps=num_steps, blocking=False)
 
 # Compilation
 compiler = Compiler()
-executable = compiler.compile(c_injector, run_cfg=run_cfg)
+executable = compiler.compile(dvs_file_input, run_cfg=run_cfg)
 
 # Initializing runtime
 mp = ActorType.MultiProcessing

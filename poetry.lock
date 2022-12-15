@@ -895,7 +895,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "lava-nc"
-version = "0.5.1"
+version = "0.6.0"
 description = "A Software Framework for Neuromorphic Computing"
 category = "main"
 optional = false
@@ -911,8 +911,8 @@ scipy = "^1.8.0"
 [package.source]
 type = "git"
 url = "https://github.com/lava-nc/lava.git"
-reference = "main"
-resolved_reference = "79e4202b380e25818ab5282d79920a9693a131e0"
+reference = "v0.6.0"
+resolved_reference = "79581069e05428ab873b2f9426138bc378a97000"
 
 [[package]]
 name = "linecache2"
@@ -1824,7 +1824,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "fe9b9213c91413c5d89cb5edf19dd6e0778fd83d90d6ffd242d41dd36c8eddea"
+content-hash = "de3a6ecaea92162a7d8df6f31afeec06953422e774f4f18ffa6c7b42b8fee33a"
 
 [metadata.files]
 appnope = []

@@ -9,10 +9,13 @@ import numpy as np
 from lava.lib.dnf.utils.convenience import num_neurons
 from lava.lib.dnf.operations.shape_handlers import (
     AbstractShapeHandler,
-    KeepShapeHandler,
-    ReduceDimsHandler,
-    ExpandDimsHandler,
-    ReorderHandler)
+    KeepShapeShapeHandler,
+    ReduceDimsShapeHandler,
+    ExpandDimsShapeHandler,
+    ReorderDimsShapeHandler,
+    ReduceAlongDiagonalShapeHandler,
+    ExpandAlongDiagonalShapeHandler,
+    FlipShapeHandler)
 from lava.lib.dnf.operations.enums import ReduceMethod, BorderType
 from lava.lib.dnf.kernels.kernels import Kernel
 from lava.lib.dnf.utils.convenience import num_dims
@@ -110,7 +113,7 @@ class Weights(AbstractOperation):
 
     """
     def __init__(self, weight: float) -> None:
-        super().__init__(KeepShapeHandler())
+        super().__init__(KeepShapeShapeHandler())
         self.weight = weight
 
     def _compute_weights(self) -> np.ndarray:
@@ -136,7 +139,7 @@ class ReduceDims(AbstractOperation):
                  reduce_dims: ty.Union[int, ty.Tuple[int, ...]],
                  reduce_method: ty.Optional[ReduceMethod] = ReduceMethod.SUM
                  ) -> None:
-        super().__init__(ReduceDimsHandler(reduce_dims))
+        super().__init__(ReduceDimsShapeHandler(reduce_dims))
         ReduceMethod.validate(reduce_method)
         self.reduce_method = reduce_method
 
@@ -145,7 +148,7 @@ class ReduceDims(AbstractOperation):
         # that will not be removed
         in_axes_all = np.arange(num_dims(self.input_shape))
 
-        sh = ty.cast(ReduceDimsHandler, self._shape_handler)
+        sh = ty.cast(ReduceDimsShapeHandler, self._shape_handler)
         in_axes_kept = tuple(np.delete(in_axes_all, sh.reduce_dims))
 
         # Generate the weight matrix
@@ -168,7 +171,7 @@ class ExpandDims(AbstractOperation):
     """
     def __init__(self,
                  new_dims_shape: ty.Union[int, ty.Tuple[int, ...]]) -> None:
-        super().__init__(ExpandDimsHandler(new_dims_shape))
+        super().__init__(ExpandDimsShapeHandler(new_dims_shape))
 
     def _compute_weights(self) -> np.ndarray:
         # Indices of the output dimensions in the weight matrix that will
@@ -183,7 +186,7 @@ class ExpandDims(AbstractOperation):
         return weights
 
 
-class Reorder(AbstractOperation):
+class ReorderDims(AbstractOperation):
     """
     Operation that reorders the dimensions in the input to a specified new
     order.
@@ -191,14 +194,14 @@ class Reorder(AbstractOperation):
     Parameters
     ----------
     order : tuple(int)
-        new order of the dimensions (see ReorderHandler)
+        new order of the dimensions (see ReorderDimsShapeHandler)
 
     """
     def __init__(self, order: ty.Tuple[int, ...]) -> None:
-        super().__init__(ReorderHandler(order))
+        super().__init__(ReorderDimsShapeHandler(order))
 
     def _compute_weights(self) -> np.ndarray:
-        sh = ty.cast(ReorderHandler,
+        sh = ty.cast(ReorderDimsShapeHandler,
                      self._shape_handler)
         weights = _project_dims(self.input_shape,
                                 self.output_shape,
@@ -330,7 +333,7 @@ class Convolution(AbstractOperation):
                                            ty.List[BorderType]]]
             = BorderType.PADDED
     ) -> None:
-        super().__init__(KeepShapeHandler())
+        super().__init__(KeepShapeShapeHandler())
 
         self._kernel = self._validate_kernel(kernel)
         self._border_types = self._validate_border_types(border_types)
@@ -390,7 +393,7 @@ class Convolution(AbstractOperation):
         # Input shape equals output shape
         shape = self.input_shape
         # Do not use num_dims() here to treat 0D like 1D
-        num_dims = len(shape)
+        _num_dims = len(shape)
         _num_neurons = num_neurons(shape)
 
         # Generate a dense connectivity matrix
@@ -399,13 +402,13 @@ class Convolution(AbstractOperation):
         # Copy the weights of the kernel
         kernel_weights = np.copy(self.kernel.weights)
 
-        for i in range(num_dims):
+        for i in range(_num_dims):
             # Compute the size difference between the population and the
             # kernel in the current dimension
             size_diff = shape[i] - np.size(kernel_weights, axis=i)
 
             if size_diff != 0:
-                pad_width = np.zeros((num_dims, 2), dtype=int)
+                pad_width = np.zeros((_num_dims, 2), dtype=int)
                 pad_width[i, :] = int(np.floor(np.abs(size_diff) / 2.0))
                 # If the padding cannot be distributed evenly...
                 if is_odd(size_diff):
@@ -447,7 +450,7 @@ class Convolution(AbstractOperation):
             conn_weights = kernel_weights
 
             # Shift the weights depending on the border method
-            for i in range(num_dims):
+            for i in range(_num_dims):
                 if self.border_types[i] == BorderType.CIRCULAR:
                     conn_weights = np.roll(conn_weights, -shift[i], axis=i)
                 elif self.border_types[i] == BorderType.PADDED:
@@ -467,7 +470,7 @@ class Convolution(AbstractOperation):
                                                  axis=i)
 
             # Flatten kernel matrix
-            if num_dims > 1:
+            if _num_dims > 1:
                 conn_weights = np.ravel(conn_weights)
 
             # Fill the connectivity matrix
@@ -520,3 +523,122 @@ class Convolution(AbstractOperation):
             return shifted_array
         else:
             return array
+
+
+class ReduceAlongDiagonal(AbstractOperation):
+    """
+    Creates connectivity that projects the output of a source population
+    along its diagonal. For instance, if the source population is a grid of
+    neurons of shape (40, 40), the operation will project (sum) the output of
+    that two-dimensional population along its diagonal, yielding a
+    one-dimensional output of shape (79,). The output size is computed by
+    79 = 40 * 2 - 1.
+    """
+    def __init__(self) -> None:
+        super().__init__(ReduceAlongDiagonalShapeHandler())
+
+    def _compute_weights(self) -> np.ndarray:
+        weights = np.zeros(self.output_shape + self.input_shape,
+                           dtype=np.int32)
+
+        # Extract the original shape of the source populations.
+        # This assumes that self.input_shape = shape + shape.
+        # For instance if the input shape is (40, 30, 40, 30),
+        # half_in_shape would be (40, 30).
+        half_in_shape = self.input_shape[0:num_dims(self.output_shape)]
+
+        # Iterate over all positions within the output shape.
+        # 'x' will be a tuple of the dimensionality of the output shape.
+        for x in np.ndindex(*self.output_shape):
+            x = np.array(x)
+            # Iterate over all positions within 'half_in_shape'.
+            # 'p' will be a tuple of the dimensionality of 'half_in_shape'
+            for p in np.ndindex(*half_in_shape):
+                p = np.array(p)
+
+                # Set weights[x, x-p, p] = 1, where 0 <= x-p < half_in_shape
+                d = x - p
+                if np.all(0 <= d) and np.all(d < np.array(half_in_shape)):
+                    idx = tuple(np.concatenate([x, d, p]))
+                    weights[idx] = 1
+
+        # Reshape weights matrix to 2D
+        return weights.reshape(num_neurons(self.output_shape),
+                               num_neurons(self.input_shape))
+
+
+class ExpandAlongDiagonal(AbstractOperation):
+    """
+    Creates connectivity that projects the output of a source population
+    onto the diagonal of the target population, where the target
+    population has twice the number of dimensions as the source
+    population. The dimensions of the source population can only have odd
+    sizes. For instance, if the source population is a grid of
+    neurons of shape (99, 79), the operation will project the output of
+    that two-dimensional population into a 4D target population of shape
+    (50, 40, 50, 40) along its diagonal. Each entry in the output shape is
+    computed by out_size = (in_size + 1) / 2.
+    """
+    def __init__(self) -> None:
+        super().__init__(ExpandAlongDiagonalShapeHandler())
+
+    def _compute_weights(self) -> np.ndarray:
+        weights = np.zeros(self.output_shape + self.input_shape,
+                           dtype=np.int32)
+
+        # Extract one half of the output shape, for instance if the output
+        # shape is (40, 30, 40, 30), half_out_shape would be (40, 30)
+        half_out_shape = self.output_shape[0:num_dims(self.input_shape)]
+
+        # Iterate over all positions within the input shape.
+        # 'x' will be a tuple of the dimensionality of 'input_shape'
+        for x in np.ndindex(*self.input_shape):
+            x = np.array(x)
+            # Iterate over all positions within 'half_out_shape'.
+            # 'p' will be a tuple of the dimensionality of 'half_out_shape'
+            for p in np.ndindex(*half_out_shape):
+                p = np.array(p)
+
+                # Set weights[x-p, p, x] = 1, where 0 <= x-p < half_out_shape
+                d = x - p
+                if np.all(0 <= d) and np.all(d < np.array(half_out_shape)):
+                    idx = tuple(np.concatenate([d, p, x]))
+                    weights[idx] = 1
+
+        # Reshape weights matrix to 2D
+        return weights.reshape(num_neurons(self.output_shape),
+                               num_neurons(self.input_shape))
+
+
+class Flip(AbstractOperation):
+    """
+    Creates connectivity that flips all specified dimensions.
+
+    Parameters
+    ----------
+    dims : tuple(int) or int
+        indices of the dimensions that are to be flipped
+    """
+    def __init__(
+        self,
+        dims: ty.Optional[ty.Union[int, ty.Tuple[int, ...]]] = None
+    ) -> None:
+        super().__init__(FlipShapeHandler(dims=dims))
+
+    def _compute_weights(self) -> np.ndarray:
+        shape = (num_neurons(self.output_shape), num_neurons(self.input_shape))
+        # Set up connectivity weights that project input to output one-to-one
+        weights = np.eye(*shape, dtype=np.int32)
+        # Reshape the connectivity matrix to explicitly represent the input
+        # dimensions
+        weights = weights.reshape((num_neurons(self.output_shape),)
+                                  + self.input_shape)
+        # Get the indices of the dimensions that are to be flipped from the
+        # shape handler and increase them all by one
+        sh = ty.cast(FlipShapeHandler, self._shape_handler)
+        dims = np.array(sh.dims) + 1
+        # Flip those dimensions
+        weights = np.flip(weights, axis=tuple(dims))
+
+        # Reshape the connectivity matrix back to 2D
+        return weights.reshape(shape)

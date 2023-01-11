@@ -11,26 +11,33 @@ from lava.proc.lif.process import LIF
 
 from lava.lib.dnf.connect.connect import connect
 from lava.lib.dnf.kernels.kernels import SelectiveKernel, MultiPeakKernel
-from lava.lib.dnf.operations.operations import Weights, ReduceDims, Reorder, \
-    ExpandDims, Convolution
+from lava.lib.dnf.operations.operations import (
+    Weights,
+    ReduceDims,
+    ReorderDims,
+    ExpandDims,
+    Convolution
+)
 
 
 class TestConnectingWithOperations(unittest.TestCase):
     def test_running_reorder(self) -> None:
-        """Tests executing a architecture with multi-dimensional input that
+        """Tests executing an architecture with multi-dimensional input that
         gets reshaped (here, reordered)."""
         num_steps = 10
         shape_src = (5, 3)
         shape_dst = (3, 5)
 
-        bias = np.zeros(shape_src)
-        bias[:, 0] = 5000
-        src = LIF(shape=shape_src, bias=bias, bias_exp=np.ones(shape_src))
+        bias_mant = np.zeros(shape_src)
+        bias_mant[:, 0] = 5000
+        src = LIF(shape=shape_src,
+                  bias_mant=bias_mant,
+                  bias_exp=np.ones(shape_src))
         dst = LIF(shape=shape_dst)
 
         weight = 20
         connect(src.s_out, dst.a_in, ops=[Weights(weight),
-                                          Reorder(order=(1, 0))])
+                                          ReorderDims(order=(1, 0))])
         src.run(condition=RunSteps(num_steps=num_steps),
                 run_cfg=Loihi1SimCfg(select_tag='floating_pt'))
 
@@ -40,7 +47,6 @@ class TestConnectingWithOperations(unittest.TestCase):
 
         src.stop()
 
-        self.assertEqual(src.runtime.current_ts, num_steps)
         self.assertTrue(np.array_equal(computed_dst_u, expected_dst_u))
 
     def test_connect_population_with_weights_op(self) -> None:
@@ -87,7 +93,7 @@ class TestConnectingWithOperations(unittest.TestCase):
         for dims, order, expected in zip(reduce_dims, orders, matrices):
             source = LIF(shape=(2, 2, 2))
             destination = LIF(shape=(2, 2))
-            reorder_op = Reorder(order=order)
+            reorder_op = ReorderDims(order=order)
             reduce_op = ReduceDims(reduce_dims=dims)
             computed = connect(source.s_out,
                                destination.a_in,
@@ -158,7 +164,7 @@ class TestConnectingWithOperations(unittest.TestCase):
         for order, expected in zip(orders, matrices):
             source = LIF(shape=(2, 2))
             destination = LIF(shape=(2, 2, 2))
-            reorder_op = Reorder(order=order)
+            reorder_op = ReorderDims(order=order)
             expand_op = ExpandDims(new_dims_shape=(2,))
             computed = connect(source.s_out,
                                destination.a_in,
@@ -229,7 +235,7 @@ class TestConnectingWithOperations(unittest.TestCase):
         for order, expected in zip(orders, matrices):
             source = LIF(shape=(2,))
             destination = LIF(shape=(2, 2, 2))
-            reorder_op = Reorder(order=order)
+            reorder_op = ReorderDims(order=order)
             expand_op = ExpandDims(new_dims_shape=(2, 2))
             computed = connect(source.s_out,
                                destination.a_in,

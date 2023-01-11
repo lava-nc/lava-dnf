@@ -14,7 +14,7 @@ from lava.magma.core.model.py.model import PyLoihiProcessModel
 from lava.lib.dnf.inputs.rate_code_spike_gen.process import \
     RateCodeSpikeGen
 
-# TODO: (GK) This has to be changed to depend on time step duration in Loihi
+# TODO: (GK) This has to be changed to depend on time step duration in Loihi.
 TIME_STEPS_PER_MINUTE = 6000.0
 
 
@@ -40,9 +40,36 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
     a_in: PyInPort = LavaPyType(PyInPort.VEC_DENSE, float)
     s_out: PyOutPort = LavaPyType(PyOutPort.VEC_DENSE, bool)
 
-    ts_last_changed: int = 1
+    def __init__(self, proc_params):
+        super().__init__(proc_params)
+        self.ts_last_changed: int = 1
 
-    def _compute_distances(self, pattern: np.ndarray) -> np.ndarray:
+    def run_spk(self) -> None:
+        # Receive pattern from PyInPort
+        pattern = self.a_in.recv()
+
+        # If the received pattern is not the null_pattern ...
+        if not np.isnan(pattern).any():
+            # Reset time step counter.
+            self.ts_last_changed = 1
+
+            # Reset last spike times
+            self.last_spiked[:] = -np.inf
+
+            # Update inter spike distances based on new pattern
+            self.inter_spike_distances = self._compute_spike_distances(pattern)
+            # Compute first spike time for each "neuron"
+            self.first_spike_times = self._compute_spike_onsets(
+                self.inter_spike_distances)
+        else:
+            self.ts_last_changed += 1
+
+        # Generate spike at every time step ...
+        self.spikes = self._generate_spikes()
+        # ... and send them through the PyOutPort
+        self.s_out.send(self.spikes)
+
+    def _compute_spike_distances(self, pattern: np.ndarray) -> np.ndarray:
         """Converts pattern representing spike rates in Hz to
         inter spike distances in timesteps.
 
@@ -76,8 +103,7 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
 
         return distances
 
-    def _compute_first_spike_times(self,
-                                   distances: np.ndarray) -> np.ndarray:
+    def _compute_spike_onsets(self, distances: np.ndarray) -> np.ndarray:
         """Randomly picks an array of first spike time given an array of
         inter spike distances.
 
@@ -95,44 +121,32 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
             first spike time for each "neuron"
 
         """
-        rng = np.random.default_rng(
-            seed=None if self.seed[0] == -1 else self.seed[0])
+        # Create a random number generator.
+        seed = None if self.seed[0] == -1 else self.seed[0]
+        rng = np.random.default_rng(seed=seed)
 
         first_spikes = np.zeros_like(distances)
 
         # Find indices where distance is 0 (where the should never be spikes)
         idx_zeros = distances == 0
 
-        # Trick to yield a distances array in the right format for rng.integers
-        # Since rng.integers samples a random integer from [low, high[,
-        # we have to add 1 to distances so that high becomes actually
-        # distance + 1, that way, the outcome of sampling can be distance
-        distances[~idx_zeros] = distances[~idx_zeros] + 1
-
         # For indices where there should be a first spike ...
         # Pick a random number in [1, distance[
         # (distance here is actually the true value of distance, +1)
         first_spikes[~idx_zeros] = rng.integers(
-            low=np.ones_like(distances[~idx_zeros]), high=distances[~idx_zeros])
-
-        # Reverting distances array to its right format
-        distances[~idx_zeros] = distances[~idx_zeros] - 1
+            low=np.ones_like(distances[~idx_zeros]),
+            high=distances[~idx_zeros],
+            endpoint=True)
 
         return first_spikes
 
-    def _generate_spikes(self,
-                         time_step: int) -> np.ndarray:
+    def _generate_spikes(self) -> np.ndarray:
         """Generates an array of bool values where True represent a spike
         and False represents no-spike.
 
         Uses internal state such as inter spike distances, first spike times,
         last spike times and time step where last pattern change happened to
         derive whether each "neuron" should fire.
-
-        Parameters
-        ----------
-        time_step : int
-            current time step
 
         Returns
         -------
@@ -142,54 +156,30 @@ class RateCodeSpikeGenProcessModel(PyLoihiProcessModel):
         """
         spikes = np.zeros(self.spikes.shape, dtype=bool)
 
-        # Get time step index since pattern last changed
-        current_ts_transformed = time_step - self.ts_last_changed + 1
-
-        # Get indices where there should never be spikes
-        idx_zeros = self.inter_spike_distances == np.zeros
-        # Get indices where a spike never happened
-        idx_never_spiked = self.last_spiked == - np.inf
-        # Get indices where a first spike should be fired in this time step
-        idx_will_spike_first_time = \
-            self.first_spike_times == current_ts_transformed
-
         # Computes distances from current time step to last spike times
-        distances_last_spiked = current_ts_transformed - self.last_spiked
+        distances_last_spiked = self.ts_last_changed - self.last_spiked
 
-        # Spike at indices where there should be a first spike
+        # Get indices where a first spike should be fired in this time step.
+        idx_will_spike_first_time = \
+            self.first_spike_times == self.ts_last_changed
+        # Spike at indices where there should be a first spike.
         spikes[idx_will_spike_first_time] = True
+
+        # Get indices where a spike never happened.
+        idx_never_spiked = self.last_spiked == - np.inf
         # Spike at indices where we already spiked before, and where,
         # distance from current ts to last spike time is equal to
-        # inter spike distance
+        # inter spike distance.
         spikes[~idx_never_spiked] = \
             distances_last_spiked[~idx_never_spiked] == \
             self.inter_spike_distances[~idx_never_spiked]
+
+        # Get indices where there should never be spikes
+        idx_zeros = self.inter_spike_distances == np.zeros
         # Do not spike where there should never be spikes
         spikes[idx_zeros] = False
 
         # Update last spike times
-        self.last_spiked[spikes] = current_ts_transformed
+        self.last_spiked[spikes] = self.ts_last_changed
 
         return spikes
-
-    def run_spk(self) -> None:
-        # Receive pattern from PyInPort
-        pattern = self.a_in.recv()
-
-        # If the received pattern is not the null_pattern ...
-        if not np.isnan(pattern).any():
-            # Save the current time step
-            self.ts_last_changed = self.current_ts
-            # Reset last spike times
-            self.last_spiked = np.full_like(self.last_spiked, -np.inf)
-
-            # Update inter spike distances based on new pattern
-            self.inter_spike_distances = self._compute_distances(pattern)
-            # Compute first spike time for each "neuron"
-            self.first_spike_times = self._compute_first_spike_times(
-                self.inter_spike_distances)
-
-        # Generate spike at every time step ...
-        self.spikes = self._generate_spikes(time_step=self.current_ts)
-        # ... and send them through the PyOutPort
-        self.s_out.send(self.spikes)

@@ -144,7 +144,8 @@ class TestTutorials(unittest.TestCase):
         """
         cwd = os.getcwd()
         cur_file_dir = os.path.dirname(os.path.abspath(__file__))
-        tutorials_temp_directory = os.path.join(cur_file_dir, "../../../tutorials")
+        tutorials_temp_directory = \
+            os.path.join(cur_file_dir, "../../../tutorials")
 
         if dnf_101:
             tutorials_temp_directory = \

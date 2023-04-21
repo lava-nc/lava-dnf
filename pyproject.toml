@@ -5,7 +5,7 @@ packages = [
     {include = "tests"}
 ]
 include = ["tutorials"]
-version = "0.1.2"
+version = "0.1.3"
 description = "A library that provides processes and other software infrastructure to build architectures composed of Dynamic Neural Fields (DNF)."
 authors = ["Intel's Neuromorphic Computing Lab and the open source community <lava@intel.com>"]
 homepage = "https://lava-nc.org/"

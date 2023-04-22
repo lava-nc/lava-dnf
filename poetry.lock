@@ -1530,8 +1530,8 @@ scipy = "^1.8.0"
 [package.source]
 type = "git"
 url = "https://github.com/lava-nc/lava.git"
-reference = "port_perf_fix"
-resolved_reference = "8667204ced6a980170bd59955101049ea18e3e4b"
+reference = "main"
+resolved_reference = "efb49ce94498ddea5bf314dd4c7762de07df212f"
 
 [[package]]
 name = "linecache2"
@@ -1807,14 +1807,14 @@ test = ["ipykernel", "ipython", "ipywidgets", "nbconvert (>=7.0.0)", "pytest (>=
 
 [[package]]
 name = "nbconvert"
-version = "7.2.7"
+version = "7.2.10"
 description = "Converting Jupyter Notebooks"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "nbconvert-7.2.7-py3-none-any.whl", hash = "sha256:e057f1f87a6ac50629b724d9a46b40e2ba394d6f20ee7f33f4acef1928a15af3"},
-    {file = "nbconvert-7.2.7.tar.gz", hash = "sha256:8b727b0503bf4e0ff3907c8bea030d3fc4015fbee8669ac6ac2a5a6668b49d5e"},
+    {file = "nbconvert-7.2.10-py3-none-any.whl", hash = "sha256:e41118f81698d3d59b3c7c2887937446048f741aba6c367c1c1a77810b3e2d08"},
+    {file = "nbconvert-7.2.10.tar.gz", hash = "sha256:8eed67bd8314f3ec87c4351c2f674af3a04e5890ab905d6bd927c05aec1cf27d"},
 ]
 
 [package.dependencies]
@@ -1837,7 +1837,7 @@ traitlets = ">=5.0"
 
 [package.extras]
 all = ["nbconvert[docs,qtpdf,serve,test,webpdf]"]
-docs = ["ipykernel", "ipython", "myst-parser", "nbsphinx (>=0.2.12)", "pydata-sphinx-theme", "sphinx (==5.0.2)"]
+docs = ["ipykernel", "ipython", "myst-parser", "nbsphinx (>=0.2.12)", "pydata-sphinx-theme", "sphinx (==5.0.2)", "sphinxcontrib-spelling"]
 qtpdf = ["nbconvert[qtpng]"]
 qtpng = ["pyqtwebengine (>=5.15)"]
 serve = ["tornado (>=6.1)"]
@@ -3296,4 +3296,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<3.11"
-content-hash = "75352efe39e3e4d8ea1a1585e7d2aebccdb9752410d201c301b1c158c3bc3073"
+content-hash = "b45db3c9340dc1fcfd6ec9349c29acde7e143f801e163b33bc2993d4437c2c1d"

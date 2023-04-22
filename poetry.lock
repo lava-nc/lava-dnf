@@ -1513,7 +1513,7 @@ files = [
 
 [[package]]
 name = "lava-nc"
-version = "0.6.0"
+version = "0.7.0"
 description = "A Software Framework for Neuromorphic Computing"
 category = "main"
 optional = false
@@ -1530,8 +1530,8 @@ scipy = "^1.8.0"
 [package.source]
 type = "git"
 url = "https://github.com/lava-nc/lava.git"
-reference = "main"
-resolved_reference = "efb49ce94498ddea5bf314dd4c7762de07df212f"
+reference = "v0.7.0"
+resolved_reference = "82a044a6cc55d78c4ed80c3ec61aea84dba6c282"
 
 [[package]]
 name = "linecache2"
@@ -3296,4 +3296,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<3.11"
-content-hash = "b45db3c9340dc1fcfd6ec9349c29acde7e143f801e163b33bc2993d4437c2c1d"
+content-hash = "0f3e2bbdfe483e3eeb50b393283fcd7c3af8f5e8865cc98e45cab8f4c5da6c11"

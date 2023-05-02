@@ -10,7 +10,7 @@ description = "A library that provides processes and other software infrastructu
 authors = ["Intel's Neuromorphic Computing Lab and the open source community <lava@intel.com>"]
 homepage = "https://lava-nc.org/"
 repository = "https://github.com/lava-nc/lava-dnf.git"
-license = "BSD-3-Clause"
+license = "(BSD-3-Clause)"
 keywords = [
     "neuromorphic",
     "ai",
@@ -28,8 +28,7 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
-    "License :: OSI Approved :: The 3-Clause BSD License (BSD-3-Clause)",
-    "License :: OSI Approved :: GNU Lesser General Public License v2.1 or later (LGPL-2.1-or-later)",
+    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent"
 ]
 

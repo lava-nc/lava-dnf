@@ -19,6 +19,7 @@ from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 from lava.lib.dnf.utils.convenience import num_neurons
 from scipy.sparse import csr_matrix, spmatrix
 
+
 class MockProcess(AbstractProcess):
     """Mock Process with an InPort and OutPort"""
 
@@ -241,7 +242,6 @@ class TestConnect(unittest.TestCase):
 
         self.assertTrue(np.array_equal(computed_weights, expected_weights))
 
-
     def test_connection_is_sparse_for_none(self) -> None:
         """Tests connection is Sparse if the connection parameter is None."""
         # create mock processes and an operation to connect
@@ -262,7 +262,8 @@ class TestConnect(unittest.TestCase):
         op = MockNoChangeOperation()
 
         # connect source to target
-        connections = connect(source.s_out, destination.a_in, ops=[op], connection=Sparse)
+        connections = connect(source.s_out, destination.a_in, ops=[op],
+                              connection=Sparse)
         self.assertIsInstance(connections.procs.process, Sparse)
         self.assertIsInstance(connections.weights.get(), spmatrix)
 
@@ -274,11 +275,10 @@ class TestConnect(unittest.TestCase):
         op = MockNoChangeOperation()
 
         # connect source to target
-        connections = connect(source.s_out, destination.a_in, ops=[op], connection=Dense)
+        connections = connect(source.s_out, destination.a_in, ops=[op],
+                              connection=Dense)
         self.assertIsInstance(connections.procs.process, Dense)
         self.assertIsInstance(connections.weights.get(), np.ndarray)
-
-
 
 
 if __name__ == '__main__':

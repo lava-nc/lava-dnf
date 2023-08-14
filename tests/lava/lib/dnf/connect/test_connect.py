@@ -17,7 +17,7 @@ from lava.lib.dnf.operations.shape_handlers import AbstractShapeHandler, \
     KeepShapeShapeHandler
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 from lava.lib.dnf.utils.convenience import num_neurons
-from scipy.sparse import csr_matrix, spmatrix
+from scipy.sparse import spmatrix
 
 
 class MockProcess(AbstractProcess):

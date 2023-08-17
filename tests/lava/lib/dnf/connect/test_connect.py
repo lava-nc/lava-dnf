@@ -121,7 +121,8 @@ class TestConnect(unittest.TestCase):
         destination = MockProcess(shape=shape)
 
         # connect source to target
-        connections = connect(source.s_out, destination.a_in, connection_class=Dense)
+        connections = connect(source.s_out, destination.a_in,
+                              connection_class=Dense)
 
         # default connection weights should be the identity matrix
         np.testing.assert_array_equal(connections.weights.get(),

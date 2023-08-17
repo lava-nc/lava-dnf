@@ -19,7 +19,8 @@ def connect(
     dst_ip: InPort,
     ops: ty.Optional[ty.Union[ty.List[AbstractOperation],
                               AbstractOperation]] = None,
-    connection_class: ty.Optional[ty.Union[ty.Type[Sparse], ty.Type[Dense]]] = None
+    connection_class: ty.Optional[ty.Union[ty.Type[Sparse], ty.Type[Dense]]]
+    = None
 ) -> ty.Union[Sparse, Dense]:
     """
     Creates and returns a Connections Process <conn> and connects the source
@@ -41,10 +42,10 @@ def connect(
     ops : list(AbstractOperation), optional
         list of operations that describes how the connection between
         <src_op> and <dst_ip> will be created
-    connection_class : Class of the connecting process (Dense or Sparse), optional
-        Class of the process used between src_op and dst_ip. If connection_class is None
-        the connection process will be defined automatically (currently a Sparse
-        Process is always used).
+    connection_class : Class of the connecting process (Dense/Sparse), optional
+        Class of the process used between src_op and dst_ip. If connection_class
+        is None the connection process will be defined automatically
+        (currently a Sparse Process is used in that case).
 
     Returns
     -------
@@ -202,7 +203,8 @@ def _compute_weights(ops: ty.List[AbstractOperation]) -> np.ndarray:
 def _make_connections(src_op: OutPort,
                       dst_ip: InPort,
                       weights: np.ndarray,
-                      connection_class: ty.Optional[ty.Union[Sparse, Dense]] = None
+                      connection_class: ty.Optional[ty.Union[Sparse, Dense]]
+                      = None
                       ) -> ty.Union[Sparse, Dense]:
     """
     Creates a Connections Process with the given weights and connects its
@@ -218,10 +220,10 @@ def _make_connections(src_op: OutPort,
         InPort of the destination Process
     weights : numpy.ndarray
         connectivity weight matrix used for the Connections Process
-    connection_class : Class of the connecting process (Dense or Sparse), optional
-        Class of the process used between src_op and dst_ip. If connection_class is None
-        the connection process will be defined automatically (currently a Sparse
-        Process is always used).
+    connection_class : Class of the connecting process (Dense/Sparse), optional
+        Class of the process used between src_op and dst_ip. If connection_class
+        is None the connection process will be defined automatically
+        (currently a Sparse Process is used in that case).
 
     Returns
     -------

@@ -5,7 +5,7 @@
 import typing as ty
 import numpy as np
 
-from lava.magma.core.process.process import AbstractProcess
+
 from lava.proc.dense.models import Dense
 from lava.proc.sparse.models import Sparse
 from lava.magma.core.process.ports.ports import InPort, OutPort
@@ -49,9 +49,8 @@ def connect(
 
     Returns
     -------
-    connections : AbstractProcess
-        process containing the connections between <src_op> and <dst_ip>
-
+    connections : Sparse or Dense Process
+        Process containing the connections between <src_op> and <dst_ip>
     """
     # validate the list of operations
     ops = _validate_ops(ops, src_op.shape, dst_ip.shape)
@@ -227,8 +226,8 @@ def _make_connections(src_op: OutPort,
 
     Returns
     -------
-    Connections Process : AbstractProcess
-
+    connections : Sparse or Dense Process
+        Process containing the connections between <src_op> and <dst_ip>
     """
 
     # Create the connections process

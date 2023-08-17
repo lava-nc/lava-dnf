@@ -99,7 +99,7 @@ class TestConnectingWithOperations(unittest.TestCase):
             computed = connect(source.s_out,
                                destination.a_in,
                                ops=[reduce_op, reorder_op],
-                               connection=Dense)
+                               connection_class=Dense)
 
             self.assertTrue(np.array_equal(computed.weights.get(), expected))
 
@@ -171,7 +171,7 @@ class TestConnectingWithOperations(unittest.TestCase):
             computed = connect(source.s_out,
                                destination.a_in,
                                ops=[expand_op, reorder_op],
-                               connection=Dense)
+                               connection_class=Dense)
 
             self.assertTrue(np.array_equal(computed.weights.get(), expected))
 
@@ -243,7 +243,7 @@ class TestConnectingWithOperations(unittest.TestCase):
             computed = connect(source.s_out,
                                destination.a_in,
                                ops=[expand_op, reorder_op],
-                               connection=Dense)
+                               connection_class=Dense)
 
             self.assertTrue(np.array_equal(computed.weights.get(), expected))
 

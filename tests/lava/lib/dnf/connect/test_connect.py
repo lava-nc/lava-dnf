@@ -121,7 +121,7 @@ class TestConnect(unittest.TestCase):
         destination = MockProcess(shape=shape)
 
         # connect source to target
-        connections = connect(source.s_out, destination.a_in, connection=Dense)
+        connections = connect(source.s_out, destination.a_in, connection_class=Dense)
 
         # default connection weights should be the identity matrix
         np.testing.assert_array_equal(connections.weights.get(),
@@ -233,7 +233,7 @@ class TestConnect(unittest.TestCase):
                        MockProcess(shape).a_in,
                        ops=[MockNoChangeOpWeights(weight=w1),
                             MockNoChangeOpWeights(weight=w2)],
-                       connection=Dense)
+                       connection_class=Dense)
 
         computed_weights = conn.weights.get()
         expected_weights = np.eye(num_neurons(shape),
@@ -242,8 +242,8 @@ class TestConnect(unittest.TestCase):
 
         self.assertTrue(np.array_equal(computed_weights, expected_weights))
 
-    def test_connection_is_sparse_for_none(self) -> None:
-        """Tests connection is Sparse if the connection parameter is None."""
+    def test_connection_is_sparse_when_no_connection_class_is_specified(self) \
+            -> None:
         # create mock processes and an operation to connect
         source = MockProcess(shape=(1, 2, 3))
         destination = MockProcess(shape=(1, 2, 3))
@@ -251,11 +251,21 @@ class TestConnect(unittest.TestCase):
 
         # connect source to target
         connections = connect(source.s_out, destination.a_in, ops=[op])
-        self.assertIsInstance(connections.procs.process, Sparse)
-        self.assertIsInstance(connections.weights.get(), spmatrix)
+        self.assertIsInstance(connections, Sparse)
 
-    def test_connection_is_sparse_for_sparse(self) -> None:
-        """Tests connection is Sparse if the connection parameter is Sparse."""
+    def test_connection_is_sparse_when_sparse_connection_class_is_specified(self) \
+            -> None:
+        source = MockProcess(shape=(1, 2, 3))
+        destination = MockProcess(shape=(1, 2, 3))
+        op = MockNoChangeOperation()
+
+        # connect source to target
+        connections = connect(source.s_out, destination.a_in, ops=[op],
+                              connection_class=Sparse)
+        self.assertIsInstance(connections, Sparse)
+
+    def test_connection_is_sparse_when_dense_connection_class_is_specified(self) \
+            -> None:
         # create mock processes and an operation to connect
         source = MockProcess(shape=(1, 2, 3))
         destination = MockProcess(shape=(1, 2, 3))
@@ -263,22 +273,8 @@ class TestConnect(unittest.TestCase):
 
         # connect source to target
         connections = connect(source.s_out, destination.a_in, ops=[op],
-                              connection=Sparse)
-        self.assertIsInstance(connections.procs.process, Sparse)
-        self.assertIsInstance(connections.weights.get(), spmatrix)
-
-    def test_connection_is_dense_for_dense(self) -> None:
-        """Tests connection is Dense if the connection parameter is Dense."""
-        # create mock processes and an operation to connect
-        source = MockProcess(shape=(1, 2, 3))
-        destination = MockProcess(shape=(1, 2, 3))
-        op = MockNoChangeOperation()
-
-        # connect source to target
-        connections = connect(source.s_out, destination.a_in, ops=[op],
-                              connection=Dense)
-        self.assertIsInstance(connections.procs.process, Dense)
-        self.assertIsInstance(connections.weights.get(), np.ndarray)
+                              connection_class=Dense)
+        self.assertIsInstance(connections, Dense)
 
 
 if __name__ == '__main__':

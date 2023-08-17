@@ -19,8 +19,8 @@ def connect(
     dst_ip: InPort,
     ops: ty.Optional[ty.Union[ty.List[AbstractOperation],
                               AbstractOperation]] = None,
-    connection: ty.Optional[ty.Union[ty.Type[Sparse], ty.Type[Dense]]] = None
-) -> AbstractProcess:
+    connection_class: ty.Optional[ty.Union[ty.Type[Sparse], ty.Type[Dense]]] = None
+) -> ty.Union[Sparse, Dense]:
     """
     Creates and returns a Connections Process <conn> and connects the source
     OutPort <src_op> to the InPort of <conn> and the OutPort of <conn> to the
@@ -41,8 +41,8 @@ def connect(
     ops : list(AbstractOperation), optional
         list of operations that describes how the connection between
         <src_op> and <dst_ip> will be created
-    connection : Connection process of type Dense or Sparse, optional
-        Process used between src_op and dst_ip. If connection is None
+    connection_class : Class of the connecting process (Dense or Sparse), optional
+        Class of the process used between src_op and dst_ip. If connection_class is None
         the connection process will be defined automatically (currently a Sparse
         Process is always used).
 
@@ -64,7 +64,7 @@ def connect(
 
     # create Connections process and connect it:
     # source -> connections -> destination
-    connections = _make_connections(src_op, dst_ip, weights, connection)
+    connections = _make_connections(src_op, dst_ip, weights, connection_class)
 
     return connections
 
@@ -202,8 +202,8 @@ def _compute_weights(ops: ty.List[AbstractOperation]) -> np.ndarray:
 def _make_connections(src_op: OutPort,
                       dst_ip: InPort,
                       weights: np.ndarray,
-                      connection: ty.Optional[ty.Union[Sparse, Dense]] = None
-                      ) -> AbstractProcess:
+                      connection_class: ty.Optional[ty.Union[Sparse, Dense]] = None
+                      ) -> ty.Union[Sparse, Dense]:
     """
     Creates a Connections Process with the given weights and connects its
     ports such that:
@@ -218,8 +218,8 @@ def _make_connections(src_op: OutPort,
         InPort of the destination Process
     weights : numpy.ndarray
         connectivity weight matrix used for the Connections Process
-    connection : Connection process of type Dense or Sparse, optional
-        Process used between src_op and dst_ip. If connection is None
+    connection_class : Class of the connecting process (Dense or Sparse), optional
+        Class of the process used between src_op and dst_ip. If connection_class is None
         the connection process will be defined automatically (currently a Sparse
         Process is always used).
 
@@ -230,10 +230,8 @@ def _make_connections(src_op: OutPort,
     """
 
     # Create the connections process
-    if not connection:
-        connections = Sparse(weights=weights)
-    else:
-        connections = connection(weights=weights)
+    connection_class = connection_class or Sparse
+    connections = connection_class(weights=weights)
 
     con_ip = connections.s_in
     src_op.reshape(new_shape=con_ip.shape).connect(con_ip)

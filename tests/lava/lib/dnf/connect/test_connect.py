@@ -242,7 +242,7 @@ class TestConnect(unittest.TestCase):
 
         self.assertTrue(np.array_equal(computed_weights, expected_weights))
 
-    def test_connection_is_sparse_when_no_connection_class_is_specified(self) \
+    def test_connection_is_sparse_if_no_connectionclass_is_specified(self) \
             -> None:
         # create mock processes and an operation to connect
         source = MockProcess(shape=(1, 2, 3))
@@ -253,7 +253,7 @@ class TestConnect(unittest.TestCase):
         connections = connect(source.s_out, destination.a_in, ops=[op])
         self.assertIsInstance(connections, Sparse)
 
-    def test_connection_is_sparse_when_sparse_connection_class_is_specified(self) \
+    def test_connection_is_sparse_if_sparse_connectionclass_is_specified(self) \
             -> None:
         source = MockProcess(shape=(1, 2, 3))
         destination = MockProcess(shape=(1, 2, 3))
@@ -264,7 +264,7 @@ class TestConnect(unittest.TestCase):
                               connection_class=Sparse)
         self.assertIsInstance(connections, Sparse)
 
-    def test_connection_is_sparse_when_dense_connection_class_is_specified(self) \
+    def test_connection_is_sparse_if_dense_connectionclass_is_specified(self) \
             -> None:
         # create mock processes and an operation to connect
         source = MockProcess(shape=(1, 2, 3))

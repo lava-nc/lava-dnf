@@ -42,7 +42,7 @@ def connect(
     ops : list(AbstractOperation), optional
         list of operations that describes how the connection between
         <src_op> and <dst_ip> will be created
-    connection_class : Class of the connecting process (Dense/Sparse), optional
+    connection_class : type(Sparse) or type(Dense), optional
         Class of the process used between src_op and dst_ip. If connection_class
         is None the connection process will be defined automatically
         (currently a Sparse Process is used in that case).
@@ -219,7 +219,7 @@ def _make_connections(src_op: OutPort,
         InPort of the destination Process
     weights : numpy.ndarray
         connectivity weight matrix used for the Connections Process
-    connection_class : Class of the connecting process (Dense/Sparse), optional
+    connection_class : type(Sparse) or type(Dense), optional
         Class of the process used between src_op and dst_ip. If connection_class
         is None the connection process will be defined automatically
         (currently a Sparse Process is used in that case).

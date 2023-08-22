@@ -19,7 +19,6 @@ from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 from lava.lib.dnf.utils.convenience import num_neurons
 
 
-
 class MockProcess(AbstractProcess):
     """Mock Process with an InPort and OutPort"""
 

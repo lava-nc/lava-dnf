@@ -5,7 +5,6 @@
 import unittest
 import numpy as np
 import typing as ty
-
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.magma.core.process.process import AbstractProcess
 from lava.proc.dense.process import Dense
@@ -17,7 +16,6 @@ from lava.lib.dnf.operations.shape_handlers import AbstractShapeHandler, \
     KeepShapeShapeHandler
 from lava.lib.dnf.operations.exceptions import MisconfiguredOpError
 from lava.lib.dnf.utils.convenience import num_neurons
-
 
 class MockProcess(AbstractProcess):
     """Mock Process with an InPort and OutPort"""

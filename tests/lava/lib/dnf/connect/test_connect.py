@@ -254,7 +254,7 @@ class TestConnect(unittest.TestCase):
 
     def test_connection_is_sparse_if_sparse_connectionclass_is_specified(self) \
             -> None:
-        # Create mock processes        
+        # Create mock processes
         source = MockProcess(shape=(1, 2, 3))
         destination = MockProcess(shape=(1, 2, 3))
         op = MockNoChangeOperation()

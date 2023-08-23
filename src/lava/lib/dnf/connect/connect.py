@@ -5,8 +5,9 @@
 import typing as ty
 import numpy as np
 
-from lava.magma.core.process.process import AbstractProcess
+
 from lava.proc.dense.models import Dense
+from lava.proc.sparse.models import Sparse
 from lava.magma.core.process.ports.ports import InPort, OutPort
 
 from lava.lib.dnf.operations.operations import AbstractOperation, Weights
@@ -17,8 +18,10 @@ def connect(
     src_op: OutPort,
     dst_ip: InPort,
     ops: ty.Optional[ty.Union[ty.List[AbstractOperation],
-                              AbstractOperation]] = None
-) -> AbstractProcess:
+                              AbstractOperation]] = None,
+    connection_class: ty.Optional[ty.Union[ty.Type[Sparse], ty.Type[Dense]]]
+    = None
+) -> ty.Union[Sparse, Dense]:
     """
     Creates and returns a Connections Process <conn> and connects the source
     OutPort <src_op> to the InPort of <conn> and the OutPort of <conn> to the
@@ -39,12 +42,15 @@ def connect(
     ops : list(AbstractOperation), optional
         list of operations that describes how the connection between
         <src_op> and <dst_ip> will be created
+    connection_class : type(Sparse) or type(Dense), optional
+        Class of the process used between src_op and dst_ip. If connection_class
+        is None the connection process will be defined automatically
+        (currently a Sparse Process is used in that case).
 
     Returns
     -------
-    connections : AbstractProcess
-        process containing the connections between <src_op> and <dst_ip>
-
+    connections : Sparse or Dense Process
+        Process containing the connections between <src_op> and <dst_ip>
     """
     # validate the list of operations
     ops = _validate_ops(ops, src_op.shape, dst_ip.shape)
@@ -58,7 +64,7 @@ def connect(
 
     # create Connections process and connect it:
     # source -> connections -> destination
-    connections = _make_connections(src_op, dst_ip, weights)
+    connections = _make_connections(src_op, dst_ip, weights, connection_class)
 
     return connections
 
@@ -195,7 +201,10 @@ def _compute_weights(ops: ty.List[AbstractOperation]) -> np.ndarray:
 
 def _make_connections(src_op: OutPort,
                       dst_ip: InPort,
-                      weights: np.ndarray) -> AbstractProcess:
+                      weights: np.ndarray,
+                      connection_class: ty.Optional[ty.Union[Sparse, Dense]]
+                      = None
+                      ) -> ty.Union[Sparse, Dense]:
     """
     Creates a Connections Process with the given weights and connects its
     ports such that:
@@ -210,15 +219,20 @@ def _make_connections(src_op: OutPort,
         InPort of the destination Process
     weights : numpy.ndarray
         connectivity weight matrix used for the Connections Process
+    connection_class : type(Sparse) or type(Dense), optional
+        Class of the process used between src_op and dst_ip. If connection_class
+        is None the connection process will be defined automatically
+        (currently a Sparse Process is used in that case).
 
     Returns
     -------
-    Connections Process : AbstractProcess
-
+    connections : Sparse or Dense Process
+        Process containing the connections between <src_op> and <dst_ip>
     """
 
     # Create the connections process
-    connections = Dense(weights=weights)
+    connection_class = connection_class or Sparse
+    connections = connection_class(weights=weights)
 
     con_ip = connections.s_in
     src_op.reshape(new_shape=con_ip.shape).connect(con_ip)

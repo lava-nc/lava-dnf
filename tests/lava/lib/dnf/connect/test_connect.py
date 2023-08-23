@@ -1,4 +1,4 @@
-# Copyright (C) 2021 Intel Corporation
+# Copyright (C) 2023 Intel Corporation
 # SPDX-License-Identifier: BSD-3-Clause
 # See: https://spdx.org/licenses/
 
@@ -83,16 +83,16 @@ class TestConnect(unittest.TestCase):
         """For a given source, destination, and connections Processes,
         tests whether they have been connected."""
 
-        # check whether the connect function returns a process
+        # Check whether the connect function returns a process
         self.assertIsInstance(connections, AbstractProcess)
 
-        # check whether 'source' is connected to 'connections'
+        # Check whether 'source' is connected to 'connections'
         src_op = source.out_ports.s_out
         con_ip = connections.in_ports.s_in
         self.assertEqual(src_op.get_dst_ports(), [con_ip])
         self.assertEqual(con_ip.get_src_ports(), [src_op])
 
-        # check whether 'connections' is connected to 'target'
+        # Check whether 'connections' is connected to 'target'
         con_op = connections.out_ports.a_out
         dst_op = destination.in_ports.a_in
         self.assertEqual(con_op.get_dst_ports(), [dst_op])
@@ -100,12 +100,12 @@ class TestConnect(unittest.TestCase):
 
     def test_connecting_with_op_that_does_not_change_shape(self) -> None:
         """Tests connecting a source Process to a destination Process."""
-        # create mock processes and an operation to connect
-        source = MockProcess(shape=(1, 2, 3))
+        # Create mock processes and an operation to connect
         destination = MockProcess(shape=(1, 2, 3))
+        source = MockProcess(shape=(1, 2, 3))
         op = MockNoChangeOperation()
 
-        # connect source to target
+        # Connect source to target
         connections = connect(source.s_out, destination.a_in, ops=[op])
 
         self._test_connections(source, destination, connections)
@@ -113,16 +113,16 @@ class TestConnect(unittest.TestCase):
     def test_connecting_without_ops(self) -> None:
         """Tests connecting a source Process to a destination Process
         without specifying any operations."""
-        # create mock processes of the same shape
+        # Create mock processes of the same shape
         shape = (1, 2, 3)
         source = MockProcess(shape=shape)
         destination = MockProcess(shape=shape)
 
-        # connect source to target
+        # Connect source to target
         connections = connect(source.s_out, destination.a_in,
                               connection_class=Dense)
 
-        # default connection weights should be the identity matrix
+        # Default connection weights should be the identity matrix
         np.testing.assert_array_equal(connections.weights.get(),
                                       np.eye(int(np.prod(shape))))
 
@@ -132,7 +132,7 @@ class TestConnect(unittest.TestCase):
         """Tests whether an exception is raised when trying to connect two
         Processes that have different shapes while not specifying any
         operations."""
-        # create mock processes of different shapes
+        # Create mock processes of different shapes
         source = MockProcess(shape=(1, 2, 3))
         destination = MockProcess(shape=(3, 2, 1))
 
@@ -243,34 +243,36 @@ class TestConnect(unittest.TestCase):
 
     def test_connection_is_sparse_if_no_connectionclass_is_specified(self) \
             -> None:
-        # create mock processes and an operation to connect
+        # Create mock processes and an operation to connect
         source = MockProcess(shape=(1, 2, 3))
         destination = MockProcess(shape=(1, 2, 3))
         op = MockNoChangeOperation()
 
-        # connect source to target
+        # Connect source to target
         connections = connect(source.s_out, destination.a_in, ops=[op])
         self.assertIsInstance(connections, Sparse)
 
     def test_connection_is_sparse_if_sparse_connectionclass_is_specified(self) \
             -> None:
+        # Create mock processes        
         source = MockProcess(shape=(1, 2, 3))
         destination = MockProcess(shape=(1, 2, 3))
         op = MockNoChangeOperation()
 
-        # connect source to target
+        # Connect source to target
         connections = connect(source.s_out, destination.a_in, ops=[op],
                               connection_class=Sparse)
         self.assertIsInstance(connections, Sparse)
 
     def test_connection_is_sparse_if_dense_connectionclass_is_specified(self) \
             -> None:
-        # create mock processes and an operation to connect
+        # Create mock processes and an operation to connect
         source = MockProcess(shape=(1, 2, 3))
         destination = MockProcess(shape=(1, 2, 3))
+
         op = MockNoChangeOperation()
 
-        # connect source to target
+        # Connect source to target
         connections = connect(source.s_out, destination.a_in, ops=[op],
                               connection_class=Dense)
         self.assertIsInstance(connections, Dense)

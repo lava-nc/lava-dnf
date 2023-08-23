@@ -245,8 +245,8 @@ class TestConnect(unittest.TestCase):
             -> None:
         # Create mock processes and an operation to connect
         source = MockProcess(shape=(1, 2, 3))
-        destination = MockProcess(shape=(1, 2, 3))
         op = MockNoChangeOperation()
+        destination = MockProcess(shape=(1, 2, 3))
 
         # Connect source to target
         connections = connect(source.s_out, destination.a_in, ops=[op])
@@ -255,9 +255,10 @@ class TestConnect(unittest.TestCase):
     def test_connection_is_sparse_if_sparse_connectionclass_is_specified(self) \
             -> None:
         # Create mock processes
-        source = MockProcess(shape=(1, 2, 3))
-        destination = MockProcess(shape=(1, 2, 3))
+        shape = (1, 2, 3)
+        source = MockProcess(shape=shape)
         op = MockNoChangeOperation()
+        destination = MockProcess(shape=shape)
 
         # Connect source to target
         connections = connect(source.s_out, destination.a_in, ops=[op],
@@ -267,10 +268,9 @@ class TestConnect(unittest.TestCase):
     def test_connection_is_sparse_if_dense_connectionclass_is_specified(self) \
             -> None:
         # Create mock processes and an operation to connect
+        op = MockNoChangeOperation()
         source = MockProcess(shape=(1, 2, 3))
         destination = MockProcess(shape=(1, 2, 3))
-
-        op = MockNoChangeOperation()
 
         # Connect source to target
         connections = connect(source.s_out, destination.a_in, ops=[op],

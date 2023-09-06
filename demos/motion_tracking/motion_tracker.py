@@ -68,7 +68,7 @@ rate_reader_default_config = {
 }
 
 
-class MotionNetwork:
+class MotionTracker:
     """Class to setup the motion tracking network, compile it, and initialize
      its runtime. The network topology looks as follows:
 
@@ -88,7 +88,7 @@ class MotionNetwork:
                  dvs_file_input_config: ty.Optional[dict] = None,
                  multipeak_dnf_config: ty.Optional[dict] = None,
                  selective_dnf_config: ty.Optional[dict] = None,
-                 rate_reader_config: ty.Optional[dict] = None):
+                 rate_reader_config: ty.Optional[dict] = None) -> None:
 
         # Initialize input file/data
         dvs_file_input_config = \
@@ -126,8 +126,8 @@ class MotionNetwork:
         # Initialize send_pipe
         self.send_pipe = send_pipe
 
-        self.create_processes()
-        self.make_connections()
+        self._create_processes()
+        self._make_connections()
 
         # Runtime Creation and Compilation
         exception_pm_map = {
@@ -147,7 +147,7 @@ class MotionNetwork:
                                message_infrastructure_type=mp)
         self.runtime.initialize()
 
-    def create_processes(self):
+    def _create_processes(self) -> None:
         # Instantiate Processes Running on CPU
         self.dvs_file_input = \
             DVSFileInput(true_height=self.true_shape[1],
@@ -183,7 +183,7 @@ class MotionNetwork:
         self.dnf_selective = LIF(shape=self.downsampled_shape,
                                  **self.selective_lif_params)
 
-    def make_connections(self):
+    def _make_connections(self) -> None:
         # Connecting Input Processes
         self.dvs_file_input.event_frame_out.connect(self.c_injector.inp)
 
@@ -220,10 +220,9 @@ class MotionNetwork:
         self.rate_reader_selective.out_port.connect(
             self.data_relayer.dnf_selective_rates_port)
 
-    def start(self):
+    def start(self) -> None:
         self.runtime.start(RunSteps(num_steps=self.num_steps, blocking=self.blocking))
 
-    def stop(self):
+    def stop(self) -> None:
         self.runtime.wait()
         self.runtime.stop()
-

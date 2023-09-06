@@ -11,7 +11,7 @@ from lava.proc.lif.process import LIF
 from lava.proc.embedded_io.spike import NxToPyAdapter, PyToNxAdapter
 from lava.lib.dnf.kernels.kernels import MultiPeakKernel, SelectiveKernel
 from lava.lib.dnf.operations.operations import Convolution, Weights
-from demos.motion_tracking.process_out.process import ProcessOut, DataRelayerPM
+from demos.motion_tracking.process_out.process import ProcessOut, ProcessOutModel
 from lava.magma.core.run_configs import Loihi2HwCfg
 from demos.motion_tracking.rate_reader.process import RateReader
 from lava.magma.compiler.compiler import Compiler
@@ -132,7 +132,7 @@ class MotionTracker:
         # Runtime Creation and Compilation
         exception_pm_map = {
             DVSFileInput: PyDVSFileInputPM,
-            ProcessOut: DataRelayerPM
+            ProcessOut: ProcessOutModel
         }
         run_cfg = Loihi2HwCfg(exception_proc_model_map=exception_pm_map)
         self.num_steps = num_steps

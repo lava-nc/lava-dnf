@@ -5,7 +5,12 @@
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
 from scipy import signal
-from dv import AedatFile
+try:
+    from dv import AedatFile
+except ModuleNotFoundError:
+    print("Module 'dv' is not installed. Please install module 'dv' in order"
+          " to use the process DVSFileInput.")
+    exit()
 
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import OutPort

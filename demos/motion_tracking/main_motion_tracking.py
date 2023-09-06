@@ -5,10 +5,15 @@
 import threading
 import functools
 import multiprocessing
-from bokeh.plotting import figure, curdoc
-from bokeh.layouts import gridplot, Spacer
-from bokeh.models import LinearColorMapper, ColorBar, Title, Button
-from bokeh.models.ranges import DataRange1d
+try:
+    from bokeh.plotting import figure, curdoc
+    from bokeh.layouts import gridplot, Spacer
+    from bokeh.models import LinearColorMapper, ColorBar, Title, Button
+    from bokeh.models.ranges import DataRange1d
+except ModuleNotFoundError:
+    print("Module 'bokeh' is not installed. Please install module 'bokeh' in"
+          " order to run the motion tracking demo.")
+    exit()
 import sys
 from motion_tracker import MotionTracker
 
@@ -46,7 +51,7 @@ def main() -> None:
     def create_plot(plot_base_width,
                     data_shape,
                     title,
-                    max_value=1) -> figure, figure.image:
+                    max_value=1) -> (figure, figure.image):
         x_range = DataRange1d(start=0,
                             end=data_shape[0],
                             bounds=(0, data_shape[0]),

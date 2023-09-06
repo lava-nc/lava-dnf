@@ -17,6 +17,7 @@ from demos.motion_tracking.rate_reader.process import RateReader
 from lava.magma.compiler.compiler import Compiler
 from lava.magma.core.process.message_interface_enum import ActorType
 from lava.magma.runtime.runtime import Runtime
+from lava.magma.compiler.executable import Executable
 from lava.magma.compiler.subcompilers.nc.ncproc_compiler import CompilerOptions
 
 CompilerOptions.verbose = True
@@ -44,7 +45,7 @@ multipeak_dnf_default_config = {
         "amp_exc": 14,
         "width_exc": [5, 5],
         "amp_inh": -10,
-        "width_inh": [10, 10]
+        "width_inh": [9, 9]
     },
     "out_conn": {
         "weight": 20,
@@ -88,7 +89,8 @@ class MotionTracker:
                  dvs_file_input_config: ty.Optional[dict] = None,
                  multipeak_dnf_config: ty.Optional[dict] = None,
                  selective_dnf_config: ty.Optional[dict] = None,
-                 rate_reader_config: ty.Optional[dict] = None) -> None:
+                 rate_reader_config: ty.Optional[dict] = None,
+                 executable: ty.Optional[Executable] = None) -> None:
 
         # Initialize input file/data
         dvs_file_input_config = \
@@ -137,9 +139,12 @@ class MotionTracker:
         run_cfg = Loihi2HwCfg(exception_proc_model_map=exception_pm_map)
         self.num_steps = num_steps
         self.blocking = blocking
+
         # Compilation
         compiler = Compiler()
-        executable = compiler.compile(self.dvs_file_input, run_cfg=run_cfg)
+
+        if executable is None:
+            executable = compiler.compile(self.dvs_file_input, run_cfg=run_cfg)
 
         # Initialize runtime
         mp = ActorType.MultiProcessing

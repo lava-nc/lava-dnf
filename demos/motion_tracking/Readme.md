@@ -12,12 +12,12 @@ ssh <my-vm>.research.intel-research.net -L 127.0.0.1:<port_num>:127.0.0.1:<port_
 ```
 
 #### Activate your virtual environment
-e.g.
+- depends on where your venv is located, e.g.:
 ```bash
 source .venv/bin/activate
 ```
 
-#### To run the motion_tracking demo:
+#### Navigate to the motion_tracking demo:
 ```bash
 cd lava-dnf/demos/motion_tracking
 ```

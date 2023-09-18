@@ -17,7 +17,9 @@ except ModuleNotFoundError:
     exit()
 from motion_tracker import MotionTracker
 from lava.utils.serialization import load
+from lava.utils import loihi
 
+loihi.use_slurm_host()
 
 # ==========================================================================
 # Parameters
@@ -25,9 +27,9 @@ from lava.utils.serialization import load
 recv_pipe, send_pipe = multiprocessing.Pipe()
 num_steps = 3000
 
-# Checks whether terminate button has been clicked and allows to stop
-# updating the bokeh doc
-is_done = [False]
+class BokehControl:
+    """Class which holds control state for Bokeh."""
+    stop_button_pressed: bool = False
 # ==========================================================================
 # Set up network
 # ==========================================================================
@@ -46,7 +48,7 @@ def callback_run() -> None:
 
 
 def callback_stop() -> None:
-    is_done[0] = True
+    BokehControl.stop_button_pressed = True
     network.stop()
     sys.exit()
 
@@ -143,7 +145,7 @@ def update(dvs_frame_ds_image,
 # Bokeh Main loop
 # ==========================================================================
 def main_loop() -> None:
-    while not is_done[0]:
+    while not BokehControl.stop_button_pressed:
         if recv_pipe.poll():
             data_for_plot_dict = recv_pipe.recv()
             bokeh_document.add_next_tick_callback(

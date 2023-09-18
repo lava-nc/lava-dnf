@@ -12,9 +12,9 @@ ssh <my-vm>.research.intel-research.net -L 127.0.0.1:<port_num>:127.0.0.1:<port_
 ```
 
 #### Activate your virtual environment
-- depends on where your venv is located, e.g.:
+Location of your virtual enviornment might differ.
 ```bash
-source .venv/bin/activate
+source lava/lava_nx_env/bin/activate
 ```
 
 #### Navigate to the motion_tracking demo:
@@ -23,7 +23,7 @@ cd lava-dnf/demos/motion_tracking
 ```
 #### Start the bokeh app
 ```bash
-SLURM=1 LOIHI_GEN=N3C1 PARTITION=kp bokeh serve app.py --port <port_num>
+SLURM=1 LOIHI_GEN=N3C1 PARTITION=kp bokeh serve main_motion_tracking.py --port <port_num>
 ```
 
 open your browser and type:

@@ -54,4 +54,16 @@ jobs:
         repository: 'Lava-DNF'    
 
     - name: Run unit tests
-      run: poetry run pytest
+      run: poetry run coverage run -m pytest
+
+    - name: Generate coverage report
+      if: runner.os == 'Linux'
+      run: poetry run coverage xml
+
+    - name: Archive coverage report
+      if: runner.os == 'Linux'
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage
+        path: coverage.xml
+        retention-days: 30

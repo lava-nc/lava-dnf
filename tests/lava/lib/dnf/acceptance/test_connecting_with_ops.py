@@ -8,6 +8,7 @@ import numpy as np
 from lava.magma.core.run_conditions import RunSteps
 from lava.magma.core.run_configs import Loihi1SimCfg
 from lava.proc.lif.process import LIF
+from lava.proc.dense.process import Dense
 
 from lava.lib.dnf.connect.connect import connect
 from lava.lib.dnf.kernels.kernels import SelectiveKernel, MultiPeakKernel
@@ -97,7 +98,8 @@ class TestConnectingWithOperations(unittest.TestCase):
             reduce_op = ReduceDims(reduce_dims=dims)
             computed = connect(source.s_out,
                                destination.a_in,
-                               ops=[reduce_op, reorder_op])
+                               ops=[reduce_op, reorder_op],
+                               connection_class=Dense)
 
             self.assertTrue(np.array_equal(computed.weights.get(), expected))
 
@@ -168,7 +170,8 @@ class TestConnectingWithOperations(unittest.TestCase):
             expand_op = ExpandDims(new_dims_shape=(2,))
             computed = connect(source.s_out,
                                destination.a_in,
-                               ops=[expand_op, reorder_op])
+                               ops=[expand_op, reorder_op],
+                               connection_class=Dense)
 
             self.assertTrue(np.array_equal(computed.weights.get(), expected))
 
@@ -239,7 +242,8 @@ class TestConnectingWithOperations(unittest.TestCase):
             expand_op = ExpandDims(new_dims_shape=(2, 2))
             computed = connect(source.s_out,
                                destination.a_in,
-                               ops=[expand_op, reorder_op])
+                               ops=[expand_op, reorder_op],
+                               connection_class=Dense)
 
             self.assertTrue(np.array_equal(computed.weights.get(), expected))
 

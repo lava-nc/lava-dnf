@@ -31,21 +31,21 @@ implementations of DNFs on a CPU or GPU (e.g., using
 ## Key features
 
 Building DNF architectures
-- Based on spiking neurons
-- DNF dimensionality support for 0D, 1D, 2D, and 3D
-- Recurrent connectivity based on kernel functions
-- Forward connectivity to connect multiple DNFs
-- Structured input from spike generators
+-   Based on spiking neurons
+-   DNF dimensionality support for 0D, 1D, 2D, and 3D
+-   Recurrent connectivity based on kernel functions
+-   Forward connectivity to connect multiple DNFs
+-   Structured input from spike generators
 
 Running DNF architectures
-- On CPU (Python simulation)
-- On Loihi 2
+-   On CPU (Python simulation)
+-   On Loihi 2
 
 Examples demonstrating basic DNF regimes and instabilities
-- Detection of input
-- Selection of input
-- Working memory of input
-- Relational networks
+-   Detection of input
+-   Selection of input
+-   Working memory of input
+-   Relational networks
 
 
 ## Installation

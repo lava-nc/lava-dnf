@@ -5,9 +5,6 @@
 import unittest
 import numpy as np
 
-from lava.magma.core.run_conditions import RunSteps
-from lava.magma.core.run_configs import Loihi1SimCfg
-
 from lava.lib.dnf.inputs.rate_code_spike_gen.process import RateCodeSpikeGen
 
 

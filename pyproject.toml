@@ -41,7 +41,7 @@ classifiers = [
 
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.11"
+python = ">=3.10, <3.11"
 
 lava-nc = { git = "https://github.com/lava-nc/lava.git", branch = "main", develop = true }
 

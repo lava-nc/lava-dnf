@@ -52,7 +52,7 @@ jobs:
 
       - name: Test artifact tar.gz
         run: |
-          python3.9 -m venv artifact-test
+          python3.10 -m venv artifact-test
           source artifact-test/bin/activate
           artifact=$(ls | grep lava_dnf | grep tar)
           pip install --no-input $artifact
@@ -64,7 +64,7 @@ jobs:
 
       - name: Test artifact .whl
         run: |
-          python3.9 -m venv artifact-test
+          python3.10 -m venv artifact-test
           source artifact-test/bin/activate
           artifact=$(ls | grep lava_dnf | grep whl)
           pip install --no-input $artifact
@@ -96,7 +96,7 @@ jobs:
           mkdir tmp
           cd tmp
           cp ../lava* .
-          python3.9 -m venv artifact-unittest
+          python3.10 -m venv artifact-unittest
           source artifact-unittest/bin/activate
           pip install -U pip
           pip install "nbconvert>=7.2.10,<7.3" pytest>=7.2.0 matplotlib>=3.5.1 ipykernel>=6.15.0 nbformat>=5.3.0
@@ -115,7 +115,7 @@ jobs:
           mkdir tmp
           cd tmp
           cp ../lava* .
-          python3.9 -m venv artifact-unittest
+          python3.10 -m venv artifact-unittest
           source artifact-unittest/bin/activate
           pip install -U pip
           pip install "nbconvert>=7.2.10,<7.3" pytest>=7.2.0 matplotlib>=3.5.1 ipykernel>=6.15.0 nbformat>=5.3.0

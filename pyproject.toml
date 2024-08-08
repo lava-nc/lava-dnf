@@ -5,7 +5,7 @@ packages = [
     {include = "tests"}
 ]
 include = ["tutorials"]
-version = "0.3.0"
+version = "0.4.0.dev0"
 readme = "README.md"
 description = "A library that provides processes and other software infrastructure to build architectures composed of Dynamic Neural Fields (DNF)."
 authors = ["Intel's Neuromorphic Computing Lab and the open source community <lava@intel.com>"]
@@ -43,7 +43,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.10, <3.11"
 
-lava-nc = "0.10.0"
+lava-nc = { git = "https://github.com/lava-nc/lava.git", branch = "main", develop = true }
 
 numpy = "^1.24.4"
 scipy = "^1.10.1"

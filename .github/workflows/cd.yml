@@ -41,7 +41,7 @@ jobs:
           lfs: true
 
       - name: Download lava-dnf artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           name: lava-dnf
 
@@ -82,7 +82,7 @@ jobs:
    
     steps:
       - name: Download lava-dnf artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           name: lava-dnf
 
@@ -154,7 +154,7 @@ jobs:
           repository: 'lava-dnf'
 
       - name: Download lava artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           name: lava-dnf
 

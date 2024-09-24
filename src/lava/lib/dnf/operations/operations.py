@@ -89,7 +89,6 @@ class AbstractOperation(ABC):
         weights : numpy.ndarray
 
         """
-        pass
 
     def _validate_args_with_input_shape(
         self,

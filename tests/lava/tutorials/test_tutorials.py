@@ -17,7 +17,6 @@ from test import support
 import nbformat
 
 import lava.lib.dnf
-import tutorials.lava.lib.dnf
 
 
 class TestTutorials(unittest.TestCase):
@@ -144,9 +143,9 @@ class TestTutorials(unittest.TestCase):
             end to end tutorial, by default False
         """
         cwd = os.getcwd()
+        cur_file_dir = os.path.dirname(os.path.abspath(__file__))
         tutorials_temp_directory = \
-            tutorials.__path__.__dict__["_path"][0]
-        tutorials_directory = ""
+            os.path.join(cur_file_dir, "../../../tutorials")
 
         if dnf_101:
             tutorials_temp_directory = \

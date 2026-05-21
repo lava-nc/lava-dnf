@@ -16,23 +16,23 @@ Objective of issue:
 <!-- Lava-DNF Version bug found in or Lava Version feature is targeting, remove unused versions from Lava Version below-->
 
 **Lava-DNF version:**
-- [ ] **0.2.0** (feature release)
-- [ ] **0.1.1** (bug fixes)
-- [x] **0.1.0** (current version)
+-   [ ] **0.2.0** (feature release)
+-   [ ] **0.1.1** (bug fixes)
+-   [x] **0.1.0** (current version)
 
 <!-- Lava Version bug found in or Lava Version feature is targeting, remove unused versions from Lava Version below-->
 
 **Lava version:**
-- [ ] **0.5.0** (feature release)
-- [ ] **0.4.1** (bug fixes)
-- [x] **0.4.0** (current version)
-- [ ] **0.3.0**
+-   [ ] **0.5.0** (feature release)
+-   [ ] **0.4.1** (bug fixes)
+-   [x] **0.4.0** (current version)
+-   [ ] **0.3.0**
 
 **I'm submitting a ...** 
 <!--  (check one with "x") -->
-- [ ] bug report
-- [ ] feature request
-- [ ] documentation request
+-   [ ] bug report
+-   [ ] feature request
+-   [ ] documentation request
 
 <!-- Please do not submit support requests or "How to" questions here, use discussions Q&A https://github.com/lava-nc/lava-dnf/discussions/categories/q-a -->
 

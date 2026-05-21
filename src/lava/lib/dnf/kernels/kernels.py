@@ -92,7 +92,6 @@ class GaussianMixin(ABC):
             computed weights of the kernel
 
         """
-        pass
 
     def _compute_domain(self) -> np.ndarray:
         """
